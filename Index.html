@@ -47,10 +47,11 @@
     <!--LOGO-->
     <div class="encabezado-textos">
       <h1>Validación documental de docentes</h1>
-      <p>Talento Humano &middot; <span id="nombreAuditoria">Auditoría documental</span></p>
+      <p><span id="nombreRol">Acceso autorizado</span> &middot; <span id="nombreAuditoria">Auditoría documental</span></p>
     </div>
     <div class="sesion" id="sesion" hidden>
       <p class="sesion-correo" id="sesionCorreo"></p>
+      <p class="sesion-rol" id="sesionRol"></p>
       <button type="button" class="btn-mini" id="btnSalir">Cerrar sesión</button>
     </div>
   </div>
@@ -70,34 +71,36 @@
        ========================================================== -->
   <section class="vista" id="vistaLista" aria-labelledby="tituloLista">
 
-    <!-- Las cuatro cifras son además el filtro del listado -->
+    <!-- Las cifras resumen el flujo formal y también filtran el listado -->
     <div class="tira-indicadores" id="tiraIndicadores" role="group"
          aria-label="Filtrar el listado por estado">
       <button type="button" class="indicador indicador-total" data-filtro="TODOS" aria-pressed="true">
         <p>Total docentes</p>
         <p id="cifraTotal">&mdash;</p>
       </button>
-      <button type="button" class="indicador indicador-pendientes" data-filtro="PENDIENTE" aria-pressed="false">
-        <p>Pendientes</p>
-        <p id="cifraPendientes">&mdash;</p>
+      <button type="button" class="indicador indicador-pendientes" data-filtro="POR_ENVIAR" aria-pressed="false">
+        <p>Por enviar</p>
+        <p id="cifraPorEnviar">&mdash;</p>
       </button>
-      <button type="button" class="indicador indicador-validados" data-filtro="VALIDADO" aria-pressed="false">
-        <p>Validados</p>
-        <p id="cifraValidados">&mdash;</p>
+      <button type="button" class="indicador indicador-revision" data-filtro="EN_REVISION" aria-pressed="false">
+        <p>En revisión</p>
+        <p id="cifraEnRevision">&mdash;</p>
       </button>
-      <button type="button" class="indicador indicador-correccion" data-filtro="REQUIERE_CORRECCION" aria-pressed="false">
-        <p>Con correcciones</p>
-        <p id="cifraCorrecciones">&mdash;</p>
+      <button type="button" class="indicador indicador-correccion" data-filtro="DEVUELTO" aria-pressed="false">
+        <p>Devueltos</p>
+        <p id="cifraDevueltos">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-validados" data-filtro="APROBADO" aria-pressed="false">
+        <p>Aprobados</p>
+        <p id="cifraAprobados">&mdash;</p>
       </button>
     </div>
 
     <div class="tarjeta tarjeta-neutra">
-      <h2 class="titulo-vista" id="tituloLista">Docentes por revisar</h2>
-      <p class="descripcion-vista">
-        Seleccione un docente para comparar la información reportada a SNIES con los
-        documentos de soporte. Pulse una de las cifras de arriba para ver solo los
-        docentes de ese estado. La hoja <strong>Docentes</strong> no se modifica: las
-        diferencias quedan registradas aparte.
+      <h2 class="titulo-vista" id="tituloLista">Seguimiento de docentes</h2>
+      <p class="descripcion-vista" id="descripcionLista">
+        Consulte el avance de la validación documental. Pulse una de las cifras de
+        arriba para filtrar el listado por estado del flujo.
       </p>
 
       <div class="buscador">
@@ -150,6 +153,7 @@
             <h2 id="fichaNombre"></h2>
             <p class="ficha-documento" id="fichaDocumento"></p>
             <span class="insignia" id="fichaInsignia"></span>
+            <span class="insignia" id="fichaInsigniaDato"></span>
           </div>
           <div class="ficha-acciones-cabecera">
             <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
@@ -194,11 +198,37 @@
             <!-- Acceso directo a todos los soportes del docente en Drive -->
             <p class="carpeta-docente" id="carpetaDocente" hidden></p>
 
+            <section class="previsualizacion" id="previsualizacion" hidden aria-labelledby="tituloPrevisualizacion">
+              <p class="subtitulo" id="tituloPrevisualizacion">Previsualización de soportes</p>
+              <div class="pestanas-documentos" role="tablist" aria-label="Documento para previsualizar">
+                <button type="button" class="btn-secundario btn-compacto" id="tabActa">Acta de grado</button>
+                <button type="button" class="btn-secundario btn-compacto" id="tabDiploma">Diploma</button>
+              </div>
+              <div class="visor-documento" id="visorDocumento"></div>
+              <p class="nota-pie">Si el visor no carga, use “Abrir en Drive”. El acceso depende de los permisos privados del archivo.</p>
+            </section>
+
             <p class="subtitulo">Observaciones</p>
             <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
             <textarea id="observaciones" maxlength="2000"
                       placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
           </fieldset>
+
+          <section class="panel-revisor" id="panelRevisor" hidden aria-labelledby="tituloPanelRevisor">
+            <p class="subtitulo" id="tituloPanelRevisor">Decisión del revisor</p>
+            <p class="descripcion-vista">Confirme cada dato comparándolo con el acta y el diploma cargados por Talento Humano.</p>
+            <fieldset id="camposRevisor">
+              <legend class="solo-lectores">Verificación independiente del revisor</legend>
+              <div class="criterios-revisor" id="criteriosRevisor"></div>
+              <label for="observacionRevisor">Observación del revisor</label>
+              <textarea id="observacionRevisor" maxlength="2000"
+                        placeholder="Obligatoria cuando el registro se devuelve a Talento Humano."></textarea>
+            </fieldset>
+            <div class="acciones-revisor" id="accionesRevisor">
+              <button type="button" class="btn-secundario" id="btnDevolver">Devolver a Talento Humano</button>
+              <button type="button" class="btn-primario" id="btnAprobar">Aprobar</button>
+            </div>
+          </section>
 
           <div class="aviso" id="avisoGuardado" hidden role="status"></div>
 
@@ -210,6 +240,7 @@
             </div>
             <div class="navegacion-derecha">
               <button type="submit" class="btn-primario" id="btnGuardar">Guardar revisión</button>
+              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar a revisión</button>
             </div>
           </div>
 

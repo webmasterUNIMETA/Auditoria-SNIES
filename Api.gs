@@ -24,6 +24,7 @@
  *   - fue emitido para ESTA aplicacion (aud == ID_CLIENTE_OAUTH)
  *   - el correo esta verificado
  *   - pertenece al dominio institucional (DOMINIO_AUTORIZADO)
+ *   - aparece activo, con un rol permitido, en la hoja privada Usuarios
  *
  * Sin token valido no se responde absolutamente nada. Quien encuentre la
  * URL /exec no obtiene ni un dato.
@@ -38,9 +39,11 @@
  * del proyecto es inalcanzable desde internet.
  */
 var ACCIONES_API = {
-  obtenerDocentes:   function (argumento) { return obtenerDocentes(); },
-  obtenerValidacion: function (argumento) { return obtenerValidacion(argumento); },
-  guardarValidacion: function (argumento) { return guardarValidacion(argumento); }
+  obtenerDocentes:       function (argumento, identidad) { return obtenerDocentes(identidad); },
+  obtenerValidacion:     function (argumento, identidad) { return obtenerValidacion(argumento, identidad); },
+  guardarValidacion:     function (argumento, identidad) { return guardarValidacion(argumento, identidad); },
+  enviarARevision:       function (argumento, identidad) { return enviarARevision(argumento, identidad); },
+  decidirRevision:       function (argumento, identidad) { return decidirRevision(argumento, identidad); }
 };
 
 /* ============================================================
@@ -68,6 +71,7 @@ function doPost(e) {
   var identidad;
   try {
     identidad = verificarIdentidad_(peticion && peticion.token);
+    identidad = autorizarUsuario_(identidad);
   } catch (err) {
     console.warn('Acceso rechazado: ' + (err && err.message ? err.message : err));
     return responderJson_({
@@ -85,7 +89,7 @@ function doPost(e) {
 
   // 3. Ejecucion.
   try {
-    return responderJson_({ ok: true, resultado: ACCIONES_API[nombre](peticion.argumento) });
+    return responderJson_({ ok: true, resultado: ACCIONES_API[nombre](peticion.argumento, identidad) });
   } catch (err) {
     // Las acciones ya atrapan sus fallos internos y los relanzan con un
     // mensaje pensado para la persona, asi que se puede mostrar tal cual.

@@ -25,17 +25,42 @@ var ESTADO_PENDIENTE  = 'PENDIENTE';
 var ESTADO_VALIDADO   = 'VALIDADO';
 var ESTADO_CORRECCION = 'REQUIERE_CORRECCION';
 
+var ROL_TALENTO_HUMANO = 'TALENTO_HUMANO';
+var ROL_REVISOR = 'REVISOR';
+var ROL_CONSULTA = 'CONSULTA';
+
+var REV_POR_ENVIAR = 'POR_ENVIAR';
+var REV_EN_REVISION = 'EN_REVISION';
+var REV_DEVUELTO = 'DEVUELTO';
+var REV_APROBADO = 'APROBADO';
+var REV_CONFORME = 'CONFORME';
+var REV_NO_CONFORME = 'NO_CONFORME';
+
 var NOMBRES_ESTADO = {
   PENDIENTE: 'Pendiente',
   VALIDADO: 'Validado',
   REQUIERE_CORRECCION: 'Requiere corrección'
 };
 
+var NOMBRES_REVISION = {
+  POR_ENVIAR: 'Por enviar',
+  EN_REVISION: 'En revisión',
+  DEVUELTO: 'Devuelto',
+  APROBADO: 'Aprobado'
+};
+
+var NOMBRES_ROL = {
+  TALENTO_HUMANO: 'Talento Humano',
+  REVISOR: 'Revisor',
+  CONSULTA: 'Solo consulta'
+};
+
 /** Como se nombra cada grupo al contarlo: "Mostrando 12 pendientes". */
 var NOMBRES_GRUPO = {
-  PENDIENTE: 'pendientes',
-  VALIDADO: 'validados',
-  REQUIERE_CORRECCION: 'con correcciones'
+  POR_ENVIAR: 'por enviar',
+  EN_REVISION: 'en revisión',
+  DEVUELTO: 'devueltos',
+  APROBADO: 'aprobados'
 };
 
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
@@ -50,9 +75,10 @@ var SIN_CONEXION = 'No fue posible comunicarse con el servidor. ' +
 var APP = {
   auditoria: '',
   criterios: [],
+  perfil: { correo: '', nombre: '', rol: '' },
   requisitos: { actaObligatoria: true, diplomaObligatorio: false },
   docentes: [],
-  resumen: { total: 0, pendientes: 0, validados: 0, correcciones: 0 }
+  resumen: { total: 0, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 }
 };
 
 /**
@@ -124,6 +150,16 @@ function mostrarCapa(texto) {
 function ocultarCapa() {
   $('capaCarga').classList.remove('visible');
   $('capaCarga').setAttribute('aria-hidden', 'true');
+}
+
+function esTalentoHumano() { return APP.perfil.rol === ROL_TALENTO_HUMANO; }
+function esRevisor() { return APP.perfil.rol === ROL_REVISOR; }
+function esConsulta() { return APP.perfil.rol === ROL_CONSULTA; }
+
+function puedeEditarValidacion() {
+  if (!FICHA || !esTalentoHumano()) return false;
+  var estado = FICHA.guardado ? FICHA.guardado.estadoRevision : REV_POR_ENVIAR;
+  return estado === REV_POR_ENVIAR || estado === REV_DEVUELTO;
 }
 
 /* ------------------------------------------------------------
@@ -229,6 +265,8 @@ function abrirAplicacion() {
   $('puerta').hidden = true;
   if (SESION.correo) {
     $('sesionCorreo').textContent = SESION.correo;
+    $('sesionRol').textContent = NOMBRES_ROL[APP.perfil.rol] || APP.perfil.rol || '';
+    $('nombreRol').textContent = NOMBRES_ROL[APP.perfil.rol] || 'Acceso autorizado';
     $('sesion').hidden = false;
   }
 }
@@ -245,6 +283,7 @@ function cerrarSesion(motivo) {
   } catch (e) { /* sin sesión de Google que cerrar */ }
 
   $('sesion').hidden = true;
+  $('sesionRol').textContent = '';
   $('puerta').hidden = false;
   $('puertaTexto').textContent = 'Esta aplicación es de uso interno. ' +
     'Inicie sesión con su cuenta institucional para continuar.';
@@ -341,10 +380,28 @@ function cargarDocentes() {
     APP.auditoria  = datos.auditoria || '';
     APP.criterios  = datos.criterios || [];
     APP.requisitos = datos.requisitos || APP.requisitos;
+    APP.perfil     = datos.perfil || APP.perfil;
     APP.docentes   = datos.docentes || [];
     APP.resumen    = datos.resumen || APP.resumen;
 
     if (APP.auditoria) $('nombreAuditoria').textContent = APP.auditoria;
+
+    if (esTalentoHumano()) {
+      $('tituloLista').textContent = 'Validación documental de docentes';
+      $('descripcionLista').textContent =
+        'Registre la comparación con los soportes y envíe cada docente al revisor. ' +
+        'Los registros enviados quedan bloqueados hasta que sean aprobados o devueltos.';
+    } else if (esRevisor()) {
+      $('tituloLista').textContent = 'Bandeja de revisión';
+      $('descripcionLista').textContent =
+        'Compare los datos reportados y corregidos con el acta y el diploma. ' +
+        'Revise cada criterio antes de aprobar o devolver el registro.';
+    } else {
+      $('tituloLista').textContent = 'Consulta del avance';
+      $('descripcionLista').textContent =
+        'Vista de solo lectura para consultar el avance general y el estado de los docentes. ' +
+        'Esta cuenta no puede abrir fichas, modificar, enviar, aprobar ni devolver registros.';
+    }
 
     aplicarRequisitos();
     pintarIndicadores();
@@ -419,6 +476,11 @@ function conectarEventos() {
   $('btnVolver').addEventListener('click', volverAlListado);
   $('btnEditar').addEventListener('click', entrarEnEdicion);
   $('btnCancelarEdicion').addEventListener('click', cancelarEdicion);
+  $('btnEnviarRevision').addEventListener('click', enviarRevision);
+  $('btnAprobar').addEventListener('click', function () { decidirRevision(REV_APROBADO); });
+  $('btnDevolver').addEventListener('click', function () { decidirRevision(REV_DEVUELTO); });
+  $('tabActa').addEventListener('click', function () { mostrarDocumento('acta'); });
+  $('tabDiploma').addEventListener('click', function () { mostrarDocumento('diploma'); });
 
   $('formRevision').addEventListener('submit', function (evento) {
     evento.preventDefault();
@@ -470,10 +532,11 @@ function mostrarVista(cual) {
 
 function pintarIndicadores() {
   var r = APP.resumen;
-  $('cifraTotal').textContent        = r.total;
-  $('cifraPendientes').textContent   = r.pendientes;
-  $('cifraValidados').textContent    = r.validados;
-  $('cifraCorrecciones').textContent = r.correcciones;
+  $('cifraTotal').textContent      = r.total;
+  $('cifraPorEnviar').textContent  = r.porEnviar;
+  $('cifraEnRevision').textContent = r.enRevision;
+  $('cifraDevueltos').textContent  = r.devueltos;
+  $('cifraAprobados').textContent  = r.aprobados;
 }
 
 function pintarLista() {
@@ -484,7 +547,7 @@ function pintarLista() {
   // Primero el estado y despues el texto, para poder decir "3 de 12
   // pendientes" en lugar de "3 de 50".
   var delEstado = APP.docentes.filter(function (d) {
-    return FILTRO === 'TODOS' || (d.estado || ESTADO_PENDIENTE) === FILTRO;
+    return FILTRO === 'TODOS' || (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
   var visibles = delEstado.filter(function (d) {
@@ -559,7 +622,7 @@ function marcarFiltro() {
 }
 
 function tarjetaDocente(docente) {
-  var estado = docente.estado || ESTADO_PENDIENTE;
+  var estado = docente.estadoRevision || REV_POR_ENVIAR;
 
   var fila = crear('article', 'docente docente-' + estado);
 
@@ -572,14 +635,22 @@ function tarjetaDocente(docente) {
   var acciones = crear('div', 'docente-acciones');
   acciones.appendChild(insignia(estado));
 
-  var revisado = estado !== ESTADO_PENDIENTE;
+  if (esConsulta()) {
+    fila.appendChild(acciones);
+    return fila;
+  }
+
+  var tieneValidacion = (docente.estado || ESTADO_PENDIENTE) !== ESTADO_PENDIENTE;
+  var textoBoton = esTalentoHumano() && !tieneValidacion ? 'Validar' : 'Ver detalle';
+  if (esRevisor() && estado === REV_EN_REVISION) textoBoton = 'Revisar';
   var boton = crear('button',
-    'btn-compacto ' + (revisado ? 'btn-secundario' : 'btn-primario'),
-    revisado ? 'Ver revisión' : 'Revisar');
+    'btn-compacto ' + ((esTalentoHumano() && !tieneValidacion) ||
+      (esRevisor() && estado === REV_EN_REVISION) ? 'btn-primario' : 'btn-secundario'),
+    textoBoton);
   boton.type = 'button';
   boton.setAttribute('data-documento', docente.documento);
   boton.setAttribute('aria-label',
-    (revisado ? 'Ver revisión de ' : 'Revisar a ') + docente.nombreCompleto);
+    textoBoton + ' de ' + docente.nombreCompleto);
   acciones.appendChild(boton);
 
   fila.appendChild(acciones);
@@ -588,7 +659,7 @@ function tarjetaDocente(docente) {
 
 function insignia(estado) {
   return crear('span', 'insignia insignia-' + estado,
-    NOMBRES_ESTADO[estado] || NOMBRES_ESTADO.PENDIENTE);
+    NOMBRES_REVISION[estado] || NOMBRES_REVISION.POR_ENVIAR);
 }
 
 /* ------------------------------------------------------------
@@ -617,7 +688,7 @@ function abrirFicha(documento) {
       documento: datos.docente.documento,
       docente: datos.docente,
       guardado: datos.existe ? datos.validacion : null,
-      modo: datos.existe ? 'consulta' : 'nueva',
+      modo: datos.existe || !esTalentoHumano() ? 'consulta' : 'nueva',
       archivos: { acta: null, diploma: null },
       quitarDiploma: false,
       guardando: false
@@ -647,8 +718,10 @@ function volverAlListado() {
 function pintarFicha() {
   if (!FICHA) return;
 
-  var soloLectura = FICHA.modo === 'consulta';
-  var estado = FICHA.guardado ? FICHA.guardado.estado : ESTADO_PENDIENTE;
+  var formularioEditable = esTalentoHumano() &&
+    (FICHA.modo === 'nueva' || FICHA.modo === 'edicion') && puedeEditarValidacion();
+  var estadoDato = FICHA.guardado ? FICHA.guardado.estado : ESTADO_PENDIENTE;
+  var estadoRevision = FICHA.guardado ? FICHA.guardado.estadoRevision : REV_POR_ENVIAR;
 
   /* --- Cabecera --- */
   $('fichaNombre').textContent = FICHA.docente.nombreCompleto || '(sin nombre)';
@@ -656,20 +729,45 @@ function pintarFicha() {
     (FICHA.docente.tipoDocumento || 'CC') + ' ' + FICHA.docente.documento;
 
   var marca = $('fichaInsignia');
-  marca.className = 'insignia insignia-' + estado;
-  marca.textContent = NOMBRES_ESTADO[estado] || NOMBRES_ESTADO.PENDIENTE;
+  marca.className = 'insignia insignia-' + estadoRevision;
+  marca.textContent = NOMBRES_REVISION[estadoRevision] || NOMBRES_REVISION.POR_ENVIAR;
 
-  $('btnEditar').hidden = !soloLectura;
+  var marcaDato = $('fichaInsigniaDato');
+  marcaDato.className = 'insignia insignia-' + estadoDato;
+  marcaDato.textContent = NOMBRES_ESTADO[estadoDato] || NOMBRES_ESTADO.PENDIENTE;
+
+  $('btnEditar').hidden = !(FICHA.modo === 'consulta' && FICHA.guardado && puedeEditarValidacion());
 
   /* --- Marcas de la revision guardada --- */
   pintarMarcas();
 
   /* --- Cinta de modo --- */
   var cinta = $('cintaModo');
-  if (FICHA.modo === 'consulta') {
+  if (esConsulta()) {
     cinta.hidden = false;
     $('cintaModoTexto').textContent =
-      'Está viendo una revisión ya guardada. Para modificarla use "Editar revisión".';
+      'Vista de solo consulta. Puede revisar el avance y los documentos, pero no modificar ni decidir registros.';
+  } else if (esRevisor() && estadoRevision === REV_EN_REVISION) {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      'Registro enviado por Talento Humano. Compare cada dato con los soportes antes de decidir.';
+  } else if (esRevisor()) {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      'Este registro no está pendiente de decisión. Se muestra en modo de consulta.';
+  } else if (FICHA.modo === 'consulta' && estadoRevision === REV_EN_REVISION) {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      'Registro enviado al revisor. La edición está bloqueada hasta que sea aprobado o devuelto.';
+  } else if (FICHA.modo === 'consulta' && estadoRevision === REV_APROBADO) {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent = 'Registro aprobado y cerrado para edición.';
+  } else if (FICHA.modo === 'consulta') {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      estadoRevision === REV_DEVUELTO
+        ? 'El revisor devolvió este registro. Use "Editar revisión" para corregirlo y enviarlo nuevamente.'
+        : 'Validación guardada. Puede editarla o enviarla al revisor.';
   } else if (FICHA.modo === 'edicion') {
     cinta.hidden = false;
     $('cintaModoTexto').textContent =
@@ -683,13 +781,19 @@ function pintarFicha() {
   /* --- Cuerpo --- */
   pintarCriterios();
   pintarSoportes();
+  pintarPrevisualizacion();
+  pintarPanelRevisor();
 
   $('observaciones').value = FICHA.guardado ? (FICHA.guardado.observaciones || '') : '';
-  $('camposRevision').disabled = soloLectura;
+  $('camposRevision').disabled = !formularioEditable;
 
   /* --- Navegacion --- */
-  $('navegacionFicha').hidden = soloLectura;
+  var puedeEnviar = esTalentoHumano() && FICHA.guardado && FICHA.modo === 'consulta' &&
+    (estadoRevision === REV_POR_ENVIAR || estadoRevision === REV_DEVUELTO);
+  $('navegacionFicha').hidden = !formularioEditable && !puedeEnviar;
   $('btnCancelarEdicion').hidden = FICHA.modo !== 'edicion';
+  $('btnGuardar').hidden = !formularioEditable;
+  $('btnEnviarRevision').hidden = !puedeEnviar;
   $('btnGuardar').textContent = FICHA.modo === 'edicion' ? 'Guardar cambios' : 'Guardar revisión';
   $('btnGuardar').disabled = false;
 
@@ -708,7 +812,13 @@ function pintarMarcas() {
   var marcas = [
     ['Fecha de validación (hora Colombia)', FICHA.guardado.fechaValidacion],
     ['Última modificación (hora Colombia)', FICHA.guardado.fechaModificacion],
-    ['Estado', NOMBRES_ESTADO[FICHA.guardado.estado] || FICHA.guardado.estado]
+    ['Resultado de datos', NOMBRES_ESTADO[FICHA.guardado.estado] || FICHA.guardado.estado],
+    ['Estado de revisión', NOMBRES_REVISION[FICHA.guardado.estadoRevision] || FICHA.guardado.estadoRevision],
+    ['Guardado por', FICHA.guardado.guardadoPor],
+    ['Enviado por', FICHA.guardado.enviadoPor],
+    ['Fecha de envío (hora Colombia)', FICHA.guardado.fechaEnvio],
+    ['Revisado por', FICHA.guardado.revisadoPor],
+    ['Fecha de decisión (hora Colombia)', FICHA.guardado.fechaRevision]
   ];
 
   marcas.forEach(function (par) {
@@ -719,6 +829,110 @@ function pintarMarcas() {
   });
 
   caja.hidden = false;
+}
+
+function pintarPrevisualizacion() {
+  var panel = $('previsualizacion');
+  var guardado = FICHA && FICHA.guardado;
+  var hayActa = !!(guardado && guardado.previewActa);
+  var hayDiploma = !!(guardado && guardado.previewDiploma);
+  panel.hidden = !hayActa && !hayDiploma;
+  $('tabActa').hidden = !hayActa;
+  $('tabDiploma').hidden = !hayDiploma;
+  if (panel.hidden) {
+    vaciar($('visorDocumento'));
+    return;
+  }
+  mostrarDocumento(hayActa ? 'acta' : 'diploma');
+}
+
+function mostrarDocumento(tipo) {
+  if (!FICHA || !FICHA.guardado) return;
+  var esActa = tipo === 'acta';
+  var preview = esActa ? FICHA.guardado.previewActa : FICHA.guardado.previewDiploma;
+  var url = esActa ? FICHA.guardado.urlActa : FICHA.guardado.urlDiploma;
+  if (!preview) return;
+
+  $('tabActa').classList.toggle('activo', esActa);
+  $('tabDiploma').classList.toggle('activo', !esActa);
+  var visor = $('visorDocumento');
+  vaciar(visor);
+
+  var iframe = document.createElement('iframe');
+  iframe.src = preview;
+  iframe.title = 'Previsualización de ' + (esActa ? 'acta de grado' : 'diploma');
+  iframe.loading = 'lazy';
+  iframe.referrerPolicy = 'no-referrer';
+  visor.appendChild(iframe);
+
+  var enlace = crear('a', 'abrir-drive', 'Abrir en Drive');
+  enlace.href = url;
+  enlace.target = '_blank';
+  enlace.rel = 'noopener';
+  visor.appendChild(enlace);
+}
+
+function pintarPanelRevisor() {
+  var panel = $('panelRevisor');
+  if (!FICHA || !FICHA.guardado || esTalentoHumano()) {
+    panel.hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+  var puedeDecidir = esRevisor() && FICHA.guardado.estadoRevision === REV_EN_REVISION;
+  var contenedor = $('criteriosRevisor');
+  vaciar(contenedor);
+
+  APP.criterios.forEach(function (criterio) {
+    var th = FICHA.guardado.criterios && FICHA.guardado.criterios[criterio.clave];
+    var reportado = FICHA.docente.valores ? FICHA.docente.valores[criterio.clave] : '';
+    var valorFinal = th && th.valor === NO_COINCIDE ? th.correccion : reportado;
+    var guardado = FICHA.guardado.revisionCriterios
+      ? FICHA.guardado.revisionCriterios[criterio.clave] : '';
+
+    var fila = crear('div', 'criterio-revisor');
+    fila.setAttribute('data-clave', criterio.clave);
+    var comparacion = crear('div', 'revision-comparacion');
+    comparacion.appendChild(crear('p', 'criterio-etiqueta', criterio.etiqueta));
+    comparacion.appendChild(crear('p', 'revision-original', 'SNIES: ' + (reportado || '(sin dato)')));
+    comparacion.appendChild(crear('p', 'revision-final',
+      'Talento Humano: ' + (valorFinal || '(sin dato)')));
+    fila.appendChild(comparacion);
+
+    var opciones = crear('div', 'opciones-criterio');
+    opciones.appendChild(botonRevision(criterio.clave, REV_CONFORME, '✓', 'Conforme',
+      guardado === REV_CONFORME));
+    opciones.appendChild(botonRevision(criterio.clave, REV_NO_CONFORME, '✕', 'No conforme',
+      guardado === REV_NO_CONFORME));
+    fila.appendChild(opciones);
+    contenedor.appendChild(fila);
+  });
+
+  $('observacionRevisor').value = FICHA.guardado.observacionRevision || '';
+  $('camposRevisor').disabled = !puedeDecidir;
+  $('accionesRevisor').hidden = !puedeDecidir;
+}
+
+function botonRevision(clave, valor, simbolo, texto, marcado) {
+  var etiqueta = crear('label', 'opcion-criterio');
+  var radio = document.createElement('input');
+  radio.type = 'radio';
+  radio.name = 'rev_' + clave;
+  radio.value = valor;
+  radio.checked = !!marcado;
+  etiqueta.appendChild(radio);
+  etiqueta.appendChild(crear('span', 'marca', simbolo));
+  etiqueta.appendChild(document.createTextNode(texto));
+  if (marcado) etiqueta.classList.add(valor === REV_CONFORME ? 'marcada-si' : 'marcada-no');
+  radio.addEventListener('change', function () {
+    Array.prototype.forEach.call(etiqueta.parentNode.querySelectorAll('.opcion-criterio'), function (e) {
+      var r = e.querySelector('input');
+      e.classList.toggle('marcada-si', r.checked && r.value === REV_CONFORME);
+      e.classList.toggle('marcada-no', r.checked && r.value === REV_NO_CONFORME);
+    });
+  });
+  return etiqueta;
 }
 
 function pintarCriterios() {
@@ -1038,7 +1252,7 @@ function recibirArchivo(tipo, input, etiqueta) {
    ------------------------------------------------------------ */
 
 function entrarEnEdicion() {
-  if (!FICHA) return;
+  if (!FICHA || !puedeEditarValidacion()) return;
   FICHA.modo = 'edicion';
   FICHA.archivos = { acta: null, diploma: null };
   FICHA.quitarDiploma = false;
@@ -1079,6 +1293,7 @@ function recolectar() {
 
   return {
     documento: FICHA.documento,
+    version: FICHA.guardado ? FICHA.guardado.version : 0,
     criterios: criterios,
     observaciones: $('observaciones').value.trim(),
     acta: FICHA.archivos.acta,
@@ -1165,7 +1380,7 @@ function etiquetaDe(clave) {
 }
 
 function guardarRevision() {
-  if (!FICHA || FICHA.guardando) return;   // evita el doble envio
+  if (!FICHA || FICHA.guardando || !esTalentoHumano() || !puedeEditarValidacion()) return;
 
   var datos = recolectar();
   var revision = validar(datos);
@@ -1211,7 +1426,7 @@ function guardarRevision() {
       pintarIndicadores();
     }
 
-    actualizarDocenteEnLista(respuesta.documento, respuesta.estado);
+    actualizarDocenteEnLista(respuesta.documento, respuesta.estado, respuesta.validacion.estadoRevision);
     var nombreDocente = FICHA.docente.nombreCompleto || FICHA.documento;
 
     // El servidor ya confirmo el guardado: se actualiza el listado y se
@@ -1229,11 +1444,108 @@ function guardarRevision() {
   });
 }
 
+function enviarRevision() {
+  if (!FICHA || !FICHA.guardado || FICHA.guardando || !esTalentoHumano()) return;
+  var boton = $('btnEnviarRevision');
+  FICHA.guardando = true;
+  boton.disabled = true;
+  mostrarCapa('Enviando al revisor...');
+
+  servidor('enviarARevision', {
+    documento: FICHA.documento,
+    version: FICHA.guardado.version
+  }, function (respuesta) {
+    FICHA.guardando = false;
+    boton.disabled = false;
+    ocultarCapa();
+    if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
+    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision);
+    var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
+    volverAlListado();
+    pintarIndicadores();
+    mostrarAviso($('avisoGeneral'), 'exito',
+      '✓ ' + nombre + ' fue enviado al revisor. El registro quedó bloqueado para edición.');
+  }, function (mensaje) {
+    FICHA.guardando = false;
+    boton.disabled = false;
+    ocultarCapa();
+    mostrarAviso($('avisoGuardado'), 'error', 'No fue posible enviar la revisión: ' + mensaje);
+  });
+}
+
+function recolectarDecision() {
+  var criterios = {};
+  Array.prototype.forEach.call($('criteriosRevisor').querySelectorAll('.criterio-revisor'), function (fila) {
+    var elegido = fila.querySelector('input[type="radio"]:checked');
+    criterios[fila.getAttribute('data-clave')] = elegido ? elegido.value : '';
+    fila.classList.toggle('sin-responder', !elegido);
+  });
+  return criterios;
+}
+
+function decidirRevision(decision) {
+  if (!FICHA || !FICHA.guardado || FICHA.guardando || !esRevisor() ||
+      FICHA.guardado.estadoRevision !== REV_EN_REVISION) return;
+
+  var criterios = recolectarDecision();
+  var faltantes = Object.keys(criterios).filter(function (clave) { return !criterios[clave]; });
+  var observacion = $('observacionRevisor').value.trim();
+  if (faltantes.length) {
+    mostrarAviso($('avisoGuardado'), 'error',
+      'Debe revisar todos los criterios antes de tomar una decisión.');
+    return;
+  }
+  if (decision === REV_APROBADO && Object.keys(criterios).some(function (clave) {
+    return criterios[clave] === REV_NO_CONFORME;
+  })) {
+    mostrarAviso($('avisoGuardado'), 'error',
+      'No puede aprobar mientras exista un criterio marcado como no conforme.');
+    return;
+  }
+  if (decision === REV_DEVUELTO && !observacion) {
+    mostrarAviso($('avisoGuardado'), 'error',
+      'Escriba qué debe corregir Talento Humano antes de devolver el registro.');
+    $('observacionRevisor').focus();
+    return;
+  }
+
+  FICHA.guardando = true;
+  $('btnAprobar').disabled = true;
+  $('btnDevolver').disabled = true;
+  mostrarCapa(decision === REV_APROBADO ? 'Aprobando revisión...' : 'Devolviendo a Talento Humano...');
+
+  servidor('decidirRevision', {
+    documento: FICHA.documento,
+    version: FICHA.guardado.version,
+    decision: decision,
+    criterios: criterios,
+    observacion: observacion
+  }, function (respuesta) {
+    FICHA.guardando = false;
+    ocultarCapa();
+    if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
+    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision);
+    var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
+    volverAlListado();
+    pintarIndicadores();
+    mostrarAviso($('avisoGeneral'), 'exito', decision === REV_APROBADO
+      ? '✓ Revisión de ' + nombre + ' aprobada.'
+      : '↩ Revisión de ' + nombre + ' devuelta a Talento Humano.');
+  }, function (mensaje) {
+    FICHA.guardando = false;
+    $('btnAprobar').disabled = false;
+    $('btnDevolver').disabled = false;
+    ocultarCapa();
+    mostrarAviso($('avisoGuardado'), 'error', 'No fue posible registrar la decisión: ' + mensaje);
+  });
+}
+
 /** Refleja el nuevo estado en la lista sin volver a pedirla al servidor. */
-function actualizarDocenteEnLista(documento, estado) {
+function actualizarDocenteEnLista(documento, estado, estadoRevision) {
   for (var i = 0; i < APP.docentes.length; i++) {
     if (APP.docentes[i].documento === documento) {
-      APP.docentes[i].estado = estado;
+      if (estado) APP.docentes[i].estado = estado;
+      if (estadoRevision) APP.docentes[i].estadoRevision = estadoRevision;
       return;
     }
   }

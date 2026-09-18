@@ -73,6 +73,9 @@ const docentes = MUESTRA.map((f) => {
     tipoDocumento: tipo,
     nombreCompleto: [n1, n2, a1, a2].filter(Boolean).join(' '),
     estado,
+    estadoRevision: estado === 'VALIDADO'
+      ? 'EN_REVISION'
+      : estado === 'REQUIERE_CORRECCION' ? 'DEVUELTO' : 'POR_ENVIAR',
     valores: {
       NUM_DOCUMENTO: doc, PRIMER_NOMBRE: n1, SEGUNDO_NOMBRE: n2,
       PRIMER_APELLIDO: a1, SEGUNDO_APELLIDO: a2, NIVEL_ESTUDIO: nivel,
@@ -91,9 +94,18 @@ guardadas['DOC-EJ-002'] = {
   urlCarpeta: 'https://drive.google.com/drive/folders/',
   urlActa: 'https://drive.google.com/',
   urlDiploma: 'https://drive.google.com/',
+  previewActa: 'about:blank',
+  previewDiploma: 'about:blank',
   fechaValidacion: '12/09/2026 09:14',
   fechaModificacion: '12/09/2026 09:14',
-  estado: 'VALIDADO'
+  estado: 'VALIDADO',
+  estadoRevision: 'EN_REVISION',
+  version: 2,
+  guardadoPor: 'talento.humano@ejemplo.edu.co',
+  enviadoPor: 'talento.humano@ejemplo.edu.co',
+  fechaEnvio: '12/09/2026 09:20',
+  revisadoPor: '', fechaRevision: '', decisionRevision: '', observacionRevision: '',
+  revisionCriterios: {}
 };
 
 guardadas['DOC-EJ-003'] = {
@@ -110,9 +122,23 @@ guardadas['DOC-EJ-003'] = {
   urlCarpeta: 'https://drive.google.com/drive/folders/',
   urlActa: 'https://drive.google.com/',
   urlDiploma: '',
+  previewActa: 'about:blank',
+  previewDiploma: '',
   fechaValidacion: '14/09/2026 15:32',
   fechaModificacion: '16/09/2026 08:05',
-  estado: 'REQUIERE_CORRECCION'
+  estado: 'REQUIERE_CORRECCION',
+  estadoRevision: 'DEVUELTO',
+  version: 3,
+  guardadoPor: 'talento.humano@ejemplo.edu.co',
+  enviadoPor: 'talento.humano@ejemplo.edu.co',
+  fechaEnvio: '14/09/2026 15:40',
+  revisadoPor: 'revisor@ejemplo.edu.co',
+  fechaRevision: '16/09/2026 08:05',
+  decisionRevision: 'DEVUELTO',
+  observacionRevision: 'Verificar nivel de estudio y fecha de grado.',
+  revisionCriterios: Object.fromEntries(CRITERIOS.map((c) =>
+    [c.clave, c.clave === 'NIVEL_ESTUDIO' || c.clave === 'FECHA_GRADO'
+      ? 'NO_CONFORME' : 'CONFORME']))
 };
 
 /* ------------------------------------------------------------------
@@ -128,13 +154,20 @@ const simulador = `
   var DOCENTES   = ${JSON.stringify(docentes)};
   var GUARDADAS  = ${JSON.stringify(guardadas)};
   var REQUISITOS = { actaObligatoria: true, diplomaObligatorio: false };
+  var PERFIL = { correo: 'revisor@ejemplo.edu.co', nombre: 'Revisor de ejemplo', rol: 'REVISOR' };
+  var rolSimulado = new URLSearchParams(location.search).get('rol');
+  if (['TALENTO_HUMANO', 'REVISOR', 'CONSULTA'].indexOf(rolSimulado) !== -1) {
+    PERFIL.rol = rolSimulado;
+    PERFIL.correo = rolSimulado.toLowerCase() + '@ejemplo.edu.co';
+  }
 
   function resumen() {
-    var r = { total: DOCENTES.length, pendientes: 0, validados: 0, correcciones: 0 };
+    var r = { total: DOCENTES.length, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 };
     DOCENTES.forEach(function (d) {
-      if (d.estado === 'VALIDADO') r.validados++;
-      else if (d.estado === 'REQUIERE_CORRECCION') r.correcciones++;
-      else r.pendientes++;
+      if (d.estadoRevision === 'EN_REVISION') r.enRevision++;
+      else if (d.estadoRevision === 'DEVUELTO') r.devueltos++;
+      else if (d.estadoRevision === 'APROBADO') r.aprobados++;
+      else r.porEnviar++;
     });
     return r;
   }
@@ -145,6 +178,7 @@ const simulador = `
         auditoria: ${JSON.stringify(NOMBRE_AUDITORIA)},
         criterios: CRITERIOS,
         requisitos: REQUISITOS,
+        perfil: PERFIL,
         docentes: DOCENTES,
         resumen: resumen()
       };
@@ -158,7 +192,9 @@ const simulador = `
         existe: !!guardada,
         docente: docente,
         validacion: guardada,
-        estado: guardada ? guardada.estado : 'PENDIENTE'
+        estado: guardada ? guardada.estado : 'PENDIENTE',
+        estadoRevision: guardada ? guardada.estadoRevision : 'POR_ENVIAR',
+        perfil: PERFIL
       };
     },
 
@@ -199,11 +235,24 @@ const simulador = `
           : (payload.quitarDiploma ? '' : (previa ? previa.urlDiploma : '')),
         fechaValidacion: previa ? previa.fechaValidacion : ahora,
         fechaModificacion: ahora,
-        estado: estado
+        estado: estado,
+        estadoRevision: previa ? previa.estadoRevision : 'POR_ENVIAR',
+        version: previa ? previa.version + 1 : 1,
+        guardadoPor: PERFIL.correo,
+        enviadoPor: previa ? previa.enviadoPor : '',
+        fechaEnvio: previa ? previa.fechaEnvio : '',
+        revisadoPor: previa ? previa.revisadoPor : '',
+        fechaRevision: previa ? previa.fechaRevision : '',
+        decisionRevision: previa ? previa.decisionRevision : '',
+        observacionRevision: previa ? previa.observacionRevision : '',
+        revisionCriterios: previa ? previa.revisionCriterios : {}
       };
 
       DOCENTES.forEach(function (d) {
-        if (d.documento === payload.documento) d.estado = estado;
+        if (d.documento === payload.documento) {
+          d.estado = estado;
+          d.estadoRevision = GUARDADAS[payload.documento].estadoRevision;
+        }
       });
 
       return {
@@ -212,6 +261,33 @@ const simulador = `
         validacion: GUARDADAS[payload.documento],
         resumen: resumen()
       };
+    },
+
+    enviarARevision: function (payload) {
+      var v = GUARDADAS[payload.documento];
+      if (!v) throw new Error('Primero debe guardar la validación.');
+      v.estadoRevision = 'EN_REVISION';
+      v.version++;
+      v.enviadoPor = PERFIL.correo;
+      DOCENTES.forEach(function (d) {
+        if (d.documento === payload.documento) d.estadoRevision = 'EN_REVISION';
+      });
+      return { documento: payload.documento, estadoRevision: 'EN_REVISION', version: v.version, resumen: resumen() };
+    },
+
+    decidirRevision: function (payload) {
+      var v = GUARDADAS[payload.documento];
+      if (!v) throw new Error('No existe una validación para revisar.');
+      v.estadoRevision = payload.decision;
+      v.decisionRevision = payload.decision;
+      v.revisionCriterios = payload.criterios;
+      v.observacionRevision = payload.observacion;
+      v.revisadoPor = PERFIL.correo;
+      v.version++;
+      DOCENTES.forEach(function (d) {
+        if (d.documento === payload.documento) d.estadoRevision = payload.decision;
+      });
+      return { documento: payload.documento, estadoRevision: payload.decision, version: v.version, resumen: resumen() };
     }
   };
 
@@ -227,6 +303,13 @@ const simulador = `
       }
     }, 350);
   };
+
+  /* Para QA visual: abrir vista_previa.html#DOC-EJ-002 lleva directo a
+     la ficha una vez cargado el listado. */
+  window.addEventListener('load', function () {
+    var documento = String(location.hash || '').replace(/^#/, '');
+    if (documento) setTimeout(function () { abrirFicha(documento); }, 900);
+  });
 })();
 <\/script>
 `;

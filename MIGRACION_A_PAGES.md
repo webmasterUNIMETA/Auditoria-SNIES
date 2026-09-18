@@ -126,8 +126,11 @@ protege los datos es la verificación del servidor.
 
 - `ID_CLIENTE_OAUTH` es lo que permite al servidor comprobar que el token fue
   emitido **para esta aplicación** y no para cualquier otra de Google.
-- `DOMINIO_AUTORIZADO` es el cerrojo: si lo deja vacío, entra cualquier cuenta
-  de Google con correo verificado.
+- `DOMINIO_AUTORIZADO` es el primer cerrojo: si lo deja vacío, se pierde el
+  filtro institucional de Google.
+- La autorización definitiva se toma de la hoja privada `Usuarios`. Solo entran
+  las cuentas con `ACTIVO = SI` y rol `TALENTO_HUMANO`, `REVISOR` o `CONSULTA`.
+  Una cuenta institucional que no figure allí recibe acceso denegado.
 - `URL_SITIO` solo se usa para el aviso que ve quien abre la `/exec` a mano.
 
 ### 3.2 · Rellenar `sitio.config.json`

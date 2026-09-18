@@ -27,6 +27,22 @@
 var HOJA_DOCENTES     = 'Docentes';
 var HOJA_VALIDACIONES = 'Validaciones';
 var HOJA_CONFIG       = 'Configuracion';
+var HOJA_USUARIOS     = 'Usuarios';
+var HOJA_HISTORIAL    = 'HistorialRevisiones';
+
+/** Roles autorizados. El correo y el rol viven solo en la hoja privada Usuarios. */
+var ROL_TALENTO_HUMANO = 'TALENTO_HUMANO';
+var ROL_REVISOR        = 'REVISOR';
+var ROL_CONSULTA       = 'CONSULTA';
+
+/** Flujo formal, separado del resultado tecnico de la validacion. */
+var REV_POR_ENVIAR = 'POR_ENVIAR';
+var REV_EN_REVISION = 'EN_REVISION';
+var REV_DEVUELTO = 'DEVUELTO';
+var REV_APROBADO = 'APROBADO';
+
+var REV_CONFORME = 'CONFORME';
+var REV_NO_CONFORME = 'NO_CONFORME';
 
 /** Estado de un docente dentro de la auditoria. */
 var ESTADO_PENDIENTE  = 'PENDIENTE';
@@ -90,8 +106,14 @@ function encabezadosValidaciones_() {
     'ID_CARPETA_DOCENTE', 'URL_CARPETA_DOCENTE',
     'ID_ACTA', 'URL_ACTA',
     'ID_DIPLOMA', 'URL_DIPLOMA',
-    'OBSERVACIONES', 'ESTADO', 'FECHA_MODIFICACION'
-  ]);
+    'OBSERVACIONES', 'ESTADO', 'FECHA_MODIFICACION',
+    'ESTADO_REVISION', 'VERSION', 'GUARDADO_POR',
+    'ENVIADO_POR', 'FECHA_ENVIO',
+    'REVISADO_POR', 'FECHA_REVISION',
+    'DECISION_REVISION', 'OBSERVACION_REVISION'
+  ]).concat(CRITERIOS.map(function (c) {
+    return 'REV_' + c.clave;
+  }));
 }
 
 /** Etiqueta legible de un criterio. */
@@ -139,6 +161,154 @@ function hojaDe_(nombre) {
   var hoja = libro_().getSheetByName(nombre);
   if (!hoja) throw new Error('No se encontró la hoja "' + nombre + '" en el libro de la auditoría.');
   return hoja;
+}
+
+/* ============================================================
+   USUARIOS Y PERMISOS
+   ============================================================ */
+
+function encabezadosUsuarios_() {
+  return ['CORREO', 'ROL', 'ACTIVO', 'NOMBRE'];
+}
+
+/**
+ * Crea la plantilla privada de control de acceso. Los correos se escriben
+ * directamente en Sheets y nunca forman parte del codigo ni del sitio publico.
+ */
+function prepararUsuarios() {
+  var libro = libro_();
+  var hoja = libro.getSheetByName(HOJA_USUARIOS);
+  var creada = false;
+
+  if (!hoja) {
+    hoja = libro.insertSheet(HOJA_USUARIOS);
+    creada = true;
+  }
+
+  if (hoja.getLastRow() === 0) {
+    hoja.getRange(1, 1, 1, 4).setValues([encabezadosUsuarios_()]).setFontWeight('bold');
+    hoja.getRange(2, 1, 5, 4).setValues([
+      ['', ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 1'],
+      ['', ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 2'],
+      ['', ROL_REVISOR,        'SI', 'Revisor'],
+      ['', ROL_CONSULTA,       'SI', 'Consulta 1'],
+      ['', ROL_CONSULTA,       'SI', 'Consulta 2']
+    ]);
+    hoja.setFrozenRows(1);
+    hoja.autoResizeColumns(1, 4);
+  } else {
+    var actuales = hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0];
+    var mapa = mapaEncabezados_(actuales);
+    var faltantes = encabezadosUsuarios_().filter(function (e) {
+      return !mapa[normalizarEncabezado_(e)];
+    });
+    if (faltantes.length) {
+      hoja.getRange(1, hoja.getLastColumn() + 1, 1, faltantes.length)
+          .setValues([faltantes]).setFontWeight('bold');
+    }
+  }
+
+  return (creada ? 'Hoja Usuarios creada. ' : 'Hoja Usuarios lista. ') +
+    'Complete los cinco correos institucionales y conserve ACTIVO = SI.';
+}
+
+/**
+ * Configuracion administrativa opcional. Se ejecuta desde el editor o con
+ * clasp y recibe cinco correos; nunca se invoca desde la aplicacion web.
+ */
+function configurarUsuariosPrivados(talento1, talento2, revisor, consulta1, consulta2) {
+  var dominio = String(leerConfiguracion_().dominioAutorizado || '').toLowerCase();
+  var entradas = [
+    [talento1, ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 1'],
+    [talento2, ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 2'],
+    [revisor,  ROL_REVISOR,        'SI', 'Revisor'],
+    [consulta1, ROL_CONSULTA,      'SI', 'Consulta 1'],
+    [consulta2, ROL_CONSULTA,      'SI', 'Consulta 2']
+  ];
+  var vistos = {};
+  entradas.forEach(function (fila) {
+    var correo = String(fila[0] || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+      throw new Error('Hay un correo vacío o no válido en la configuración de usuarios.');
+    }
+    if (dominio && correo.slice(-(dominio.length + 1)) !== '@' + dominio) {
+      throw new Error('El correo ' + correo + ' no pertenece al dominio institucional autorizado.');
+    }
+    if (vistos[correo]) throw new Error('No se puede asignar el mismo correo a dos perfiles.');
+    vistos[correo] = true;
+    fila[0] = correo;
+  });
+
+  prepararUsuarios();
+  var hoja = hojaDe_(HOJA_USUARIOS);
+  var ancho = Math.max(hoja.getLastColumn(), 4);
+  if (hoja.getLastRow() > 1) {
+    hoja.getRange(2, 1, hoja.getLastRow() - 1, ancho).clearContent();
+  }
+  hoja.getRange(2, 1, entradas.length, 4).setValues(entradas);
+  hoja.getRange(2, 1, entradas.length, 1).setNumberFormat('@');
+
+  // Solo quienes trabajan las fichas reciben lectura directa de los PDF.
+  // Las cuentas de consulta permanecen limitadas al tablero de avance.
+  var carpeta = carpetaPrincipal_();
+  var advertencias = [];
+  entradas.slice(0, 3).forEach(function (fila) {
+    try {
+      carpeta.addViewer(fila[0]);
+    } catch (e) {
+      advertencias.push(fila[0]);
+      console.warn('No se pudo dar acceso de lectura a Drive a ' + fila[0] + ': ' + e);
+    }
+  });
+  SpreadsheetApp.flush();
+  return 'Usuarios configurados: 2 Talento Humano, 1 Revisor y 2 de Consulta.' +
+    (advertencias.length
+      ? ' Revise manualmente el permiso de lectura en Drive para: ' + advertencias.join(', ') + '.'
+      : ' Talento Humano y Revisor tienen lectura de la carpeta de soportes.');
+}
+
+/** Autoriza una identidad ya verificada por Google y le agrega su rol. */
+function autorizarUsuario_(identidad) {
+  var hoja = libro_().getSheetByName(HOJA_USUARIOS);
+  if (!hoja || hoja.getLastRow() < 2) {
+    throw new Error('El control de acceso aún no está configurado. Avise al administrador.');
+  }
+
+  var datos = hoja.getRange(1, 1, hoja.getLastRow(), hoja.getLastColumn()).getValues();
+  var mapa = mapaEncabezados_(datos[0]);
+  exigirColumnas_(mapa, ['CORREO', 'ROL', 'ACTIVO'], HOJA_USUARIOS);
+
+  var correoBuscado = String(identidad.correo || '').trim().toLowerCase();
+  var roles = [ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA];
+
+  for (var i = 1; i < datos.length; i++) {
+    var correo = texto_(datos[i][mapa.CORREO - 1]).toLowerCase();
+    if (!correo || correo !== correoBuscado) continue;
+
+    var activo = texto_(datos[i][mapa.ACTIVO - 1]).toUpperCase();
+    if (activo !== 'SI' && activo !== 'SÍ' && activo !== 'TRUE' && activo !== '1') {
+      throw new Error('Su acceso a esta aplicación está desactivado.');
+    }
+
+    var rol = normalizarEncabezado_(datos[i][mapa.ROL - 1]);
+    if (roles.indexOf(rol) === -1) {
+      throw new Error('Su cuenta tiene un rol no reconocido. Avise al administrador.');
+    }
+
+    return {
+      correo: correoBuscado,
+      nombre: identidad.nombre || correoBuscado,
+      rol: rol
+    };
+  }
+
+  throw new Error('Su cuenta institucional no está autorizada para acceder a esta aplicación.');
+}
+
+function exigirRol_(identidad, roles) {
+  if (!identidad || roles.indexOf(identidad.rol) === -1) {
+    throw new Error('No tiene permiso para realizar esta acción.');
+  }
 }
 
 /** Zona oficial para todas las fechas operativas de la auditoria. */
@@ -456,18 +626,33 @@ function armarValidacion_(registro) {
   };
 
   var criterios = {};
+  var revisionCriterios = {};
   CRITERIOS.forEach(function (c) {
     var valor = texto_(leer('VAL_' + c.clave)).toUpperCase();
     criterios[c.clave] = {
       valor: (valor === COINCIDE || valor === NO_COINCIDE) ? valor : '',
       correccion: texto_(leer('CORR_' + c.clave))
     };
+    var revision = texto_(leer('REV_' + c.clave)).toUpperCase();
+    revisionCriterios[c.clave] =
+      (revision === REV_CONFORME || revision === REV_NO_CONFORME) ? revision : '';
   });
 
   var estado = texto_(leer('ESTADO')).toUpperCase();
   if (estado !== ESTADO_VALIDADO && estado !== ESTADO_CORRECCION) {
     estado = calcularEstado_(criterios);
   }
+
+  var estadoRevision = texto_(leer('ESTADO_REVISION')).toUpperCase();
+  if ([REV_POR_ENVIAR, REV_EN_REVISION, REV_DEVUELTO, REV_APROBADO]
+      .indexOf(estadoRevision) === -1) {
+    // Migracion segura: una validacion antigua existe, pero nadie la ha
+    // enviado formalmente al nuevo flujo de aprobacion.
+    estadoRevision = REV_POR_ENVIAR;
+  }
+
+  var version = Number(leer('VERSION'));
+  if (!isFinite(version) || version < 1) version = 1;
 
   return {
     criterios: criterios,
@@ -480,8 +665,22 @@ function armarValidacion_(registro) {
     urlDiploma: texto_(leer('URL_DIPLOMA')),
     fechaValidacion: textoFechaHora_(leer('FECHA_VALIDACION')),
     fechaModificacion: textoFechaHora_(leer('FECHA_MODIFICACION')),
-    estado: estado
+    estado: estado,
+    estadoRevision: estadoRevision,
+    version: Math.floor(version),
+    guardadoPor: texto_(leer('GUARDADO_POR')),
+    enviadoPor: texto_(leer('ENVIADO_POR')),
+    fechaEnvio: textoFechaHora_(leer('FECHA_ENVIO')),
+    revisadoPor: texto_(leer('REVISADO_POR')),
+    fechaRevision: textoFechaHora_(leer('FECHA_REVISION')),
+    decisionRevision: texto_(leer('DECISION_REVISION')).toUpperCase(),
+    observacionRevision: texto_(leer('OBSERVACION_REVISION')),
+    revisionCriterios: revisionCriterios
   };
+}
+
+function urlPrevisualizacion_(id) {
+  return id ? 'https://drive.google.com/file/d/' + encodeURIComponent(id) + '/preview' : '';
 }
 
 /**
@@ -499,9 +698,21 @@ function sinIdentificadores_(validacion) {
     urlCarpeta: validacion.urlCarpeta,
     urlActa: validacion.urlActa,
     urlDiploma: validacion.urlDiploma,
+    previewActa: urlPrevisualizacion_(validacion.idActa),
+    previewDiploma: urlPrevisualizacion_(validacion.idDiploma),
     fechaValidacion: validacion.fechaValidacion,
     fechaModificacion: validacion.fechaModificacion,
-    estado: validacion.estado
+    estado: validacion.estado,
+    estadoRevision: validacion.estadoRevision,
+    version: validacion.version,
+    guardadoPor: validacion.guardadoPor,
+    enviadoPor: validacion.enviadoPor,
+    fechaEnvio: validacion.fechaEnvio,
+    revisadoPor: validacion.revisadoPor,
+    fechaRevision: validacion.fechaRevision,
+    decisionRevision: validacion.decisionRevision,
+    observacionRevision: validacion.observacionRevision,
+    revisionCriterios: validacion.revisionCriterios
   };
 }
 
@@ -664,8 +875,8 @@ function blobPdf_(archivo, etiqueta, nombreDestino) {
 /**
  * Guarda el PDF con el nombre estandarizado dentro de la carpeta del
  * docente. Si ya habia un archivo con ese nombre, el nuevo se crea primero
- * y el anterior se envia a la papelera: nunca quedan dos versiones
- * conviviendo ni se pierde el soporte si algo falla a mitad de camino.
+ * y el anterior se archiva en la subcarpeta HISTORIAL_DOCUMENTOS. Asi el
+ * revisor ve una sola version vigente, pero la trazabilidad no se pierde.
  *
  * Es tambien lo que evita los "01_ACTA_GRADO (1).pdf": Drive solo agrega
  * ese sufijo cuando conviven dos archivos con el mismo nombre, y aqui el
@@ -681,23 +892,39 @@ function guardarPdf_(carpeta, blob, nombreDestino) {
   var nuevo = carpeta.createFile(blob);
   nuevo.setName(nombreDestino);
 
-  previos.forEach(function (archivo) {
+  var historial = null;
+  if (previos.length) {
+    var carpetas = carpeta.getFoldersByName('HISTORIAL_DOCUMENTOS');
+    historial = carpetas.hasNext() ? carpetas.next() : carpeta.createFolder('HISTORIAL_DOCUMENTOS');
+  }
+  var marca = Utilities.formatDate(new Date(), zonaHoraria_(), 'yyyyMMdd_HHmmss');
+  previos.forEach(function (archivo, indice) {
     try {
-      archivo.setTrashed(true);
+      var base = nombreDestino.replace(/\.pdf$/i, '');
+      archivo.setName(base + '_' + marca + (indice ? '_' + (indice + 1) : '') + '.pdf');
+      archivo.moveTo(historial);
     } catch (e) {
-      console.warn('No se pudo enviar a la papelera ' + nombreDestino + ': ' + e);
+      console.warn('No se pudo archivar la versión anterior de ' + nombreDestino + ': ' + e);
     }
   });
 
   return { id: nuevo.getId(), url: nuevo.getUrl() };
 }
 
-/** Manda a la papelera el soporte indicado, si existe. */
+/** Retira el soporte vigente y lo conserva en el historial documental. */
 function retirarPdf_(carpeta, nombreDestino) {
+  var carpetas = carpeta.getFoldersByName('HISTORIAL_DOCUMENTOS');
+  var historial = carpetas.hasNext() ? carpetas.next() : carpeta.createFolder('HISTORIAL_DOCUMENTOS');
+  var marca = Utilities.formatDate(new Date(), zonaHoraria_(), 'yyyyMMdd_HHmmss');
   var existentes = carpeta.getFilesByName(nombreDestino);
+  var indice = 0;
   while (existentes.hasNext()) {
     try {
-      existentes.next().setTrashed(true);
+      var archivo = existentes.next();
+      var base = nombreDestino.replace(/\.pdf$/i, '');
+      archivo.setName(base + '_RETIRADO_' + marca + (indice ? '_' + (indice + 1) : '') + '.pdf');
+      archivo.moveTo(historial);
+      indice++;
     } catch (e) {
       console.warn('No se pudo retirar ' + nombreDestino + ': ' + e);
     }
@@ -709,11 +936,18 @@ function retirarPdf_(carpeta, nombreDestino) {
    ============================================================ */
 
 function resumirEstados_(lista) {
-  var resumen = { total: lista.length, pendientes: 0, validados: 0, correcciones: 0 };
+  var resumen = {
+    total: lista.length,
+    porEnviar: 0,
+    enRevision: 0,
+    devueltos: 0,
+    aprobados: 0
+  };
   lista.forEach(function (d) {
-    if (d.estado === ESTADO_VALIDADO) resumen.validados++;
-    else if (d.estado === ESTADO_CORRECCION) resumen.correcciones++;
-    else resumen.pendientes++;
+    if (d.estadoRevision === REV_EN_REVISION) resumen.enRevision++;
+    else if (d.estadoRevision === REV_DEVUELTO) resumen.devueltos++;
+    else if (d.estadoRevision === REV_APROBADO) resumen.aprobados++;
+    else resumen.porEnviar++;
   });
   return resumen;
 }
@@ -725,6 +959,11 @@ function estadoDesdeIndice_(indice, clave) {
   return armarValidacion_(registro).estado === ESTADO_CORRECCION
     ? ESTADO_CORRECCION
     : ESTADO_VALIDADO;
+}
+
+function estadoRevisionDesdeIndice_(indice, clave) {
+  var registro = indice[clave];
+  return registro ? armarValidacion_(registro).estadoRevision : REV_POR_ENVIAR;
 }
 
 /* ============================================================
@@ -739,8 +978,9 @@ function estadoDesdeIndice_(indice, clave) {
  * Deliberadamente NO viaja el identificador de la carpeta de Drive ni
  * ningun otro dato de configuracion interna.
  */
-function obtenerDocentes() {
+function obtenerDocentes(identidad) {
   try {
+    exigirRol_(identidad, [ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA]);
     var configuracion = leerConfiguracion_();
     var docentes = leerDocentes_();
     var indice = leerValidaciones_();
@@ -750,8 +990,10 @@ function obtenerDocentes() {
         documento: d.documento,
         tipoDocumento: d.tipoDocumento,
         nombreCompleto: d.nombreCompleto,
-        valores: d.valores,
-        estado: estadoDesdeIndice_(indice, d.clave)
+        // Consulta ve el avance, no el detalle academico de cada ficha.
+        valores: identidad.rol === ROL_CONSULTA ? {} : d.valores,
+        estado: estadoDesdeIndice_(indice, d.clave),
+        estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave)
       };
     });
 
@@ -770,6 +1012,11 @@ function obtenerDocentes() {
         actaObligatoria: configuracion.actaObligatoria,
         diplomaObligatorio: configuracion.diplomaObligatorio
       },
+      perfil: {
+        correo: identidad.correo,
+        nombre: identidad.nombre,
+        rol: identidad.rol
+      },
       docentes: lista,
       resumen: resumirEstados_(lista)
     };
@@ -787,9 +1034,10 @@ function obtenerDocentes() {
  * fallar: la pagina no necesita distinguir un error de una revision que
  * todavia no existe.
  */
-function obtenerValidacion(documento) {
+function obtenerValidacion(documento, identidad) {
   var buscado = normalizarDocumento_(documento);
   try {
+    exigirRol_(identidad, [ROL_TALENTO_HUMANO, ROL_REVISOR]);
     if (!buscado) throw new Error('No se indicó el documento del docente.');
 
     var docente = buscarDocente_(buscado);
@@ -809,7 +1057,9 @@ function obtenerValidacion(documento) {
         valores: docente.valores
       },
       validacion: sinIdentificadores_(validacion),
-      estado: validacion ? validacion.estado : ESTADO_PENDIENTE
+      estado: validacion ? validacion.estado : ESTADO_PENDIENTE,
+      estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
+      perfil: { correo: identidad.correo, nombre: identidad.nombre, rol: identidad.rol }
     };
   } catch (e) {
     console.error('obtenerValidacion(' + buscado + '): ' + (e && e.stack ? e.stack : e));
@@ -831,7 +1081,7 @@ function obtenerValidacion(documento) {
  *   quitarDiploma: boolean
  * }
  */
-function guardarValidacion(payload) {
+function guardarValidacion(payload, identidad) {
   var candado = LockService.getScriptLock();
   try {
     // Dos guardados simultaneos sobre el mismo docente crearian dos filas.
@@ -841,6 +1091,7 @@ function guardarValidacion(payload) {
   }
 
   try {
+    exigirRol_(identidad, [ROL_TALENTO_HUMANO]);
     if (!payload || typeof payload !== 'object') {
       throw new Error('No se recibió información de la revisión.');
     }
@@ -890,6 +1141,15 @@ function guardarValidacion(payload) {
     /* --- 2. Soportes documentales ------------------------------------ */
     var registroPrevio = leerValidaciones_()[docente.clave];
     var previo = registroPrevio ? armarValidacion_(registroPrevio) : null;
+    var versionEsperada = Number(payload.version || 0);
+    var versionActual = previo ? previo.version : 0;
+    if (versionEsperada !== versionActual) {
+      throw new Error('Este registro cambió desde que lo abrió. Vuelva al listado y ábralo de nuevo.');
+    }
+    if (previo && (previo.estadoRevision === REV_EN_REVISION ||
+                   previo.estadoRevision === REV_APROBADO)) {
+      throw new Error('Este registro está bloqueado porque ya fue enviado a revisión.');
+    }
 
     // Se parte de lo que ya estaba registrado y solo se cambia lo que
     // toque esta revision.
@@ -957,6 +1217,10 @@ function guardarValidacion(payload) {
       HOJA_VALIDACIONES);
 
     var ahora = formatearFechaHora_(new Date());
+    var estadoRevision = previo && previo.estadoRevision === REV_DEVUELTO
+      ? REV_DEVUELTO
+      : REV_POR_ENVIAR;
+    var nuevaVersion = versionActual + 1;
 
     var valores = {
       NUM_DOCUMENTO: docente.documento,
@@ -970,7 +1234,10 @@ function guardarValidacion(payload) {
       URL_DIPLOMA: soportes.urlDiploma,
       OBSERVACIONES: observaciones,
       ESTADO: estado,
-      FECHA_MODIFICACION: ahora
+      FECHA_MODIFICACION: ahora,
+      ESTADO_REVISION: estadoRevision,
+      VERSION: nuevaVersion,
+      GUARDADO_POR: identidad.correo
     };
 
     CRITERIOS.forEach(function (c) {
@@ -982,6 +1249,8 @@ function guardarValidacion(payload) {
     var actual = leerValidaciones_()[docente.clave];
     var fila = actual ? actual.fila : hoja.getLastRow() + 1;
     escribirFila_(hoja, mapa, fila, valores, !actual);
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'GUARDADO',
+      previo ? previo.estadoRevision : '', estadoRevision, observaciones);
 
     SpreadsheetApp.flush();
 
@@ -993,11 +1262,23 @@ function guardarValidacion(payload) {
         criterios: criterios,
         observaciones: observaciones,
         urlCarpeta: soportes.urlCarpeta,
+        idActa: soportes.idActa,
         urlActa: soportes.urlActa,
+        idDiploma: soportes.idDiploma,
         urlDiploma: soportes.urlDiploma,
         fechaValidacion: valores.FECHA_VALIDACION,
         fechaModificacion: ahora,
-        estado: estado
+        estado: estado,
+        estadoRevision: estadoRevision,
+        version: nuevaVersion,
+        guardadoPor: identidad.correo,
+        enviadoPor: previo ? previo.enviadoPor : '',
+        fechaEnvio: previo ? previo.fechaEnvio : '',
+        revisadoPor: previo ? previo.revisadoPor : '',
+        fechaRevision: previo ? previo.fechaRevision : '',
+        decisionRevision: previo ? previo.decisionRevision : '',
+        observacionRevision: previo ? previo.observacionRevision : '',
+        revisionCriterios: previo ? previo.revisionCriterios : {}
       }),
       resumen: resumenActual_()
     };
@@ -1005,6 +1286,192 @@ function guardarValidacion(payload) {
   } catch (e) {
     console.error('guardarValidacion: ' + (e && e.stack ? e.stack : e));
     throw new Error(e && e.message ? e.message : 'No fue posible guardar la revisión.');
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/* ============================================================
+   FLUJO DE APROBACION
+   ============================================================ */
+
+function hojaHistorial_() {
+  var libro = libro_();
+  var hoja = libro.getSheetByName(HOJA_HISTORIAL);
+  var encabezados = [
+    'FECHA', 'NUM_DOCUMENTO', 'VERSION', 'EVENTO',
+    'ESTADO_ANTERIOR', 'ESTADO_NUEVO', 'CORREO', 'ROL', 'OBSERVACION'
+  ];
+
+  if (!hoja) {
+    hoja = libro.insertSheet(HOJA_HISTORIAL);
+    hoja.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
+    hoja.setFrozenRows(1);
+  }
+  return hoja;
+}
+
+function registrarHistorial_(documento, version, identidad, evento, anterior, nuevo, observacion) {
+  hojaHistorial_().appendRow([
+    formatearFechaHora_(new Date()),
+    documento,
+    version,
+    evento,
+    anterior || '',
+    nuevo || '',
+    identidad.correo,
+    identidad.rol,
+    textoEntrante_(observacion, 2000)
+  ]);
+}
+
+function exigirVersion_(payload, validacion) {
+  var esperada = Number(payload && payload.version);
+  if (!isFinite(esperada) || esperada !== validacion.version) {
+    throw new Error('Este registro cambió desde que lo abrió. Vuelva al listado y ábralo de nuevo.');
+  }
+}
+
+/** Talento Humano cierra la edicion y entrega el registro al revisor. */
+function enviarARevision(payload, identidad) {
+  exigirRol_(identidad, [ROL_TALENTO_HUMANO]);
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo en unos segundos.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(payload && payload.documento);
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El docente indicado no figura en la hoja Docentes.');
+
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('Primero debe guardar la validación antes de enviarla.');
+
+    var validacion = armarValidacion_(registro);
+    exigirVersion_(payload, validacion);
+    if (validacion.estadoRevision !== REV_POR_ENVIAR &&
+        validacion.estadoRevision !== REV_DEVUELTO) {
+      throw new Error('Este registro ya fue enviado y no se puede volver a enviar en su estado actual.');
+    }
+
+    var configuracion = leerConfiguracion_();
+    if (configuracion.actaObligatoria && !validacion.urlActa) {
+      throw new Error('Falta el acta de grado obligatoria.');
+    }
+    if (configuracion.diplomaObligatorio && !validacion.urlDiploma) {
+      throw new Error('Falta el diploma de grado obligatorio.');
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var ahora = formatearFechaHora_(new Date());
+    var nuevaVersion = validacion.version + 1;
+    var valores = {
+      ESTADO_REVISION: REV_EN_REVISION,
+      VERSION: nuevaVersion,
+      ENVIADO_POR: identidad.correo,
+      FECHA_ENVIO: ahora,
+      REVISADO_POR: '',
+      FECHA_REVISION: '',
+      DECISION_REVISION: '',
+      OBSERVACION_REVISION: ''
+    };
+    CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = ''; });
+
+    escribirFila_(hoja, mapa, registro.fila, valores, false);
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'ENVIADO_A_REVISION',
+      validacion.estadoRevision, REV_EN_REVISION, '');
+    SpreadsheetApp.flush();
+
+    return {
+      documento: docente.documento,
+      estadoRevision: REV_EN_REVISION,
+      version: nuevaVersion,
+      resumen: resumenActual_()
+    };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/** El revisor aprueba o devuelve, dejando una decision por cada criterio. */
+function decidirRevision(payload, identidad) {
+  exigirRol_(identidad, [ROL_REVISOR]);
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo en unos segundos.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(payload && payload.documento);
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El docente indicado no figura en la hoja Docentes.');
+
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('No existe una validación para revisar.');
+    var validacion = armarValidacion_(registro);
+    exigirVersion_(payload, validacion);
+    if (validacion.estadoRevision !== REV_EN_REVISION) {
+      throw new Error('Este registro no está pendiente de decisión del revisor.');
+    }
+
+    var decision = String(payload.decision || '').trim().toUpperCase();
+    if (decision !== REV_APROBADO && decision !== REV_DEVUELTO) {
+      throw new Error('Seleccione aprobar o devolver la revisión.');
+    }
+
+    var entrantes = payload.criterios && typeof payload.criterios === 'object'
+      ? payload.criterios : {};
+    var resultados = {};
+    var noConformes = 0;
+    CRITERIOS.forEach(function (c) {
+      var valor = String(entrantes[c.clave] || '').trim().toUpperCase();
+      if (valor !== REV_CONFORME && valor !== REV_NO_CONFORME) {
+        throw new Error('Falta revisar el criterio "' + c.etiqueta + '".');
+      }
+      resultados[c.clave] = valor;
+      if (valor === REV_NO_CONFORME) noConformes++;
+    });
+
+    var observacion = textoEntrante_(payload.observacion, 2000);
+    if (decision === REV_APROBADO && noConformes) {
+      throw new Error('No se puede aprobar mientras haya criterios marcados como no conformes.');
+    }
+    if (decision === REV_DEVUELTO && !observacion) {
+      throw new Error('Explique en la observación qué debe corregir Talento Humano.');
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var ahora = formatearFechaHora_(new Date());
+    var nuevaVersion = validacion.version + 1;
+    var valores = {
+      ESTADO_REVISION: decision,
+      VERSION: nuevaVersion,
+      REVISADO_POR: identidad.correo,
+      FECHA_REVISION: ahora,
+      DECISION_REVISION: decision,
+      OBSERVACION_REVISION: observacion
+    };
+    CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = resultados[c.clave]; });
+
+    escribirFila_(hoja, mapa, registro.fila, valores, false);
+    registrarHistorial_(docente.documento, nuevaVersion, identidad,
+      decision === REV_APROBADO ? 'APROBADO' : 'DEVUELTO',
+      REV_EN_REVISION, decision, observacion);
+    SpreadsheetApp.flush();
+
+    return {
+      documento: docente.documento,
+      estadoRevision: decision,
+      version: nuevaVersion,
+      resumen: resumenActual_()
+    };
   } finally {
     candado.releaseLock();
   }
@@ -1039,7 +1506,7 @@ function escribirFila_(hoja, mapa, fila, valores, esNueva) {
 function resumenActual_() {
   var indice = leerValidaciones_();
   return resumirEstados_(leerDocentes_().map(function (d) {
-    return { estado: estadoDesdeIndice_(indice, d.clave) };
+    return { estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave) };
   }));
 }
 
@@ -1336,6 +1803,8 @@ function ramaDrive_(carpeta, sangria, profundidad, lineas) {
 function prepararAuditoria() {
   var configuracion = leerConfiguracion_();
   hojaValidaciones_();
+  prepararUsuarios();
+  hojaHistorial_();
   var docentes = leerDocentes_();
   var carpeta = carpetaPrincipal_();
 
@@ -1345,7 +1814,9 @@ function prepararAuditoria() {
     'Acta obligatoria: ' + (configuracion.actaObligatoria ? 'SI' : 'NO') + '\n' +
     'Diploma obligatorio: ' + (configuracion.diplomaObligatorio ? 'SI' : 'NO') + '\n' +
     'Carpeta principal de Drive: ' + carpeta.getName() + '\n' +
-    'Hoja Validaciones: lista con ' + encabezadosValidaciones_().length + ' columnas.';
+    'Hoja Validaciones: lista con ' + encabezadosValidaciones_().length + ' columnas.\n' +
+    'Hoja Usuarios: lista para 2 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.\n' +
+    'Hoja HistorialRevisiones: lista.';
 
   console.log(informe);
   return informe;

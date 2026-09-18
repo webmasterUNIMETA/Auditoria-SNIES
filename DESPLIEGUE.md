@@ -9,7 +9,7 @@ Aplicación web de Google Apps Script para la auditoría SNIES 2026-1.
 | Archivo | Qué contiene |
 |---|---|
 | `appsscript.json` | Manifiesto: zona horaria, permisos y publicación de la web app |
-| `Code.gs` | Todo el servidor: configuración, hojas, Drive, estados y las tres acciones |
+| `Code.gs` | Servidor: configuración, usuarios, hojas, Drive, estados y flujo de aprobación |
 | `Index.html` | Estructura de la página (listado + ficha) |
 | `Styles.html` | Sistema visual completo, centralizado en `:root` |
 | `Scripts.html` | Lógica del navegador |
@@ -45,11 +45,25 @@ Encabezados `PARAMETRO` / `VALOR` en la fila 1. Parámetros que lee la aplicaci�
 Solo lectura. La aplicación **jamás la escribe**. Localiza las columnas por su
 encabezado, así que el orden puede cambiar sin romper nada.
 
-### Hoja `Validaciones`
+### Hoja `Usuarios`
 
-**No hay que crearla a mano.** La aplicación la crea con sus 31 columnas la
-primera vez que se abre la página, y si en el futuro falta alguna columna la
-agrega al final sin tocar lo existente.
+**No escriba correos en el código.** Ejecute `prepararAuditoria` y complete en esta
+hoja privada las cinco filas creadas. Columnas: `CORREO`, `ROL`, `ACTIVO`, `NOMBRE`.
+
+Roles admitidos:
+
+- `TALENTO_HUMANO`: dos cuentas; validan, corrigen, cargan soportes y envían.
+- `REVISOR`: una cuenta; compara con los PDF, aprueba o devuelve.
+- `CONSULTA`: dos cuentas; ven el tablero y el avance, sin abrir ni modificar fichas.
+
+Tener correo institucional no basta: si la cuenta no figura activa en `Usuarios`,
+el servidor rechaza todas sus solicitudes.
+
+### Hojas `Validaciones` e `HistorialRevisiones`
+
+**No hay que crearlas a mano.** La aplicación agrega a `Validaciones` las columnas
+del flujo formal sin tocar lo existente. `HistorialRevisiones` conserva cada
+guardado, envío, aprobación y devolución con usuario, fecha de Colombia y versión.
 
 ---
 
@@ -86,7 +100,12 @@ es necesaria para el uso diario.
 
 | Función | Qué hace | ¿Modifica algo? |
 |---|---|---|
-| `prepararAuditoria` | Crea la hoja `Validaciones` y comprueba configuración y carpeta de Drive | Crea la hoja si falta |
+| `prepararAuditoria` | Prepara `Validaciones`, `Usuarios` e `HistorialRevisiones` y comprueba Drive | Crea hojas/columnas si faltan |
+| `configurarUsuariosPrivados` | Carga los cinco correos en la hoja privada `Usuarios` | Reemplaza la lista autorizada |
+
+Al configurar los usuarios, la carpeta principal de soportes se comparte en modo
+lector con las dos cuentas de Talento Humano y con el Revisor para que puedan
+abrir y previsualizar los PDF. Las cuentas de Consulta no reciben acceso a Drive.
 | `inspeccionarDrive` | Muestra el árbol de carpetas, dos niveles, con IDs y archivos | No |
 | `revisarCarpetas` | Informa qué carpetas no siguen el patrón `NÚMERO - NOMBRE` y qué contienen | No |
 | `crearCarpetasDocentes` | Crea de una vez la carpeta de cada docente de la hoja | Crea carpetas (reutiliza las que existan) |
@@ -113,7 +132,9 @@ Docentes en la hoja: 50
 Acta obligatoria: SI
 Diploma obligatorio: NO
 Carpeta principal de Drive: SOPORTES DOCENTES
-Hoja Validaciones: lista con 31 columnas.
+    Hoja Validaciones: lista con las columnas vigentes.
+    Hoja Usuarios: lista para 2 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.
+    Hoja HistorialRevisiones: lista.
 ```
 
 Si algo falta, el mensaje de error dice exactamente qué.
@@ -167,19 +188,27 @@ VERIFICACIÓN DOCUMENTAL - AUDITORIA SNIES 2026
 
 - La carpeta de un docente se crea una sola vez. Si ya existe se reutiliza,
   incluso si alguien la renombró conservando el número de documento al inicio.
-- Los soportes se guardan **siempre** con los nombres `01_ACTA_GRADO.pdf` y
+- Los soportes vigentes se guardan **siempre** con los nombres `01_ACTA_GRADO.pdf` y
   `02_DIPLOMA_GRADO.pdf`. El nombre original del archivo que cargó la persona
   no se conserva.
 - No se crean carpetas vacías: la carpeta aparece cuando el docente tiene al
   menos un soporte.
 
-### Por qué nunca aparece `01_ACTA_GRADO (1).pdf`
+### Historial de archivos reemplazados
 
-Drive agrega ese sufijo cuando conviven dos archivos con el mismo nombre en la
-misma carpeta. Al reemplazar un soporte, la aplicación crea primero el archivo
-nuevo y solo después manda el anterior a la papelera, así que los dos nunca
-coexisten con el mismo nombre. El orden importa: si se borrara primero, un
-fallo a mitad de camino dejaría al docente sin soporte.
+Al reemplazar un soporte, la aplicación crea primero el nuevo y mueve la versión
+anterior a `HISTORIAL_DOCUMENTOS` con fecha y hora en el nombre. El revisor ve
+una sola versión vigente, pero la evidencia anterior se conserva para auditoría.
+
+## Flujo formal de revisión
+
+`POR_ENVIAR → EN_REVISION → APROBADO`, o bien
+`EN_REVISION → DEVUELTO → EN_REVISION` después de la corrección.
+
+El resultado técnico (`VALIDADO` o `REQUIERE_CORRECCION`) se conserva separado
+del estado del flujo. Mientras un registro está `EN_REVISION` o `APROBADO`,
+Talento Humano no puede editarlo. Cada guardado exige la versión vigente para
+evitar sobrescrituras entre usuarios concurrentes.
 
 ### Trazabilidad hoja ↔ Drive
 

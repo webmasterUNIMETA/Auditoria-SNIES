@@ -138,6 +138,14 @@ textarea:focus-visible,
   color: var(--color-texto-suave);
   overflow-wrap: anywhere;
 }
+.sesion-rol {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-azul);
+}
 
 /* ============================================================
    PUERTA DE ENTRADA
@@ -327,6 +335,7 @@ main {
 /* El filtro activo se tine con el color de su propio estado */
 .indicador-total.activo      { background: var(--color-superficie-2); }
 .indicador-pendientes.activo { background: var(--color-aviso-fondo); }
+.indicador-revision.activo   { background: var(--color-azul-suave); }
 .indicador-validados.activo  { background: var(--color-exito-fondo); }
 .indicador-correccion.activo { background: var(--color-error-fondo); }
 
@@ -334,6 +343,7 @@ main {
 
 .indicador-total       { border-top-color: var(--color-texto-medio); }
 .indicador-pendientes  { border-top-color: var(--color-aviso); }
+.indicador-revision    { border-top-color: var(--color-azul); }
 .indicador-validados   { border-top-color: var(--color-exito); }
 .indicador-correccion  { border-top-color: var(--color-primario); }
 
@@ -357,6 +367,7 @@ main {
 }
 
 .indicador-pendientes p:last-child { color: var(--color-aviso); }
+.indicador-revision p:last-child   { color: var(--color-azul); }
 .indicador-validados  p:last-child { color: var(--color-exito); }
 .indicador-correccion p:last-child { color: var(--color-error); }
 
@@ -399,6 +410,10 @@ main {
 .docente-PENDIENTE            { border-left-color: var(--color-aviso); }
 .docente-VALIDADO             { border-left-color: var(--color-exito); }
 .docente-REQUIERE_CORRECCION  { border-left-color: var(--color-primario); }
+.docente-POR_ENVIAR           { border-left-color: var(--color-aviso); }
+.docente-EN_REVISION          { border-left-color: var(--color-azul); }
+.docente-DEVUELTO             { border-left-color: var(--color-primario); }
+.docente-APROBADO             { border-left-color: var(--color-exito); }
 
 .docente-datos { flex: 1 1 280px; min-width: 0; }
 
@@ -454,6 +469,30 @@ main {
   color: var(--color-error);
   background: var(--color-error-fondo);
   border-color: var(--color-error-borde);
+}
+
+.insignia-POR_ENVIAR {
+  color: var(--color-aviso);
+  background: var(--color-aviso-fondo);
+  border-color: var(--color-aviso-borde);
+}
+
+.insignia-EN_REVISION {
+  color: var(--color-azul);
+  background: var(--color-azul-suave);
+  border-color: #C9D1EA;
+}
+
+.insignia-DEVUELTO {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error-borde);
+}
+
+.insignia-APROBADO {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
 }
 
 /* ============================================================
@@ -775,6 +814,63 @@ main {
   color: var(--color-error);
 }
 
+/* Visor embebido para el acta y el diploma. Drive conserva el control de acceso. */
+.previsualizacion { margin-top: 24px; }
+.pestanas-documentos { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.pestanas-documentos .activo {
+  color: var(--color-superficie);
+  background: var(--color-azul);
+  border-color: var(--color-azul);
+}
+.visor-documento {
+  position: relative;
+  min-height: 560px;
+  border: 1px solid var(--color-borde);
+  background: var(--color-superficie-2);
+}
+.visor-documento iframe { display: block; width: 100%; height: 560px; border: 0; }
+.abrir-drive {
+  display: inline-block;
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  padding: 8px 12px;
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.panel-revisor {
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid var(--color-borde);
+  border-left: 3px solid var(--color-azul);
+  background: var(--color-azul-suave);
+}
+.criterios-revisor { margin-bottom: 20px; }
+.criterio-revisor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--color-borde);
+}
+.criterio-revisor.sin-responder { border-left: 3px solid var(--color-error); padding-left: 12px; }
+.revision-original, .revision-final { margin: 3px 0 0; font-size: 13px; }
+.revision-original { color: var(--color-texto-suave); }
+.revision-final { color: var(--color-texto); font-weight: 600; }
+.acciones-revisor {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
 /* ============================================================
    CAMPOS
    ============================================================ */
@@ -1053,6 +1149,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (max-width: 860px) {
   .criterio { grid-template-columns: 1fr; gap: 12px; }
+  .criterio-revisor { grid-template-columns: 1fr; }
   .opciones-criterio { justify-self: stretch; }
   .opcion-criterio { flex: 1 1 0; justify-content: center; }
 }
@@ -1066,9 +1163,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .encabezado h1 { font-size: 18px; overflow-wrap: anywhere; }
   .titulo-vista, .ficha-identidad h2 { font-size: 21px; }
   .descripcion-vista { font-size: 14px; }
-  .indicador { flex: 1 1 50%; border-right: 0; }
+  .indicador { flex: 1 1 50%; border-right: 0; border-bottom: 1px solid var(--color-borde); }
   .indicador:nth-child(odd) { border-right: 1px solid var(--color-borde); }
-  .indicador:nth-child(-n+2) { border-bottom: 1px solid var(--color-borde); }
+  .indicador:last-child { border-right: 0; border-bottom: 0; }
+  .visor-documento, .visor-documento iframe { min-height: 430px; height: 430px; }
   .indicador p:last-child { font-size: 24px; }
   .ficha-marca { flex: 1 1 100%; border-right: 0; border-bottom: 1px solid var(--color-borde); }
   .ficha-marca:last-child { border-bottom: 0; }
