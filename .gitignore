@@ -1,0 +1,13 @@
+# Configuracion local de la instalacion: cada quien la suya.
+sitio.config.json
+
+# Respaldo del proyecto anterior y sesiones de clasp
+_respaldo_proyecto_anterior/
+.clasp.json
+
+# Vista previa generada
+vista_previa.html
+
+node_modules/
+Thumbs.db
+desktop.ini

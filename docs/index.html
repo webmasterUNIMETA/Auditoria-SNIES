@@ -1,0 +1,2595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Informacion institucional del personal: no debe aparecer en buscadores. -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Validación documental de docentes - UNIMETA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&amp;display=swap">
+  <style>
+/* ============================================================
+   Styles.html
+   Validacion documental de docentes - Auditoria SNIES - UNIMETA
+
+   El sistema visual es el mismo del formulario de actualizacion de
+   datos: superficies planas, rojo institucional como unico acento,
+   tipografia Archivo y micro-rotulos en versalita. La unica licencia
+   que se toma es un radio de 4px en tarjetas, campos y botones.
+
+   TODOS los colores estan centralizados en el bloque :root. Para
+   cambiar la identidad visual basta con editar esas variables.
+   ============================================================ */
+
+:root {
+  /* --- Colores institucionales, tomados del logotipo UNIMETA --- */
+  --color-primario:        #D81824;   /* rojo del logotipo */
+  --color-primario-oscuro: #A8111B;   /* rojo para estados hover y textos */
+  --color-primario-suave:  #FDEEEF;   /* tinte de fondo */
+  --color-primario-borde:  #F2C9CC;   /* borde sobre el tinte */
+  --color-azul:            #243C84;   /* azul del escudo: foco y notas */
+  --color-azul-suave:      #F1F3F9;   /* fondo de las notas informativas */
+
+  /* --- Neutros --- */
+  --color-texto:           #1E2024;
+  --color-texto-medio:     #3A3E45;
+  --color-texto-suave:     #5C6169;
+  --color-texto-tenue:     #8A8F96;
+  --color-borde:           #E0E2E6;
+  --color-borde-fuerte:    #B9BDC4;
+  --color-fondo:           #F3F2F2;   /* fondo de pagina */
+  --color-superficie:      #FFFFFF;
+  --color-superficie-2:    #F8F8F8;   /* bloques embebidos */
+
+  /* --- Estados --- */
+  --color-error:           #A8111B;
+  --color-error-fondo:     #FDEEEF;
+  --color-error-borde:     #F2C9CC;
+  --color-exito:           #1B5E20;
+  --color-exito-fondo:     #EDF6EE;
+  --color-exito-borde:     #C3E0C6;
+  --color-aviso:           #8A6100;
+  --color-aviso-fondo:     #FFF6E0;
+  --color-aviso-borde:     #F0DCA8;
+
+  /* --- Medidas --- */
+  --ancho-max:             1140px;
+  --relleno-tarjeta:       28px;
+  --radio:                 4px;
+  --radio-grande:          6px;
+  --transicion:            160ms ease;
+
+  /* --- Tipografia --- */
+  --tipo: "Archivo", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--tipo);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--color-primario-oscuro); text-underline-offset: 3px; }
+a:hover { color: var(--color-primario); }
+
+::selection { background: var(--color-primario-suave); }
+
+/* Foco visible unico para toda la aplicacion */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--color-azul);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   ENCABEZADO Y AVANCE
+   ============================================================ */
+
+/* El encabezado es blanco: el logotipo es rojo sobre transparente y el
+   escudo es multicolor, asi que sobre un fondo de color perderia nitidez. */
+.encabezado { background: var(--color-superficie); }
+
+.encabezado-interno {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.logo { height: 60px; width: auto; flex: none; }
+
+.encabezado-textos {
+  border-left: 1px solid var(--color-borde);
+  padding-left: 22px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.encabezado h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+  color: var(--color-texto);
+}
+
+.encabezado p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-texto-suave);
+}
+
+/* Franja institucional bajo el encabezado */
+.franja { height: 4px; background: var(--color-primario); }
+
+/* Quien tiene la sesion abierta */
+.sesion { text-align: right; flex: none; }
+
+.sesion-correo {
+  margin: 0 0 2px;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   PUERTA DE ENTRADA
+
+   Tapa la aplicacion entera hasta que Google confirma la identidad.
+   No es decorativa: mientras esta visible no se ha pedido ni un dato
+   al servidor.
+   ============================================================ */
+
+.puerta {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--color-fondo);
+  overflow-y: auto;
+}
+
+.puerta[hidden] { display: none !important; }
+
+.puerta-tarjeta {
+  width: min(460px, 100%);
+  padding: 36px 32px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-primario);
+  border-radius: var(--radio);
+  text-align: center;
+}
+
+.puerta-tarjeta .logo {
+  height: 52px;
+  margin: 0 auto 22px;
+  display: block;
+}
+
+.puerta-tarjeta h1 {
+  margin: 0 0 10px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  color: var(--color-texto);
+}
+
+.puerta-texto {
+  margin: 0 0 24px;
+  font-size: 14px;
+  color: var(--color-texto-suave);
+  text-wrap: pretty;
+}
+
+/* Aqui dibuja Google su propio boton; solo se le da sitio. */
+.puerta-boton {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+  margin-bottom: 8px;
+}
+
+.puerta .aviso { margin: 18px 0 0; text-align: left; }
+
+.puerta-pie {
+  margin: 22px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-borde);
+  font-size: 12px;
+  color: var(--color-texto-tenue);
+}
+
+/* ============================================================
+   ESTRUCTURA
+   ============================================================ */
+
+main {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+.vista { display: none; }
+.vista.activa { display: block; animation: aparecer 200ms ease; }
+
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Tarjeta: superficie plana con remate rojo superior */
+.tarjeta {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-primario);
+  border-radius: var(--radio);
+  padding: var(--relleno-tarjeta);
+  margin-bottom: 18px;
+}
+
+/* Variante sin remate, para bloques secundarios */
+.tarjeta-simple { border-top: 1px solid var(--color-borde); }
+
+/* Variante neutra: la usa la tarjeta del listado, que queda justo debajo
+   del remate rojo del indicador "Con correcciones". Dos rojos seguidos se
+   leian como un solo bloque. El gris es el mismo del indicador "Total
+   docentes", de modo que el rojo sigue siendo el unico acento. */
+.tarjeta-neutra { border-top-color: var(--color-texto-medio); }
+
+.titulo-vista {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.12;
+  color: var(--color-texto);
+}
+
+.descripcion-vista {
+  margin: 0 0 20px;
+  font-size: 15px;
+  color: var(--color-texto-suave);
+  max-width: 64ch;
+  text-wrap: pretty;
+}
+
+.subtitulo {
+  margin: 28px 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.subtitulo:first-child { margin-top: 0; }
+
+.nota-pie {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+
+/* ============================================================
+   INDICADORES (las cuatro tarjetas de avance)
+
+   Misma tira segmentada que usa el formulario de referencia para
+   mostrar datos del tramite: un solo bloque blanco dividido por
+   filetes, con el rotulo en versalita y la cifra debajo. Cada celda
+   lleva un remate superior del color de su estado.
+   ============================================================ */
+
+.tira-indicadores {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+/* Cada celda es un boton: al pulsarla filtra el listado por ese estado.
+   Hereda del boton general, asi que empieza por deshacer ese estilo. */
+.indicador {
+  flex: 1 1 180px;
+  padding: 16px 18px;
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid var(--color-borde);
+  border-top: 3px solid var(--color-borde-fuerte);
+  border-radius: 0;
+  background: var(--color-superficie);
+  font-family: inherit;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.indicador:last-child { border-right: 0; }
+
+.indicador:hover { background: var(--color-superficie-2); }
+
+/* El filtro activo se tine con el color de su propio estado */
+.indicador-total.activo      { background: var(--color-superficie-2); }
+.indicador-pendientes.activo { background: var(--color-aviso-fondo); }
+.indicador-validados.activo  { background: var(--color-exito-fondo); }
+.indicador-correccion.activo { background: var(--color-error-fondo); }
+
+.indicador.activo p:first-child { color: var(--color-texto); }
+
+.indicador-total       { border-top-color: var(--color-texto-medio); }
+.indicador-pendientes  { border-top-color: var(--color-aviso); }
+.indicador-validados   { border-top-color: var(--color-exito); }
+.indicador-correccion  { border-top-color: var(--color-primario); }
+
+.indicador p:first-child {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.indicador p:last-child {
+  margin: 4px 0 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.indicador-pendientes p:last-child { color: var(--color-aviso); }
+.indicador-validados  p:last-child { color: var(--color-exito); }
+.indicador-correccion p:last-child { color: var(--color-error); }
+
+/* ============================================================
+   BUSCADOR
+   ============================================================ */
+
+/* Campo llano, como el resto de los campos del sistema: sin icono
+   decorativo encima del texto. */
+.buscador input[type="search"] { font-size: 15px; }
+
+.conteo-resultados {
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+
+/* ============================================================
+   LISTADO DE DOCENTES
+   ============================================================ */
+
+.lista-docentes { display: flex; flex-direction: column; gap: 10px; }
+
+.docente {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-left: 3px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  transition: border-color var(--transicion);
+}
+
+.docente:hover { border-color: var(--color-borde-fuerte); }
+
+.docente-PENDIENTE            { border-left-color: var(--color-aviso); }
+.docente-VALIDADO             { border-left-color: var(--color-exito); }
+.docente-REQUIERE_CORRECCION  { border-left-color: var(--color-primario); }
+
+.docente-datos { flex: 1 1 280px; min-width: 0; }
+
+.docente-nombre {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.docente-documento {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.docente-acciones {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Insignia de estado */
+.insignia {
+  display: inline-block;
+  padding: 5px 10px;
+  border: 1px solid;
+  border-radius: var(--radio);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.insignia-PENDIENTE {
+  color: var(--color-aviso);
+  background: var(--color-aviso-fondo);
+  border-color: var(--color-aviso-borde);
+}
+
+.insignia-VALIDADO {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
+}
+
+.insignia-REQUIERE_CORRECCION {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error-borde);
+}
+
+/* ============================================================
+   CABECERA DE LA FICHA
+   ============================================================ */
+
+.ficha-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-borde);
+  margin-bottom: 4px;
+}
+
+.ficha-identidad { flex: 1 1 320px; min-width: 0; }
+
+.ficha-identidad h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.12;
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.ficha-documento {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--color-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.ficha-acciones-cabecera {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Datos de la revision guardada */
+.ficha-marcas {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  background: var(--color-superficie-2);
+  margin: 18px 0 0;
+}
+
+.ficha-marca {
+  flex: 1 1 200px;
+  padding: 12px 16px;
+  border-right: 1px solid var(--color-borde);
+  min-width: 0;
+}
+
+.ficha-marca:last-child { border-right: 0; }
+
+.ficha-marca p:first-child {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.ficha-marca p:last-child {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   CRITERIOS DE VERIFICACION
+   ============================================================ */
+
+.criterios { display: flex; flex-direction: column; }
+
+.criterio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px 24px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.criterio:last-child { border-bottom: 0; }
+
+.criterio-etiqueta {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-texto);
+}
+
+.criterio-valor {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--color-texto-medio);
+  overflow-wrap: anywhere;
+}
+
+.criterio-valor.vacio {
+  color: var(--color-texto-tenue);
+  font-style: italic;
+}
+
+/* Par de botones Coincide / No coincide */
+.opciones-criterio {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-self: end;
+}
+
+.opcion-criterio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-texto-medio);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transicion), background var(--transicion), color var(--transicion);
+}
+
+.opcion-criterio input {
+  position: absolute;
+  width: 1px; height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.opcion-criterio .marca { font-size: 13px; line-height: 1; }
+
+.opcion-criterio:hover { border-color: var(--color-texto); }
+
+/* El radio esta oculto: el foco lo muestra la etiqueta que lo envuelve. */
+.opcion-criterio:focus-within {
+  outline: 2px solid var(--color-azul);
+  outline-offset: 2px;
+}
+
+/* El borde interior simula 2px sin desplazar el contenido */
+.opcion-criterio.marcada-si {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito);
+  box-shadow: inset 0 0 0 1px var(--color-exito);
+}
+
+.opcion-criterio.marcada-no {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-primario);
+  box-shadow: inset 0 0 0 1px var(--color-primario);
+}
+
+/* Criterio sin responder al intentar guardar */
+.criterio.sin-responder .opciones-criterio .opcion-criterio {
+  border-color: var(--color-primario);
+}
+
+/* Campo de correccion: ocupa el ancho completo de la fila */
+.correccion {
+  grid-column: 1 / -1;
+  display: none;
+  padding: 14px 16px;
+  background: var(--color-error-fondo);
+  border: 1px solid var(--color-error-borde);
+  border-left: 3px solid var(--color-primario);
+  border-radius: var(--radio);
+  animation: desplegar 180ms ease;
+}
+
+.correccion.visible { display: block; }
+
+@keyframes desplegar {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.correccion label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-error);
+}
+
+.correccion .comparacion {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+
+.correccion input,
+.correccion select { background: var(--color-superficie); }
+
+.correccion .campo-mayusculas { text-transform: uppercase; }
+
+.correccion.con-error input,
+.correccion.con-error select { border-color: var(--color-primario); }
+
+.correccion .mensaje-error { display: none; }
+.correccion.con-error .mensaje-error { display: block; }
+
+/* ============================================================
+   SOPORTES DOCUMENTALES
+   ============================================================ */
+
+.soportes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+.soporte {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  padding: 18px;
+  background: var(--color-superficie-2);
+}
+
+.soporte.con-error { border-color: var(--color-primario); background: var(--color-error-fondo); }
+
+.soporte-titulo {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-texto);
+}
+
+.soporte-nota {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+}
+
+.soporte input[type="file"] {
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--color-texto-medio);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  padding: 9px 10px;
+}
+
+.soporte input[type="file"]::file-selector-button {
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-texto);
+  background: var(--color-superficie-2);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  padding: 6px 12px;
+  margin-right: 12px;
+  cursor: pointer;
+}
+
+.soporte input[type="file"]::file-selector-button:hover {
+  border-color: var(--color-primario);
+  color: var(--color-error);
+}
+
+.soporte input[type="file"]:disabled { background: var(--color-superficie-2); cursor: not-allowed; }
+
+/* Estado del archivo: ya cargado, recien elegido o ausente */
+.soporte-estado {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.soporte-estado.cargado { color: var(--color-exito); font-weight: 600; }
+.soporte-estado.nuevo   { color: var(--color-azul);  font-weight: 600; }
+.soporte-estado.ausente { color: var(--color-texto-suave); }
+.soporte-estado.fallo   { color: var(--color-error); font-weight: 600; }
+
+.soporte-estado a { font-weight: 600; }
+
+/* Enlace a la carpeta del docente en Drive */
+.carpeta-docente { margin: 14px 0 0; font-size: 13px; }
+
+.carpeta-docente a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color var(--transicion), color var(--transicion);
+}
+
+.carpeta-docente a:hover {
+  border-color: var(--color-primario);
+  color: var(--color-error);
+}
+
+/* ============================================================
+   CAMPOS
+   ============================================================ */
+
+label, .etiqueta {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--color-texto);
+}
+
+.obligatorio { color: var(--color-primario); margin-left: 2px; }
+
+.opcional {
+  color: var(--color-texto-suave);
+  font-weight: 400;
+  font-size: 12.5px;
+  margin-left: 4px;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 11px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+
+input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
+
+textarea { resize: vertical; min-height: 110px; line-height: 1.55; }
+
+input:hover:not(:disabled),
+select:hover:not(:disabled),
+textarea:hover:not(:disabled) { border-color: var(--color-texto); }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-azul);
+  box-shadow: inset 0 0 0 1px var(--color-azul);
+}
+
+input:disabled, select:disabled, textarea:disabled {
+  background: var(--color-superficie-2);
+  color: var(--color-texto-medio);
+  cursor: not-allowed;
+  border-color: var(--color-borde);
+}
+
+.mensaje-error {
+  color: var(--color-error);
+  font-size: 12.5px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* En modo consulta los controles no deben parecer editables */
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+fieldset:disabled .opcion-criterio { cursor: default; opacity: .85; }
+fieldset:disabled .opcion-criterio:hover { border-color: var(--color-borde-fuerte); }
+fieldset:disabled .opcion-criterio.marcada-si:hover { border-color: var(--color-exito); }
+fieldset:disabled .opcion-criterio.marcada-no:hover { border-color: var(--color-primario); }
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radio);
+  border: 1px solid transparent;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+}
+
+button:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-primario {
+  background: var(--color-primario);
+  color: var(--color-superficie);
+  border-color: var(--color-primario);
+  font-weight: 800;
+  letter-spacing: .01em;
+}
+.btn-primario:hover:not(:disabled) {
+  background: var(--color-primario-oscuro);
+  border-color: var(--color-primario-oscuro);
+}
+
+.btn-secundario {
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  border-color: var(--color-borde-fuerte);
+}
+.btn-secundario:hover:not(:disabled) { border-color: var(--color-texto); }
+
+.btn-texto {
+  background: transparent;
+  color: var(--color-texto-suave);
+  border-color: transparent;
+  padding: 10px 12px;
+}
+.btn-texto:hover:not(:disabled) { color: var(--color-error); }
+
+/* Botones compactos del listado */
+.btn-compacto {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 9px 16px;
+}
+
+.btn-volver {
+  margin-bottom: 14px;
+  padding-left: 0;
+}
+
+/* Accion menor dentro del estado de un soporte: quitar o conservar */
+.btn-mini {
+  background: transparent;
+  border: 0;
+  padding: 2px 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-texto-suave);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.btn-mini:hover:not(:disabled) { color: var(--color-error); }
+
+.navegacion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 26px;
+  padding-top: 20px;
+  border-top: 2px solid var(--color-borde);
+}
+
+.navegacion-derecha { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ============================================================
+   AVISOS
+   ============================================================ */
+
+.aviso {
+  padding: 12px 15px;
+  font-size: 13.5px;
+  color: var(--color-texto-medio);
+  margin-bottom: 18px;
+  border-left: 3px solid;
+  border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.aviso-info    { background: var(--color-azul-suave);  border-color: var(--color-azul); }
+.aviso-alerta  { background: var(--color-aviso-fondo); border-color: var(--color-aviso); color: var(--color-aviso); }
+.aviso-error   { background: var(--color-error-fondo); border-color: var(--color-error); color: var(--color-error); }
+.aviso-exito   { background: var(--color-exito-fondo); border-color: var(--color-exito); color: var(--color-exito); }
+
+/* Cinta de modo edicion sobre la ficha */
+.cinta-modo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 18px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  border-left: 3px solid var(--color-azul);
+  border-radius: 0 var(--radio) var(--radio) 0;
+  background: var(--color-azul-suave);
+  color: var(--color-texto-medio);
+}
+
+.vacio {
+  padding: 34px 20px;
+  color: var(--color-texto-suave);
+  font-size: 13.5px;
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--color-superficie-2);
+  text-align: center;
+}
+
+/* ============================================================
+   CARGA
+   ============================================================ */
+
+.capa-carga {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(243, 242, 242, .94);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 18px;
+  text-align: center;
+  padding: 24px;
+}
+
+.capa-carga.visible { display: flex; }
+
+.girador {
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--color-borde);
+  border-top-color: var(--color-primario);
+  border-radius: 50%;
+  animation: girar 800ms linear infinite;
+}
+
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.capa-carga p { color: var(--color-texto-suave); font-size: 14px; margin: 0; }
+
+/* Bloque de carga dentro de la propia vista */
+.cargando-bloque {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 26px 20px;
+  color: var(--color-texto-suave);
+  font-size: 13.5px;
+}
+
+.cargando-bloque .girador { width: 22px; height: 22px; border-width: 2px; }
+
+/* ============================================================
+   ACCESIBILIDAD
+   ============================================================ */
+
+.solo-lectores {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.saltar-al-contenido {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: var(--color-primario);
+  color: var(--color-superficie);
+  padding: 10px 18px;
+  z-index: 1100;
+  font-weight: 600;
+  text-decoration: none;
+}
+.saltar-al-contenido:focus { left: 0; color: var(--color-superficie); }
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+@media (max-width: 860px) {
+  .criterio { grid-template-columns: 1fr; gap: 12px; }
+  .opciones-criterio { justify-self: stretch; }
+  .opcion-criterio { flex: 1 1 0; justify-content: center; }
+}
+
+@media (max-width: 720px) {
+  :root { --relleno-tarjeta: 20px; }
+  main { padding: 18px 14px 72px; }
+  .encabezado-interno { padding: 16px 14px; gap: 12px; }
+  .logo { height: 40px; max-width: 140px; }
+  .encabezado-textos { padding-left: 12px; }
+  .encabezado h1 { font-size: 18px; overflow-wrap: anywhere; }
+  .titulo-vista, .ficha-identidad h2 { font-size: 21px; }
+  .descripcion-vista { font-size: 14px; }
+  .indicador { flex: 1 1 50%; border-right: 0; }
+  .indicador:nth-child(odd) { border-right: 1px solid var(--color-borde); }
+  .indicador:nth-child(-n+2) { border-bottom: 1px solid var(--color-borde); }
+  .indicador p:last-child { font-size: 24px; }
+  .ficha-marca { flex: 1 1 100%; border-right: 0; border-bottom: 1px solid var(--color-borde); }
+  .ficha-marca:last-child { border-bottom: 0; }
+  .docente { align-items: flex-start; }
+  .docente-acciones { width: 100%; justify-content: space-between; }
+  .navegacion { flex-direction: column-reverse; align-items: stretch; }
+  .navegacion-derecha { flex-direction: column-reverse; }
+  .navegacion button { width: 100%; }
+}
+
+@media (max-width: 420px) {
+  .indicador { flex: 1 1 100%; border-right: 0 !important; border-bottom: 1px solid var(--color-borde); }
+  .indicador:last-child { border-bottom: 0; }
+  .ficha-acciones-cabecera { width: 100%; }
+  .ficha-acciones-cabecera button { width: 100%; }
+}
+</style>
+
+</head>
+<body>
+
+<a href="#contenido" class="saltar-al-contenido">Saltar al contenido</a>
+
+<!-- ============================================================
+     PUERTA DE ENTRADA
+     Cubre la aplicación hasta que Google confirma quién entra.
+     ============================================================ -->
+<div class="puerta" id="puerta">
+  <div class="puerta-tarjeta">
+    <!--
+  Logo.html
+  Logotipo institucional embebido como data URI.
+
+  Se incrusta dentro del propio archivo para que no dependa de una URL
+  externa ni de permisos de Drive: asi el encabezado siempre carga.
+
+  PARA CAMBIAR EL LOGOTIPO: reemplace la cadena base64 del atributo src.
+  Puede generarla en cualquier conversor de "PNG a base64" y debe quedar
+  precedida por  data:image/png;base64,
+-->
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAS4AAABwCAMAAACXbW1CAAABgFBMVEX////9//////b//v///v7//v3//f7//f3+/v/+/v7+/v3+/f39/v39/f79/f38/f///P///P3/+v/7+v3//vz//Pz+/Pz8/Pz/+/z++/v7+/v8+fn69fb98vLz8vH47O716en65uf267r54uL52Nr60NP40NL4ztH4zNHx0Nb43Hn92kL1ybz6ykbh4eDd3d3W4vHg3szY2NnW0sjKycrExMLBw8bQxqT2vcD1trnrtr70sLTut1nypar0oGPylYHukZW8vL3AsY2wsrKpqaWno5WpmG6Ym6SUlIrvi5HuhHrte4LsdGnqaWvpXWDnVl3nTVTlR1DmQ0vlOUPkMj39KDT4JzP1JjPsJzPjKzefhXJ/gICUcW/LVF3gLjjgJjDfJjDfJi/SLz9qcWxiZGlaV1pHU11BPkM0N1cpOYgpK0PuJTHsJTHrJTDpJDDoJDDmJTDnJDDnJC/mJC/lJC/jJC/hIy7gJTDgJC7gIy7hGzrfJTDfJS/fJC83IiQfGxzQ87LqAAAWI0lEQVR42u2ciXvaWJLAX3rVYQg77HpnjIO5DycMGGjLwuDm+AySEYwsbh8gMJORZNrBB5048TqJ4V+fehJgfEOW7t39WvVhgYWOpx9V9erVKwkhTTTRRBNNNNFEE0000UQTTTTRRBNNNNFEE03mI0vLSxqEaUWvLPQaiGlpRdi0xuFZAzTidwLZMh2hL4X0yr/GpaUlTdHuqZSCxAhL4lU00xAHAwGv0y/dmKcmkxbIyAKpYLNE/77THPTlkBGrl5MR2WUN121DtBvZQb/fF0PIiIhkstEfDCQrKNtSrjPoD0RkXdYgjWUZReR+ZwAiqf5LHgz6NBNZQjm8stOXGaRFFmM7DOWkvtQH9Rr0Q3oLohhQLrDG9PJyB68cyB2ZoTQHNsJl7QzEzuA9hhRByEoqtBjQMyd8whCBJYmMGqqhLTL994MOWGN/0AmRogCA5D5lRMvCAPPCKiZq1jjWLrv8HjQI0wJHRVNYt8S+gELSQFnXAXydkGaMw4hrPZeTsTViNwVwJOVtIOYU54+7AHnQyYlpDddQQsJAlhUwioJBRNHpvJeVTwNspB2gSWqYhra4zrAyhPFHfVW/JJal7CEqzYgqvSPcNQoMpWmXKlamI/axCmEvNRAYmknb7RRlNwqDwXtFvQaSnLNrvl4dQ1OyCFSk94P3R4O+QNN0Op2m0mkyTIEd4m9A7UQ5otciCWyLy4IERog9vAzxl8UepjbSGzTLADQwR+gBZBzki5J9xr7RQChiIB77WnkjhgIf1P8NsJ9uKMTDubjh0qB7WNTDELcEzmYgHm0QPr3hydaOz28lpY6I49ROBwKHZoZyhjZohmbTNI29F6yGqKIvHkmUdRLXolkV3b0jLpjvnJKY3487vvy5qgwxywhIkkixL0tAC9BE5U5GYFhWEDYomhagi5ThJfdhm05kJvUyO4Ziffhrl7LeZFHFrLNYlFZbXA6bzTMU25NX4vI8KK4FAGCDo9hsjhux4fbYlJW2ewd12Ey2J1t7S4R+X5AFyAkCK1HODHI5VpRyFEkLYKJSR5JA9UQ0EdcTyLLFqbKCXt75pZIcXKUOva2qUiva7ivDAlrZT6IFE4qXVOF9pYID6RZRvFYtx9sXn0CuugWCmPyFDCjOq8Lp4ETF7n/jzT519yeku3/tgt6rXD88rNeqY6nxK7XqIayE1SXLrV9BhzxVzlUZbpdHumdSzblcB3q+I1EeCEKayaUZmmZzNMOQaRG6TFA6QRb7OdZ6o1yQca3udbHsJpH51vEWUWHPA24F+c4/XWD53N0COvdwvd2F1Qtoa//j2dnZ+X4l1q27MK7k3rtusnDSvrq6uv5c99y6MDPidk/hpKf7VTPGdfoOb/WpwN0WG+goXygUC9UPahMuLj51i76TizKsA+Hu4CL4Xc5T731SGss9g8vORlhZhpyEMIDoCjw8TYMZpkkyTTOyJOB4X2ZkyB3mQuPpDsBV7rUvLy/b5/F7uPieS8H16dM1lq/tuvdeEwDXnorroP3169f2eTnWq6m49ttdLt+9BBBXX09v/RgEel08aL97967dK93g+noee0wR8gfta1XaB4W3vYtN9G/3N9Oh2EWXcx1++qps9wyu5TTJgnKxkiQPZJHNCTkhskFTkY0NJs2KAmDsiDIrQqBK0vYJ7Sp/+IrbevYArl9V7Tqr1D/ji37X5Q0L+se06xTr0eVZOfZxhKvaq2wqtK4uuzxhmrwwuKhrfNYP5UlcmybLvZ4Ru0WUP3l3pUq7W3j7K+BauO/mdZZyr84Pj/zu5BlcS4gAXy5Istg5knOiIIobaTq9EQE9Yzt9ISfL4LtAyTp9J1qeBdfbvTzf/YfS1rPY3XY+gWuPL59uls+vFTvD68Y7mVDs9OvVA7juNEFRLYIw6+/h0r++16tCE3a54rS49IgEl8XSotgBUgIEFAzDAK6NjTSDw3xBxH2AxOSgk7zJEE6Ha8vTu1SUoVex6Yhpce3mOXh1lQv9x8mkQuCt302Ja1rt0hGeWtVRmhIXpAYFETwVK3QYcPP9jgw+HXAx4MIg6oJ/2YgAY6QceDRBCo94TYVrP4+GV/0OvL1uelybe8X4uaJG7074W7gKJ/PGZUL8XhKVpzZGIzJSISe48kiO7vfxWBrMkNpgWZqyi5BG7QM9piNRobT1JpKYEhfhql18VYzqrrd/Epej145VLxRr/Fh1jHeEk1Y+fJ0vrkUU6xbNRGlqXBDWOzGnaCO0ls0NOlY7hBIkxebYnB1JAzEbNTWjENYzdutkHzWddqGkql7fuvz0uDhU3Ety3bay44TbW0RvekrfMT9c4OdLBz6EpselN1pzsiiGItls1hlK29Ey5G82wIEBMOtSmvorrI/asWuz//hqVlxmS+lMUa9vZ5vINDWu/C6fHJkxN95vAeDXr+eKy4D9PPCZQbsQ+hP8ebKZbDTrgE8Uk8ZxF8WC54fIIRMFXmt4KhLNrl0W5OupEdR5xTrp7Z/G5fu1FhuGDL9WxjGlDnG90lxx6cBb1FzQVU6L6xVa33biD3brWhR57IgIMSwkcGgmDK5dFEjLGlqPWpVNnKur6NVsuF4vgLf/NvL2hmlxWSv78cKJ4qYue2NrJBYrNf7j9RxxmRAHfl43vTEaYUL2SKBDDuW//whBLJ+jcRCRJnMiqNewEOdPDueqPxHwox9nNEbcT39SQygY0OimxAVjHW5LtcZ2dzSIg6HdZVFdOydcJuQ7KJmx0s+Cq3N0DHEoQ0cjEHHRNGRvchCIbUNSQshlvGurq6t+fyIYAJkdF/YOIy/EI5N+Slyb3fJm7xq3//JD2aSGL9CJ7ebniYt4aSl1fWhxVlzbkgx+K+OHzpCNhKloI5OVDg+27Ot8g+eQOxBQWAWD34OLIKxlJYa6bn+I3Xj7Z3A5Dk9jpTN1mP3Jp17kIrjlzXniUs9lQLPiEuiO7M8m/Flw8uEovPsTzUq1uIW8fKvO+QOpaioQSNV2HsZFPIkLmhM7H3r7slWnWyCmwPUa8btbeVUrL8HpmdRzFrueOeICP18FPz8jrvVtyGVB+kaSjo9gDgiboJSVGG8xX+WMtmKLSwUqX3aCwdSXavBh7UJP4oJ0GH8yvvDptMsCI8dC7FTtBc9Ko1Me1swP4zJZFiaEmA4X+HloAuz5emFhelxUVuxIgvDLMZb035I//2w/zrqZF57iYZWzLnCtVGCnFKzywULhYe2yuYgncemQt656+17N40s6lLjgOe3ytuuxqtILXn9uKyMC8MvdAso/rF1odu1aQL6T4uifGYzR7e8wHkZScFFveS6PpGymySFbgecLNoIrYL/V+5J60NVfnsf5knUy24ZxuSZx4WaPY87YLg9bPIfLjHSlm8C+m8S7mPHwaAjgFq7rD/HkreygZxixPIlLD/H8Pr81lNr02pXZFo/W/FER49rwcVz+L1JWaB5yFgtXrZc8yB9IFIKpUrCQeBhXqTqJC2K+YtuiJJ9HuHQ6W7WnjvXOfNy+Ekc9jQuS0lu7fLyr7NQ+LcAkDSDg9jYfxPUxXurWJuTN8IKfxGWAIcLhYVuVupIenNIYM+KxlAgmMK8N79ZWEnC5mw2+6ELcIVdccQcLX0qBwM6XQvBBXMVbuHTIVisp72Nc0O74MJNwWvIelC0m4jlcZkguViGwVy71cxu+0CNzped5DFdxVmM0EI5a1etw4ckMWJSnN8Y1P4CSEqlEE4wxVqnwSMiK21y1zHvRVqtc9Qcq9UQgkKhVA1PgMhErgMlwC5f+paFwqsT23/aTSYzpOVwI5gL2N/nh+BxS0K8NyHtRtj6Cq1xED0ylPYkL/HzyZtNZXH0D69UR6FfzmHV6XZ6fjrMZ+gXX4iorKFn/soMjrsfirnu48GQFjq8mcUHn+LY38vbeMvTeuudw6XBgn1SdFwS4xEsziu9BQDYnXLjfKFkWdMqUJSxncPUZv+rmgVcD1EyAj9nott+dAvG7E6nUTsLtT+2kUm736ojLo7gIwlKp4dnBW7jAVY+HjlxsD5I5z+FaIDb3y75LJV8DKWgHxBaKOswHF6F7XerejEVn6hmjiW2SoiiSbaYCWQXccVbK3qhU6ksdAtZyi+f+y3MvI3EX1wLa3FNOeBsXAa5CyfddtQ9iPKif+Vnt8tR6seKZ2kOcxpHOVIQBy5xwLeAZgfEQYyZcVKMRdexw/A/scSMVVHll3NvBVGUHQvnqTtBfqsBQyMa3qtzfnsNF6MzlAw9xD5fSEane/qy4AuPa53Chl0QBAvt9ZTxwecDDuKgOWjsfXGreZiJLOwOuDbefdmxt5W3s8XETeB1h7cpmgxXoCSGUrwX9riJX5S2WQiuff84YXyvptpfoHi4c5pypnmg/uYXN6hlcC0pgf6EOsy8gBR3rFky6+eBaVOJ5Hfou7co0oi489Qu4gFeK7ohH2cZ2ACKtaiG4AwPFF7bCZZW3Ia7yHK7XKHZQsWHluosLT36qiULw9isV8Pa+p3HBWKBX91U/Xqp94yaxpQyO5oFrEfI25Ylk5Wy+K5uJeorFogvjOhZTbihUFcEYwW/VlVA+BZrFt7iSC+X//iQuuFZfDTLfOvQALjzlMvb2mzhj+jQu6DOUwP7yangR/H58PrgI3WJxf1MZW3wPLref+YvP5/tPBdexsLYO04pyNjgM5VOBVBlrVq1e8aLVJ3yXAVoS7/VG3vQerpeE5/ACX/z1Zc/H73u9T+NSLIbbPFGTGWdlV+XCA4ebAy6D4udfou/DRWWzDYFNs6wESYkj6QhmswXID0IoX8GhfCmY4lowFMrXuKLP+QguwmSCbsbF7dfHkc09XDgiG3r7k6LvoDiqkXgMF0xZn9TeHqr96VU7+bVqmQsuncFRPfBOzrPMpl0JfyOTEP3ZBrz7m/4GFHnJzVaihEP5YBWyNtxhqwABa6tciT9sjDal2CpZ2y29HTfjPi7ipa08nGztJvNdvvs0Llzk093kD9rqQKh6ykOy/lFcJrPZNJTFpxM4OG+TvzUrNVvPKK4LjYgYpcUovEsZWmz+IlcqlVQCB12QdPa/yLf4WuxFvLb/iO+CXj7GHe7Wtqw3HuE+Lqwv50pFzCX29mcHT+MCo+F380kIJWAPsGCcJTQ9hqsw9ZhxAb2B3khn+D5cS+jnVgtKbf7ZbOY2mOxQWpXSP6FiAswUv1imCcIyOWkb/fkG1/n158+fr8/ixTpXvN7rlrdcaOJMSknJnSynTs938U6fr/e55AnMWWBcJ5fKYcqxD3dwvUZxCOzrF58VufoIsa1pWIL0j56K6+Qb/uYDJEWSWzfiGv6oOHH0Td3782VXLVhaJMDPx28p1wjXxRVs9+3p+q5FtLq7D64pWd6qxNyBIO4KA6lUqdWBGjk55xajUdGdbbiFaFR2Z9hJXCPtKhxcVPmttwY8vJ4sLrqnXeBevbW6mjGpx/hnXD2cw3XY8xUO6uoO8C0UL+X3P338+PGiW7mlXcXu6clYur6HEzi+7inOUif3Cws6Pfo+7SKQc6uyXYm9iFWrxVSA/1LA/n0nCNWVOVGCOQ6Yrc1k1fdEInNTP2jyrqy8efNmZQVXeypUFojbB7a+cd2vLLWpAiWgr20WBYlymDcrXtsbrxmvcKzc7GazWWxjUQ7qjW8qEsObeIf72uDDhIyqHOHgb5QN8DZvPI7NTRzJe1cc95vl9ZiHx3qo0ZNX5UHxVuUgjmIlyMpXv6QSiQSE8llcwJs7UoeQAotz+FKzEX2slpdYfG6mfO410P8rokOrKyh+0OK30AoMEhOpYB3iLRhrZzu5tREueyyfjyEYSU7iGpe+P1q2/UBV/ESh93CvmxL6YdUfobuVmiVul4YbhtMXpsm6esLwUPHg5MFBDIQ66UE81CxY93gp/63e42dI6caK/GEeebDjCta+QAARyK5mJbc7qqZ2ftrkuLhdamSjf/Sb9CAvzBeToFmXVZiAhTREIrGTqIB2NbOyCBkwaYwLUtKZPzyuHxHM/UAtuavUaPFuSEMoWflKENCoGWlRwZXPA66MP/NHxwU940ql1cL5rCqkmUtVPLSulALZTOboeDTjYd/k+eSLp1z9HweX9wcPv1P7u8O2U9/B1RBBJYWaFbOSksEP4Aw++dNPJAuunv6j4/orVIz4g1gAUqpaWv0hXisWkj8wUTfgkiChM85IH2fm77uMer3eqH/w+TL3P9/bTK8sRm+4ENL4O+AKFkqgUrBIfKmXfTCWztfj6UY2EvoZCgDYVmKYkT7+/XpG/SOf/09oV6p2mQgGq18K/mSFq0BYAVOMzWyG9MKM9l8nMvhR91xcvf5GY0IUtU5FwuMnVOiVr8NpJ/6kvEgoljWOmal7Dv+xrq/DMkyRUI9NUiQoaSit7jlUtt9Ku2o4dkjUUn60Wa6eJ5GvwDWj/o0VwGWGpGEjlWA6R78cN265ej0yvppdbhkaWoKbvu3p9TuKFWIt45s8SWb8NCz93YJteHAKiqQtaQqgLkdIZE1TkZtbVPWviO9p3/O4wLvDtD7O1oBm1Vs8BKzllthY9+a3kmY1g78qbIudbHQexrgcSUesw+t3sn+GoliL3YKs1mU7vODwVnsEKjztdjvcbAosKfWzsoM9tDTaCna2ME44gB1RtJ5i4M4mRNKhoU6GIpH130y7AqkEnsWANHMPAtYCX+deOJqZKLlSKvKEkpLOuddk4SgbHRsj3OxBRb5P0nCv0QgXBfcAkijEkIhetzMUBQDwhGdotFwnWbse7JXFSgMKFEkPtzJim2UURUQ0hewsQwJcOJxeNWEoc//O5kXCT6kEBBJBSJxCz1itpFJ46OgttUucOb2dZX8ineRPitf6RdyWRVport4ULy+Hwt8n6zBctw9xMZQT7mKzs3Z4LbERJ2Mlab2TMZI0MAS1UZZphMHoUSTipMPLLOVkMDw9SsPjeowMtc7aQ+kQqzyiB/RyiItlvrN5YeeTFvSjwR/8goPTErj6ImgWchS4Fk83IYOf285BLaGI/yAjLYoNyxxSCvpQOLQ8fJYMqBk8GAzg0DRcopFMI9AcOmKEZTqyzFiX6HULY9XT68DCypBhO/ZlZFqhZVSUDFasIyYEb/iQFKnisofDod9qFGT3p5T5/RRMwJZgan8B6rq6TahZwpnBDH53w/sRPJRqfRK8/hWEOTPLhKvXL6UZ5bFzaTrM0HawKSbiZEkSa1mYZKgQG6ZYWIYoZh2s18qSdhJvRYNCQrC2jk16maRJtESHrZGIngqRkYnH2MEm/7P2PXrPmRtyXDhS9Vu9Bb7GOR07tabENhrbze1GE783trdhptY5nxhIPwoHwCE7cWwQpuzk+hI8R4AKQx/npEg9GXFGwkbo56iwnoLPIbxHmKacyxT4MhLfZuLEOxthV1AxeEQIqTdSaXL5JuL4LcO1vzgco9vkvR6v1+P0eMJr4bW1EH6FQiEnvKxo8q6LeQejM++iGJ3+z8NVxt934DiN/Lv+t43jCeVJmiCvhkObyaWyiX601UTIqh+i0/92selDd+LeEcOE6PX6368pmmiiiSaaaKKJJppoookmmmiiiSaaaKKJJpr8v5R/AfPwMuzQZ3iMAAAAAElFTkSuQmCC"
+     alt="Corporacion Universitaria del Meta - UNIMETA"
+     class="logo" width="302" height="112">
+
+    <h1>Validación documental de docentes</h1>
+    <p class="puerta-texto" id="puertaTexto">
+      Esta aplicación es de uso interno. Inicie sesión con su cuenta institucional
+      para continuar.
+    </p>
+
+    <div class="puerta-boton" id="botonGoogle"></div>
+
+    <div class="aviso aviso-error" id="puertaError" hidden role="alert"></div>
+
+    <p class="puerta-pie" id="puertaPie">
+      Solo se permite el acceso con cuentas autorizadas de la institución.
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================
+     ENCABEZADO
+     ============================================================ -->
+<header class="encabezado">
+  <div class="encabezado-interno">
+    <!--
+  Logo.html
+  Logotipo institucional embebido como data URI.
+
+  Se incrusta dentro del propio archivo para que no dependa de una URL
+  externa ni de permisos de Drive: asi el encabezado siempre carga.
+
+  PARA CAMBIAR EL LOGOTIPO: reemplace la cadena base64 del atributo src.
+  Puede generarla en cualquier conversor de "PNG a base64" y debe quedar
+  precedida por  data:image/png;base64,
+-->
+<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAS4AAABwCAMAAACXbW1CAAABgFBMVEX////9//////b//v///v7//v3//f7//f3+/v/+/v7+/v3+/f39/v39/f79/f38/f///P///P3/+v/7+v3//vz//Pz+/Pz8/Pz/+/z++/v7+/v8+fn69fb98vLz8vH47O716en65uf267r54uL52Nr60NP40NL4ztH4zNHx0Nb43Hn92kL1ybz6ykbh4eDd3d3W4vHg3szY2NnW0sjKycrExMLBw8bQxqT2vcD1trnrtr70sLTut1nypar0oGPylYHukZW8vL3AsY2wsrKpqaWno5WpmG6Ym6SUlIrvi5HuhHrte4LsdGnqaWvpXWDnVl3nTVTlR1DmQ0vlOUPkMj39KDT4JzP1JjPsJzPjKzefhXJ/gICUcW/LVF3gLjjgJjDfJjDfJi/SLz9qcWxiZGlaV1pHU11BPkM0N1cpOYgpK0PuJTHsJTHrJTDpJDDoJDDmJTDnJDDnJC/mJC/lJC/jJC/hIy7gJTDgJC7gIy7hGzrfJTDfJS/fJC83IiQfGxzQ87LqAAAWI0lEQVR42u2ciXvaWJLAX3rVYQg77HpnjIO5DycMGGjLwuDm+AySEYwsbh8gMJORZNrBB5048TqJ4V+fehJgfEOW7t39WvVhgYWOpx9V9erVKwkhTTTRRBNNNNFEE0000UQTTTTRRBNNNNFEE03mI0vLSxqEaUWvLPQaiGlpRdi0xuFZAzTidwLZMh2hL4X0yr/GpaUlTdHuqZSCxAhL4lU00xAHAwGv0y/dmKcmkxbIyAKpYLNE/77THPTlkBGrl5MR2WUN121DtBvZQb/fF0PIiIhkstEfDCQrKNtSrjPoD0RkXdYgjWUZReR+ZwAiqf5LHgz6NBNZQjm8stOXGaRFFmM7DOWkvtQH9Rr0Q3oLohhQLrDG9PJyB68cyB2ZoTQHNsJl7QzEzuA9hhRByEoqtBjQMyd8whCBJYmMGqqhLTL994MOWGN/0AmRogCA5D5lRMvCAPPCKiZq1jjWLrv8HjQI0wJHRVNYt8S+gELSQFnXAXydkGaMw4hrPZeTsTViNwVwJOVtIOYU54+7AHnQyYlpDddQQsJAlhUwioJBRNHpvJeVTwNspB2gSWqYhra4zrAyhPFHfVW/JJal7CEqzYgqvSPcNQoMpWmXKlamI/axCmEvNRAYmknb7RRlNwqDwXtFvQaSnLNrvl4dQ1OyCFSk94P3R4O+QNN0Op2m0mkyTIEd4m9A7UQ5otciCWyLy4IERog9vAzxl8UepjbSGzTLADQwR+gBZBzki5J9xr7RQChiIB77WnkjhgIf1P8NsJ9uKMTDubjh0qB7WNTDELcEzmYgHm0QPr3hydaOz28lpY6I49ROBwKHZoZyhjZohmbTNI29F6yGqKIvHkmUdRLXolkV3b0jLpjvnJKY3487vvy5qgwxywhIkkixL0tAC9BE5U5GYFhWEDYomhagi5ThJfdhm05kJvUyO4Ziffhrl7LeZFHFrLNYlFZbXA6bzTMU25NX4vI8KK4FAGCDo9hsjhux4fbYlJW2ewd12Ey2J1t7S4R+X5AFyAkCK1HODHI5VpRyFEkLYKJSR5JA9UQ0EdcTyLLFqbKCXt75pZIcXKUOva2qUiva7ivDAlrZT6IFE4qXVOF9pYID6RZRvFYtx9sXn0CuugWCmPyFDCjOq8Lp4ETF7n/jzT519yeku3/tgt6rXD88rNeqY6nxK7XqIayE1SXLrV9BhzxVzlUZbpdHumdSzblcB3q+I1EeCEKayaUZmmZzNMOQaRG6TFA6QRb7OdZ6o1yQca3udbHsJpH51vEWUWHPA24F+c4/XWD53N0COvdwvd2F1Qtoa//j2dnZ+X4l1q27MK7k3rtusnDSvrq6uv5c99y6MDPidk/hpKf7VTPGdfoOb/WpwN0WG+goXygUC9UPahMuLj51i76TizKsA+Hu4CL4Xc5T731SGss9g8vORlhZhpyEMIDoCjw8TYMZpkkyTTOyJOB4X2ZkyB3mQuPpDsBV7rUvLy/b5/F7uPieS8H16dM1lq/tuvdeEwDXnorroP3169f2eTnWq6m49ttdLt+9BBBXX09v/RgEel08aL97967dK93g+noee0wR8gfta1XaB4W3vYtN9G/3N9Oh2EWXcx1++qps9wyu5TTJgnKxkiQPZJHNCTkhskFTkY0NJs2KAmDsiDIrQqBK0vYJ7Sp/+IrbevYArl9V7Tqr1D/ji37X5Q0L+se06xTr0eVZOfZxhKvaq2wqtK4uuzxhmrwwuKhrfNYP5UlcmybLvZ4Ru0WUP3l3pUq7W3j7K+BauO/mdZZyr84Pj/zu5BlcS4gAXy5Istg5knOiIIobaTq9EQE9Yzt9ISfL4LtAyTp9J1qeBdfbvTzf/YfS1rPY3XY+gWuPL59uls+vFTvD68Y7mVDs9OvVA7juNEFRLYIw6+/h0r++16tCE3a54rS49IgEl8XSotgBUgIEFAzDAK6NjTSDw3xBxH2AxOSgk7zJEE6Ha8vTu1SUoVex6Yhpce3mOXh1lQv9x8mkQuCt302Ja1rt0hGeWtVRmhIXpAYFETwVK3QYcPP9jgw+HXAx4MIg6oJ/2YgAY6QceDRBCo94TYVrP4+GV/0OvL1uelybe8X4uaJG7074W7gKJ/PGZUL8XhKVpzZGIzJSISe48kiO7vfxWBrMkNpgWZqyi5BG7QM9piNRobT1JpKYEhfhql18VYzqrrd/Epej145VLxRr/Fh1jHeEk1Y+fJ0vrkUU6xbNRGlqXBDWOzGnaCO0ls0NOlY7hBIkxebYnB1JAzEbNTWjENYzdutkHzWddqGkql7fuvz0uDhU3Ety3bay44TbW0RvekrfMT9c4OdLBz6EpselN1pzsiiGItls1hlK29Ey5G82wIEBMOtSmvorrI/asWuz//hqVlxmS+lMUa9vZ5vINDWu/C6fHJkxN95vAeDXr+eKy4D9PPCZQbsQ+hP8ebKZbDTrgE8Uk8ZxF8WC54fIIRMFXmt4KhLNrl0W5OupEdR5xTrp7Z/G5fu1FhuGDL9WxjGlDnG90lxx6cBb1FzQVU6L6xVa33biD3brWhR57IgIMSwkcGgmDK5dFEjLGlqPWpVNnKur6NVsuF4vgLf/NvL2hmlxWSv78cKJ4qYue2NrJBYrNf7j9RxxmRAHfl43vTEaYUL2SKBDDuW//whBLJ+jcRCRJnMiqNewEOdPDueqPxHwox9nNEbcT39SQygY0OimxAVjHW5LtcZ2dzSIg6HdZVFdOydcJuQ7KJmx0s+Cq3N0DHEoQ0cjEHHRNGRvchCIbUNSQshlvGurq6t+fyIYAJkdF/YOIy/EI5N+Slyb3fJm7xq3//JD2aSGL9CJ7ebniYt4aSl1fWhxVlzbkgx+K+OHzpCNhKloI5OVDg+27Ot8g+eQOxBQWAWD34OLIKxlJYa6bn+I3Xj7Z3A5Dk9jpTN1mP3Jp17kIrjlzXniUs9lQLPiEuiO7M8m/Flw8uEovPsTzUq1uIW8fKvO+QOpaioQSNV2HsZFPIkLmhM7H3r7slWnWyCmwPUa8btbeVUrL8HpmdRzFrueOeICP18FPz8jrvVtyGVB+kaSjo9gDgiboJSVGG8xX+WMtmKLSwUqX3aCwdSXavBh7UJP4oJ0GH8yvvDptMsCI8dC7FTtBc9Ko1Me1swP4zJZFiaEmA4X+HloAuz5emFhelxUVuxIgvDLMZb035I//2w/zrqZF57iYZWzLnCtVGCnFKzywULhYe2yuYgncemQt656+17N40s6lLjgOe3ytuuxqtILXn9uKyMC8MvdAso/rF1odu1aQL6T4uifGYzR7e8wHkZScFFveS6PpGymySFbgecLNoIrYL/V+5J60NVfnsf5knUy24ZxuSZx4WaPY87YLg9bPIfLjHSlm8C+m8S7mPHwaAjgFq7rD/HkreygZxixPIlLD/H8Pr81lNr02pXZFo/W/FER49rwcVz+L1JWaB5yFgtXrZc8yB9IFIKpUrCQeBhXqTqJC2K+YtuiJJ9HuHQ6W7WnjvXOfNy+Ekc9jQuS0lu7fLyr7NQ+LcAkDSDg9jYfxPUxXurWJuTN8IKfxGWAIcLhYVuVupIenNIYM+KxlAgmMK8N79ZWEnC5mw2+6ELcIVdccQcLX0qBwM6XQvBBXMVbuHTIVisp72Nc0O74MJNwWvIelC0m4jlcZkguViGwVy71cxu+0CNzped5DFdxVmM0EI5a1etw4ckMWJSnN8Y1P4CSEqlEE4wxVqnwSMiK21y1zHvRVqtc9Qcq9UQgkKhVA1PgMhErgMlwC5f+paFwqsT23/aTSYzpOVwI5gL2N/nh+BxS0K8NyHtRtj6Cq1xED0ylPYkL/HzyZtNZXH0D69UR6FfzmHV6XZ6fjrMZ+gXX4iorKFn/soMjrsfirnu48GQFjq8mcUHn+LY38vbeMvTeuudw6XBgn1SdFwS4xEsziu9BQDYnXLjfKFkWdMqUJSxncPUZv+rmgVcD1EyAj9nott+dAvG7E6nUTsLtT+2kUm736ojLo7gIwlKp4dnBW7jAVY+HjlxsD5I5z+FaIDb3y75LJV8DKWgHxBaKOswHF6F7XerejEVn6hmjiW2SoiiSbaYCWQXccVbK3qhU6ksdAtZyi+f+y3MvI3EX1wLa3FNOeBsXAa5CyfddtQ9iPKif+Vnt8tR6seKZ2kOcxpHOVIQBy5xwLeAZgfEQYyZcVKMRdexw/A/scSMVVHll3NvBVGUHQvnqTtBfqsBQyMa3qtzfnsNF6MzlAw9xD5fSEane/qy4AuPa53Chl0QBAvt9ZTxwecDDuKgOWjsfXGreZiJLOwOuDbefdmxt5W3s8XETeB1h7cpmgxXoCSGUrwX9riJX5S2WQiuff84YXyvptpfoHi4c5pypnmg/uYXN6hlcC0pgf6EOsy8gBR3rFky6+eBaVOJ5Hfou7co0oi489Qu4gFeK7ohH2cZ2ACKtaiG4AwPFF7bCZZW3Ia7yHK7XKHZQsWHluosLT36qiULw9isV8Pa+p3HBWKBX91U/Xqp94yaxpQyO5oFrEfI25Ylk5Wy+K5uJeorFogvjOhZTbihUFcEYwW/VlVA+BZrFt7iSC+X//iQuuFZfDTLfOvQALjzlMvb2mzhj+jQu6DOUwP7yangR/H58PrgI3WJxf1MZW3wPLref+YvP5/tPBdexsLYO04pyNjgM5VOBVBlrVq1e8aLVJ3yXAVoS7/VG3vQerpeE5/ACX/z1Zc/H73u9T+NSLIbbPFGTGWdlV+XCA4ebAy6D4udfou/DRWWzDYFNs6wESYkj6QhmswXID0IoX8GhfCmY4lowFMrXuKLP+QguwmSCbsbF7dfHkc09XDgiG3r7k6LvoDiqkXgMF0xZn9TeHqr96VU7+bVqmQsuncFRPfBOzrPMpl0JfyOTEP3ZBrz7m/4GFHnJzVaihEP5YBWyNtxhqwABa6tciT9sjDal2CpZ2y29HTfjPi7ipa08nGztJvNdvvs0Llzk093kD9rqQKh6ykOy/lFcJrPZNJTFpxM4OG+TvzUrNVvPKK4LjYgYpcUovEsZWmz+IlcqlVQCB12QdPa/yLf4WuxFvLb/iO+CXj7GHe7Wtqw3HuE+Lqwv50pFzCX29mcHT+MCo+F380kIJWAPsGCcJTQ9hqsw9ZhxAb2B3khn+D5cS+jnVgtKbf7ZbOY2mOxQWpXSP6FiAswUv1imCcIyOWkb/fkG1/n158+fr8/ixTpXvN7rlrdcaOJMSknJnSynTs938U6fr/e55AnMWWBcJ5fKYcqxD3dwvUZxCOzrF58VufoIsa1pWIL0j56K6+Qb/uYDJEWSWzfiGv6oOHH0Td3782VXLVhaJMDPx28p1wjXxRVs9+3p+q5FtLq7D64pWd6qxNyBIO4KA6lUqdWBGjk55xajUdGdbbiFaFR2Z9hJXCPtKhxcVPmttwY8vJ4sLrqnXeBevbW6mjGpx/hnXD2cw3XY8xUO6uoO8C0UL+X3P338+PGiW7mlXcXu6clYur6HEzi+7inOUif3Cws6Pfo+7SKQc6uyXYm9iFWrxVSA/1LA/n0nCNWVOVGCOQ6Yrc1k1fdEInNTP2jyrqy8efNmZQVXeypUFojbB7a+cd2vLLWpAiWgr20WBYlymDcrXtsbrxmvcKzc7GazWWxjUQ7qjW8qEsObeIf72uDDhIyqHOHgb5QN8DZvPI7NTRzJe1cc95vl9ZiHx3qo0ZNX5UHxVuUgjmIlyMpXv6QSiQSE8llcwJs7UoeQAotz+FKzEX2slpdYfG6mfO410P8rokOrKyh+0OK30AoMEhOpYB3iLRhrZzu5tREueyyfjyEYSU7iGpe+P1q2/UBV/ESh93CvmxL6YdUfobuVmiVul4YbhtMXpsm6esLwUPHg5MFBDIQ66UE81CxY93gp/63e42dI6caK/GEeebDjCta+QAARyK5mJbc7qqZ2ftrkuLhdamSjf/Sb9CAvzBeToFmXVZiAhTREIrGTqIB2NbOyCBkwaYwLUtKZPzyuHxHM/UAtuavUaPFuSEMoWflKENCoGWlRwZXPA66MP/NHxwU940ql1cL5rCqkmUtVPLSulALZTOboeDTjYd/k+eSLp1z9HweX9wcPv1P7u8O2U9/B1RBBJYWaFbOSksEP4Aw++dNPJAuunv6j4/orVIz4g1gAUqpaWv0hXisWkj8wUTfgkiChM85IH2fm77uMer3eqH/w+TL3P9/bTK8sRm+4ENL4O+AKFkqgUrBIfKmXfTCWztfj6UY2EvoZCgDYVmKYkT7+/XpG/SOf/09oV6p2mQgGq18K/mSFq0BYAVOMzWyG9MKM9l8nMvhR91xcvf5GY0IUtU5FwuMnVOiVr8NpJ/6kvEgoljWOmal7Dv+xrq/DMkyRUI9NUiQoaSit7jlUtt9Ku2o4dkjUUn60Wa6eJ5GvwDWj/o0VwGWGpGEjlWA6R78cN265ej0yvppdbhkaWoKbvu3p9TuKFWIt45s8SWb8NCz93YJteHAKiqQtaQqgLkdIZE1TkZtbVPWviO9p3/O4wLvDtD7O1oBm1Vs8BKzllthY9+a3kmY1g78qbIudbHQexrgcSUesw+t3sn+GoliL3YKs1mU7vODwVnsEKjztdjvcbAosKfWzsoM9tDTaCna2ME44gB1RtJ5i4M4mRNKhoU6GIpH130y7AqkEnsWANHMPAtYCX+deOJqZKLlSKvKEkpLOuddk4SgbHRsj3OxBRb5P0nCv0QgXBfcAkijEkIhetzMUBQDwhGdotFwnWbse7JXFSgMKFEkPtzJim2UURUQ0hewsQwJcOJxeNWEoc//O5kXCT6kEBBJBSJxCz1itpFJ46OgttUucOb2dZX8ineRPitf6RdyWRVport4ULy+Hwt8n6zBctw9xMZQT7mKzs3Z4LbERJ2Mlab2TMZI0MAS1UZZphMHoUSTipMPLLOVkMDw9SsPjeowMtc7aQ+kQqzyiB/RyiItlvrN5YeeTFvSjwR/8goPTErj6ImgWchS4Fk83IYOf285BLaGI/yAjLYoNyxxSCvpQOLQ8fJYMqBk8GAzg0DRcopFMI9AcOmKEZTqyzFiX6HULY9XT68DCypBhO/ZlZFqhZVSUDFasIyYEb/iQFKnisofDod9qFGT3p5T5/RRMwJZgan8B6rq6TahZwpnBDH53w/sRPJRqfRK8/hWEOTPLhKvXL6UZ5bFzaTrM0HawKSbiZEkSa1mYZKgQG6ZYWIYoZh2s18qSdhJvRYNCQrC2jk16maRJtESHrZGIngqRkYnH2MEm/7P2PXrPmRtyXDhS9Vu9Bb7GOR07tabENhrbze1GE783trdhptY5nxhIPwoHwCE7cWwQpuzk+hI8R4AKQx/npEg9GXFGwkbo56iwnoLPIbxHmKacyxT4MhLfZuLEOxthV1AxeEQIqTdSaXL5JuL4LcO1vzgco9vkvR6v1+P0eMJr4bW1EH6FQiEnvKxo8q6LeQejM++iGJ3+z8NVxt934DiN/Lv+t43jCeVJmiCvhkObyaWyiX601UTIqh+i0/92selDd+LeEcOE6PX6368pmmiiiSaaaKKJJppoookmmmiiiSaaaKKJJpr8v5R/AfPwMuzQZ3iMAAAAAElFTkSuQmCC"
+     alt="Corporacion Universitaria del Meta - UNIMETA"
+     class="logo" width="302" height="112">
+
+    <div class="encabezado-textos">
+      <h1>Validación documental de docentes</h1>
+      <p>Talento Humano &middot; <span id="nombreAuditoria">Auditoría documental</span></p>
+    </div>
+    <div class="sesion" id="sesion" hidden>
+      <p class="sesion-correo" id="sesionCorreo"></p>
+      <button type="button" class="btn-mini" id="btnSalir">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+<div class="franja" aria-hidden="true"></div>
+
+<main id="contenido">
+
+  <!-- Region para lectores de pantalla -->
+  <div class="solo-lectores" aria-live="polite" id="anuncio"></div>
+
+  <!-- Error general de la aplicacion -->
+  <div class="aviso aviso-error" id="avisoGeneral" hidden role="alert"></div>
+
+  <!-- ==========================================================
+       VISTA 1 - LISTADO DE DOCENTES
+       ========================================================== -->
+  <section class="vista" id="vistaLista" aria-labelledby="tituloLista">
+
+    <!-- Las cuatro cifras son además el filtro del listado -->
+    <div class="tira-indicadores" id="tiraIndicadores" role="group"
+         aria-label="Filtrar el listado por estado">
+      <button type="button" class="indicador indicador-total" data-filtro="TODOS" aria-pressed="true">
+        <p>Total docentes</p>
+        <p id="cifraTotal">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-pendientes" data-filtro="PENDIENTE" aria-pressed="false">
+        <p>Pendientes</p>
+        <p id="cifraPendientes">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-validados" data-filtro="VALIDADO" aria-pressed="false">
+        <p>Validados</p>
+        <p id="cifraValidados">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-correccion" data-filtro="REQUIERE_CORRECCION" aria-pressed="false">
+        <p>Con correcciones</p>
+        <p id="cifraCorrecciones">&mdash;</p>
+      </button>
+    </div>
+
+    <div class="tarjeta tarjeta-neutra">
+      <h2 class="titulo-vista" id="tituloLista">Docentes por revisar</h2>
+      <p class="descripcion-vista">
+        Seleccione un docente para comparar la información reportada a SNIES con los
+        documentos de soporte. Pulse una de las cifras de arriba para ver solo los
+        docentes de ese estado. La hoja <strong>Docentes</strong> no se modifica: las
+        diferencias quedan registradas aparte.
+      </p>
+
+      <div class="buscador">
+        <label for="buscador">Buscar docente</label>
+        <input type="search" id="buscador" autocomplete="off" spellcheck="false"
+               placeholder="Buscar por nombre o número de documento...">
+      </div>
+
+      <p class="conteo-resultados" id="conteoResultados"></p>
+    </div>
+
+    <div class="cargando-bloque" id="listaCargando">
+      <span class="girador" aria-hidden="true"></span>
+      <p>Cargando docentes...</p>
+    </div>
+
+    <div class="lista-docentes" id="listaDocentes"></div>
+
+    <div class="vacio" id="listaVacia" hidden>
+      No hay docentes que coincidan con la búsqueda.
+    </div>
+
+  </section>
+
+  <!-- ==========================================================
+       VISTA 2 - FICHA DEL DOCENTE
+       ========================================================== -->
+  <section class="vista" id="vistaFicha" aria-labelledby="fichaNombre">
+
+    <button type="button" class="btn-texto btn-volver" id="btnVolver">&larr; Volver al listado</button>
+
+    <div class="cargando-bloque" id="fichaCargando" hidden>
+      <span class="girador" aria-hidden="true"></span>
+      <p>Cargando revisión...</p>
+    </div>
+
+    <div class="aviso aviso-error" id="fichaError" hidden role="alert"></div>
+
+    <div id="fichaContenido" hidden>
+
+      <!-- Cinta que anuncia el modo consulta o edicion -->
+      <div class="cinta-modo" id="cintaModo" hidden>
+        <span id="cintaModoTexto"></span>
+      </div>
+
+      <div class="tarjeta">
+
+        <div class="ficha-cabecera">
+          <div class="ficha-identidad">
+            <h2 id="fichaNombre"></h2>
+            <p class="ficha-documento" id="fichaDocumento"></p>
+            <span class="insignia" id="fichaInsignia"></span>
+          </div>
+          <div class="ficha-acciones-cabecera">
+            <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
+              Editar revisión
+            </button>
+          </div>
+        </div>
+
+        <div class="ficha-marcas" id="fichaMarcas" hidden></div>
+
+        <form id="formRevision" novalidate>
+
+          <fieldset id="camposRevision">
+            <legend class="solo-lectores">Revisión documental del docente</legend>
+
+            <p class="subtitulo">Verificación de información</p>
+            <div class="criterios" id="listaCriterios"></div>
+
+            <p class="subtitulo">Soportes documentales</p>
+            <div class="soportes">
+
+              <div class="soporte" id="soporteActa">
+                <p class="soporte-titulo">Acta de grado <span class="obligatorio" id="marcaActa">*</span></p>
+                <p class="soporte-nota">Archivo PDF. Máximo 10 MB.</p>
+                <label for="archivoActa" class="solo-lectores">Acta de grado en PDF</label>
+                <input type="file" id="archivoActa" accept="application/pdf,.pdf">
+                <p class="soporte-estado ausente" id="estadoActa">Sin acta cargada.</p>
+                <p class="mensaje-error" id="errorActa" hidden></p>
+              </div>
+
+              <div class="soporte" id="soporteDiploma">
+                <p class="soporte-titulo">Diploma de grado <span class="opcional" id="marcaDiploma">Opcional</span></p>
+                <p class="soporte-nota">Archivo PDF. Máximo 10 MB.</p>
+                <label for="archivoDiploma" class="solo-lectores">Diploma de grado en PDF</label>
+                <input type="file" id="archivoDiploma" accept="application/pdf,.pdf">
+                <p class="soporte-estado ausente" id="estadoDiploma">Sin diploma cargado.</p>
+                <p class="mensaje-error" id="errorDiploma" hidden></p>
+              </div>
+
+            </div>
+
+            <!-- Acceso directo a todos los soportes del docente en Drive -->
+            <p class="carpeta-docente" id="carpetaDocente" hidden></p>
+
+            <p class="subtitulo">Observaciones</p>
+            <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
+            <textarea id="observaciones" maxlength="2000"
+                      placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
+          </fieldset>
+
+          <div class="aviso" id="avisoGuardado" hidden role="status"></div>
+
+          <div class="navegacion" id="navegacionFicha">
+            <div>
+              <button type="button" class="btn-texto" id="btnCancelarEdicion" hidden>
+                Cancelar edición
+              </button>
+            </div>
+            <div class="navegacion-derecha">
+              <button type="submit" class="btn-primario" id="btnGuardar">Guardar revisión</button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Capa de carga a pantalla completa, solo para el arranque y el guardado -->
+<div class="capa-carga" id="capaCarga" aria-hidden="true">
+  <div class="girador"></div>
+  <p id="textoCarga">Cargando...</p>
+</div>
+
+<script>
+/* Generado por construir_sitio.mjs. No editar a mano. */
+window.URL_SERVIDOR = "https://script.google.com/macros/s/AKfycbzmxF4IPuJN0_jpgzwYb9pGOXRxXQZDxwyda3QZA2w_ipHT19a-qJMesJuwmLvtIGpZ/exec";
+window.ID_CLIENTE_OAUTH = "1074233228198-i5cm1dukjv4kv30tkb4si6fmm4c1968v.apps.googleusercontent.com";
+</script>
+<script src="https://accounts.google.com/gsi/client" defer></script>
+<script>
+/* ============================================================
+   Scripts.html
+   Validacion documental de docentes - Auditoria SNIES - UNIMETA
+
+   La pagina tiene dos vistas: el listado y la ficha del docente.
+   Nunca se usa alert(), confirm() ni prompt(): todos los mensajes
+   se dibujan dentro de la interfaz.
+
+   Todo el texto que proviene de las hojas se inserta con
+   textContent, nunca con innerHTML, de modo que un nombre o un
+   titulo con caracteres de HTML no puede inyectar marcado.
+   ============================================================ */
+
+'use strict';
+
+/* ------------------------------------------------------------
+   ESTADO
+   ------------------------------------------------------------ */
+
+var COINCIDE    = 'COINCIDE';
+var NO_COINCIDE = 'NO_COINCIDE';
+
+var ESTADO_PENDIENTE  = 'PENDIENTE';
+var ESTADO_VALIDADO   = 'VALIDADO';
+var ESTADO_CORRECCION = 'REQUIERE_CORRECCION';
+
+var NOMBRES_ESTADO = {
+  PENDIENTE: 'Pendiente',
+  VALIDADO: 'Validado',
+  REQUIERE_CORRECCION: 'Requiere corrección'
+};
+
+/** Como se nombra cada grupo al contarlo: "Mostrando 12 pendientes". */
+var NOMBRES_GRUPO = {
+  PENDIENTE: 'pendientes',
+  VALIDADO: 'validados',
+  REQUIERE_CORRECCION: 'con correcciones'
+};
+
+/** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
+var FILTRO = 'TODOS';
+
+var MAX_BYTES_PDF = 10 * 1024 * 1024;
+
+var SIN_CONEXION = 'No fue posible comunicarse con el servidor. ' +
+  'Verifique su conexión e intente de nuevo.';
+
+/** Datos de la auditoria, tal como los entrega obtenerDocentes(). */
+var APP = {
+  auditoria: '',
+  criterios: [],
+  requisitos: { actaObligatoria: true, diplomaObligatorio: false },
+  docentes: [],
+  resumen: { total: 0, pendientes: 0, validados: 0, correcciones: 0 }
+};
+
+/**
+ * Ficha abierta en este momento.
+ *
+ *   modo 'nueva'    -> el docente aun no ha sido revisado
+ *   modo 'consulta' -> revision guardada, campos bloqueados
+ *   modo 'edicion'  -> revision guardada que se esta modificando
+ *
+ * guardado conserva SIEMPRE la ultima version confirmada por el
+ * servidor: es lo que permite que "Cancelar edición" restaure los
+ * valores exactos sin volver a consultar.
+ */
+var FICHA = null;
+
+/* ------------------------------------------------------------
+   UTILIDADES
+   ------------------------------------------------------------ */
+
+function $(id) { return document.getElementById(id); }
+
+function crear(etiqueta, clase, texto) {
+  var nodo = document.createElement(etiqueta);
+  if (clase) nodo.className = clase;
+  if (texto !== undefined && texto !== null) nodo.textContent = texto;
+  return nodo;
+}
+
+function vaciar(nodo) {
+  while (nodo.firstChild) nodo.removeChild(nodo.firstChild);
+}
+
+/** Quita tildes y pasa a minusculas, para comparar en el buscador. */
+function plano(texto) {
+  return String(texto == null ? '' : texto)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
+/** Convierte dd/mm/aaaa al valor aaaa-mm-dd que exige input[type=date]. */
+function fechaParaControl(valor) {
+  var texto = String(valor || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
+
+  var partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
+  return partes ? partes[3] + '-' + partes[2] + '-' + partes[1] : '';
+}
+
+function anunciar(texto) { $('anuncio').textContent = texto; }
+
+function mostrarAviso(nodo, tipo, texto) {
+  nodo.className = 'aviso aviso-' + tipo;
+  nodo.textContent = texto;
+  nodo.hidden = false;
+}
+
+function ocultarAviso(nodo) {
+  nodo.hidden = true;
+  nodo.textContent = '';
+}
+
+function mostrarCapa(texto) {
+  $('textoCarga').textContent = texto;
+  $('capaCarga').classList.add('visible');
+  $('capaCarga').setAttribute('aria-hidden', 'false');
+  anunciar(texto);
+}
+
+function ocultarCapa() {
+  $('capaCarga').classList.remove('visible');
+  $('capaCarga').setAttribute('aria-hidden', 'true');
+}
+
+/* ------------------------------------------------------------
+   IDENTIDAD
+
+   La pagina esta publicada en un sitio estatico, asi que quien
+   autoriza no es el servidor de la pagina sino Google: al iniciar
+   sesion entrega un token firmado que viaja en cada peticion y que
+   Apps Script verifica. Sin token no se responde nada.
+
+   El token NO se guarda en localStorage a proposito. Vive solo en
+   memoria: cerrar la pestana cierra la sesion de la aplicacion.
+   ------------------------------------------------------------ */
+
+var SESION = { token: null, correo: '' };
+var INTENTOS_CARGA_GOOGLE = 50;
+var ESPERA_CARGA_GOOGLE_MS = 200;
+
+/**
+ * Arranca el botón de Google y queda a la espera.
+ *
+ * La biblioteca de Google se descarga desde otro dominio. En conexiones
+ * lentas puede terminar después de DOMContentLoaded, por lo que se espera
+ * hasta diez segundos antes de mostrar un error real de carga.
+ */
+function iniciarPuerta(intento) {
+  intento = intento || 0;
+
+  if (!window.ID_CLIENTE_OAUTH) {
+    mostrarAviso($('puertaError'), 'error',
+      'La aplicación no está configurada: falta el identificador de cliente de Google. ' +
+      'Avise al administrador.');
+    return;
+  }
+
+  if (!window.google || !google.accounts || !google.accounts.id) {
+    if (intento < INTENTOS_CARGA_GOOGLE) {
+      setTimeout(function () {
+        iniciarPuerta(intento + 1);
+      }, ESPERA_CARGA_GOOGLE_MS);
+      return;
+    }
+
+    mostrarAviso($('puertaError'), 'error',
+      'No fue posible cargar el inicio de sesión de Google. ' +
+      'Revise su conexión y actualice la página.');
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: window.ID_CLIENTE_OAUTH,
+    callback: recibirCredencial,
+    auto_select: true,
+    cancel_on_tap_outside: false
+  });
+
+  google.accounts.id.renderButton($('botonGoogle'), {
+    theme: 'outline',
+    size: 'large',
+    text: 'signin_with',
+    shape: 'rectangular',
+    locale: 'es',
+    width: 280
+  });
+
+  // Si la persona ya tiene sesión de Google, entra sin pulsar nada.
+  google.accounts.id.prompt();
+}
+
+/** Google entrega aquí el token de identidad. */
+function recibirCredencial(respuesta) {
+  if (!respuesta || !respuesta.credential) {
+    mostrarAviso($('puertaError'), 'error', 'No se recibió la credencial de Google.');
+    return;
+  }
+
+  SESION.token = respuesta.credential;
+  SESION.correo = correoDelToken(respuesta.credential);
+
+  ocultarAviso($('puertaError'));
+  $('puertaTexto').textContent = 'Verificando su identidad...';
+
+  // El servidor es quien decide de verdad: esta primera llamada sirve
+  // tanto para cargar los datos como para validar la sesión.
+  cargarDocentes();
+}
+
+/**
+ * Lee el correo del token sin verificarlo, solo para mostrarlo en el
+ * encabezado. La comprobación de verdad la hace el servidor: lo que se
+ * lea aquí no autoriza nada.
+ */
+function correoDelToken(token) {
+  try {
+    var carga = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(escape(atob(carga)))).email || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+function abrirAplicacion() {
+  $('puerta').hidden = true;
+  if (SESION.correo) {
+    $('sesionCorreo').textContent = SESION.correo;
+    $('sesion').hidden = false;
+  }
+}
+
+/** Devuelve a la puerta de entrada, con un motivo. */
+function cerrarSesion(motivo) {
+  SESION.token = null;
+  SESION.correo = '';
+
+  try {
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+    }
+  } catch (e) { /* sin sesión de Google que cerrar */ }
+
+  $('sesion').hidden = true;
+  $('puerta').hidden = false;
+  $('puertaTexto').textContent = 'Esta aplicación es de uso interno. ' +
+    'Inicie sesión con su cuenta institucional para continuar.';
+
+  if (motivo) mostrarAviso($('puertaError'), 'error', motivo);
+  else ocultarAviso($('puertaError'));
+}
+
+/* ------------------------------------------------------------
+   CONEXION CON EL SERVIDOR
+   ------------------------------------------------------------ */
+
+/**
+ * Unica via hacia el servidor. Siempre lleva manejador de exito y de
+ * fallo: ninguna operacion puede quedarse esperando para siempre.
+ *
+ * El cuerpo se manda como text/plain aunque sea JSON: asi el navegador
+ * no hace la consulta previa de CORS (OPTIONS), que Apps Script no sabe
+ * responder. Y sin cookies de Google, porque con varias cuentas abiertas
+ * son ellas las que mandan la peticion a la sesion equivocada.
+ */
+function servidor(accion, argumento, exito, fallo) {
+  // El simulador de la vista previa se anuncia así.
+  if (window.SIMULADOR) {
+    window.SIMULADOR(accion, argumento, exito, fallo);
+    return;
+  }
+
+  if (!window.URL_SERVIDOR) {
+    fallo('La aplicación no está configurada: falta la dirección del servidor.');
+    return;
+  }
+
+  fetch(window.URL_SERVIDOR, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ token: SESION.token, accion: accion, argumento: argumento }),
+    credentials: 'omit'
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (r) {
+      if (r && r.ok) {
+        try {
+          exito(r.resultado);
+        } catch (e) {
+          console.error(e);
+          fallo('Ocurrió un problema al mostrar la respuesta del servidor.');
+        }
+        return;
+      }
+
+      // El servidor rechazó la sesión: se vuelve a la puerta de entrada
+      // en lugar de dejar a la persona ante un error que no puede resolver.
+      if (r && r.sesion === 'INVALIDA') {
+        cerrarSesion(r.error || 'Su sesión expiró. Vuelva a iniciar sesión.');
+        return;
+      }
+
+      fallo((r && r.error) || SIN_CONEXION);
+    }, function () {
+      fallo(SIN_CONEXION);
+    });
+}
+
+/* ------------------------------------------------------------
+   ARRANQUE
+   ------------------------------------------------------------ */
+
+document.addEventListener('DOMContentLoaded', function () {
+  conectarEventos();
+
+  // En la vista previa no hay Google: se entra directo.
+  if (window.SIMULADOR) {
+    $('puerta').hidden = true;
+    cargarDocentes();
+    return;
+  }
+
+  iniciarPuerta();
+});
+
+function cargarDocentes() {
+  $('listaCargando').hidden = false;
+  $('listaVacia').hidden = true;
+  ocultarAviso($('avisoGeneral'));
+  mostrarVista('lista');
+
+  servidor('obtenerDocentes', undefined, function (datos) {
+    $('listaCargando').hidden = true;
+
+    APP.auditoria  = datos.auditoria || '';
+    APP.criterios  = datos.criterios || [];
+    APP.requisitos = datos.requisitos || APP.requisitos;
+    APP.docentes   = datos.docentes || [];
+    APP.resumen    = datos.resumen || APP.resumen;
+
+    if (APP.auditoria) $('nombreAuditoria').textContent = APP.auditoria;
+
+    aplicarRequisitos();
+    pintarIndicadores();
+    marcarFiltro();
+    pintarLista();
+
+    // El servidor respondió, luego la sesión es válida: se abre la app.
+    abrirAplicacion();
+    anunciar('Listado cargado con ' + APP.docentes.length + ' docentes.');
+  }, function (mensaje) {
+    $('listaCargando').hidden = true;
+
+    // Si aún no se ha entrado, el error va en la puerta: el aviso de
+    // dentro quedaría tapado y la persona no vería nada.
+    if (!$('puerta').hidden) {
+      $('puertaTexto').textContent = 'Esta aplicación es de uso interno. ' +
+        'Inicie sesión con su cuenta institucional para continuar.';
+      mostrarAviso($('puertaError'), 'error', mensaje);
+      return;
+    }
+
+    mostrarAviso($('avisoGeneral'), 'error',
+      'No fue posible cargar la lista de docentes: ' + mensaje);
+  });
+}
+
+/** Marca el acta y el diploma como obligatorios u opcionales. */
+function aplicarRequisitos() {
+  var acta = $('marcaActa');
+  if (APP.requisitos.actaObligatoria) {
+    acta.className = 'obligatorio';
+    acta.textContent = '*';
+  } else {
+    acta.className = 'opcional';
+    acta.textContent = 'Opcional';
+  }
+
+  var diploma = $('marcaDiploma');
+  if (APP.requisitos.diplomaObligatorio) {
+    diploma.className = 'obligatorio';
+    diploma.textContent = '*';
+  } else {
+    diploma.className = 'opcional';
+    diploma.textContent = 'Opcional';
+  }
+}
+
+/* ------------------------------------------------------------
+   EVENTOS
+   ------------------------------------------------------------ */
+
+function conectarEventos() {
+  $('btnSalir').addEventListener('click', function () {
+    FICHA = null;
+    mostrarVista('lista');
+    cerrarSesion('');
+  });
+
+  $('buscador').addEventListener('input', pintarLista);
+
+  $('tiraIndicadores').addEventListener('click', function (evento) {
+    var boton = evento.target.closest('[data-filtro]');
+    if (boton) aplicarFiltro(boton.getAttribute('data-filtro'));
+  });
+
+  // Delegacion: los botones del listado se crean y destruyen al filtrar.
+  $('listaDocentes').addEventListener('click', function (evento) {
+    var boton = evento.target.closest('button[data-documento]');
+    if (boton) abrirFicha(boton.getAttribute('data-documento'));
+  });
+
+  $('btnVolver').addEventListener('click', volverAlListado);
+  $('btnEditar').addEventListener('click', entrarEnEdicion);
+  $('btnCancelarEdicion').addEventListener('click', cancelarEdicion);
+
+  $('formRevision').addEventListener('submit', function (evento) {
+    evento.preventDefault();
+    guardarRevision();
+  });
+
+  $('listaCriterios').addEventListener('change', function (evento) {
+    var opcion = evento.target.closest('.criterio');
+    if (opcion && evento.target.type === 'radio') {
+      refrescarCriterio(opcion);
+      return;
+    }
+
+    var bloque = evento.target.closest('.correccion');
+    if (bloque && evento.target.tagName === 'SELECT' && evento.target.value) {
+      bloque.classList.remove('con-error');
+    }
+  });
+
+  $('listaCriterios').addEventListener('input', function (evento) {
+    if (evento.target.tagName !== 'INPUT' ||
+        (evento.target.type !== 'text' && evento.target.type !== 'date')) return;
+    var bloque = evento.target.closest('.correccion');
+    if (bloque && evento.target.value.trim()) bloque.classList.remove('con-error');
+  });
+
+  $('archivoActa').addEventListener('change', function () {
+    recibirArchivo('acta', this, 'acta de grado');
+  });
+
+  $('archivoDiploma').addEventListener('change', function () {
+    recibirArchivo('diploma', this, 'diploma de grado');
+  });
+}
+
+/* ------------------------------------------------------------
+   VISTAS
+   ------------------------------------------------------------ */
+
+function mostrarVista(cual) {
+  $('vistaLista').classList.toggle('activa', cual === 'lista');
+  $('vistaFicha').classList.toggle('activa', cual === 'ficha');
+  window.scrollTo(0, 0);
+}
+
+/* ------------------------------------------------------------
+   INDICADORES Y LISTADO
+   ------------------------------------------------------------ */
+
+function pintarIndicadores() {
+  var r = APP.resumen;
+  $('cifraTotal').textContent        = r.total;
+  $('cifraPendientes').textContent   = r.pendientes;
+  $('cifraValidados').textContent    = r.validados;
+  $('cifraCorrecciones').textContent = r.correcciones;
+}
+
+function pintarLista() {
+  var contenedor = $('listaDocentes');
+  var texto = plano($('buscador').value.trim());
+  vaciar(contenedor);
+
+  // Primero el estado y despues el texto, para poder decir "3 de 12
+  // pendientes" en lugar de "3 de 50".
+  var delEstado = APP.docentes.filter(function (d) {
+    return FILTRO === 'TODOS' || (d.estado || ESTADO_PENDIENTE) === FILTRO;
+  });
+
+  var visibles = delEstado.filter(function (d) {
+    if (!texto) return true;
+    return plano(d.nombreCompleto).indexOf(texto) !== -1 ||
+           plano(d.documento).indexOf(texto) !== -1;
+  });
+
+  visibles.forEach(function (d) { contenedor.appendChild(tarjetaDocente(d)); });
+
+  $('listaVacia').hidden = visibles.length > 0 || APP.docentes.length === 0;
+  $('listaVacia').textContent = texto
+    ? 'No hay docentes que coincidan con la búsqueda.'
+    : 'No hay docentes en este estado.';
+
+  pintarConteo(visibles.length, delEstado.length, texto);
+}
+
+/** Linea bajo el buscador: cuantos se ven y como volver a verlos todos. */
+function pintarConteo(visibles, delEstado, texto) {
+  var nodo = $('conteoResultados');
+  vaciar(nodo);
+  if (!APP.docentes.length) return;
+
+  var frase;
+  if (FILTRO === 'TODOS') {
+    frase = texto
+      ? 'Mostrando ' + visibles + ' de ' + APP.docentes.length + ' docentes.'
+      : 'Mostrando los ' + APP.docentes.length + ' docentes de la auditoría.';
+  } else if (texto) {
+    frase = 'Mostrando ' + visibles + ' de ' + delEstado + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
+  } else {
+    frase = 'Mostrando ' + delEstado + ' ' +
+      (delEstado === 1 ? 'docente' : 'docentes') + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
+  }
+
+  nodo.appendChild(document.createTextNode(frase + ' '));
+
+  if (FILTRO !== 'TODOS' || texto) {
+    var limpiar = crear('button', 'btn-mini', 'Ver todos');
+    limpiar.type = 'button';
+    limpiar.addEventListener('click', function () {
+      FILTRO = 'TODOS';
+      $('buscador').value = '';
+      marcarFiltro();
+      pintarLista();
+    });
+    nodo.appendChild(limpiar);
+  }
+}
+
+/** Aplica un filtro por estado desde las cifras de arriba. */
+function aplicarFiltro(estado) {
+  // Volver a pulsar la misma cifra quita el filtro.
+  FILTRO = (FILTRO === estado) ? 'TODOS' : estado;
+  marcarFiltro();
+  pintarLista();
+  anunciar(FILTRO === 'TODOS'
+    ? 'Mostrando todos los docentes.'
+    : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
+}
+
+/** Sincroniza el aspecto de las cuatro cifras con el filtro vigente. */
+function marcarFiltro() {
+  Array.prototype.forEach.call(
+    $('tiraIndicadores').querySelectorAll('[data-filtro]'),
+    function (boton) {
+      var activo = boton.getAttribute('data-filtro') === FILTRO;
+      boton.classList.toggle('activo', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
+}
+
+function tarjetaDocente(docente) {
+  var estado = docente.estado || ESTADO_PENDIENTE;
+
+  var fila = crear('article', 'docente docente-' + estado);
+
+  var datos = crear('div', 'docente-datos');
+  datos.appendChild(crear('p', 'docente-nombre', docente.nombreCompleto || '(sin nombre)'));
+  datos.appendChild(crear('p', 'docente-documento',
+    (docente.tipoDocumento || 'CC') + ' ' + docente.documento));
+  fila.appendChild(datos);
+
+  var acciones = crear('div', 'docente-acciones');
+  acciones.appendChild(insignia(estado));
+
+  var revisado = estado !== ESTADO_PENDIENTE;
+  var boton = crear('button',
+    'btn-compacto ' + (revisado ? 'btn-secundario' : 'btn-primario'),
+    revisado ? 'Ver revisión' : 'Revisar');
+  boton.type = 'button';
+  boton.setAttribute('data-documento', docente.documento);
+  boton.setAttribute('aria-label',
+    (revisado ? 'Ver revisión de ' : 'Revisar a ') + docente.nombreCompleto);
+  acciones.appendChild(boton);
+
+  fila.appendChild(acciones);
+  return fila;
+}
+
+function insignia(estado) {
+  return crear('span', 'insignia insignia-' + estado,
+    NOMBRES_ESTADO[estado] || NOMBRES_ESTADO.PENDIENTE);
+}
+
+/* ------------------------------------------------------------
+   FICHA: APERTURA
+   ------------------------------------------------------------ */
+
+function abrirFicha(documento) {
+  mostrarVista('ficha');
+
+  $('fichaCargando').hidden = false;
+  $('fichaContenido').hidden = true;
+  ocultarAviso($('fichaError'));
+  ocultarAviso($('avisoGuardado'));
+  anunciar('Cargando revisión...');
+
+  servidor('obtenerValidacion', documento, function (datos) {
+    $('fichaCargando').hidden = true;
+
+    if (!datos || !datos.docente) {
+      mostrarAviso($('fichaError'), 'error',
+        'El servidor no devolvió la información del docente. Vuelva al listado e intente de nuevo.');
+      return;
+    }
+
+    FICHA = {
+      documento: datos.docente.documento,
+      docente: datos.docente,
+      guardado: datos.existe ? datos.validacion : null,
+      modo: datos.existe ? 'consulta' : 'nueva',
+      archivos: { acta: null, diploma: null },
+      quitarDiploma: false,
+      guardando: false
+    };
+
+    $('fichaContenido').hidden = false;
+    pintarFicha();
+    anunciar('Ficha de ' + FICHA.docente.nombreCompleto + ' cargada.');
+  }, function (mensaje) {
+    // Pase lo que pase, la ficha no se queda en "Cargando revisión...".
+    $('fichaCargando').hidden = true;
+    $('fichaContenido').hidden = true;
+    mostrarAviso($('fichaError'), 'error', 'No fue posible cargar la revisión: ' + mensaje);
+  });
+}
+
+function volverAlListado() {
+  FICHA = null;
+  pintarLista();
+  mostrarVista('lista');
+}
+
+/* ------------------------------------------------------------
+   FICHA: DIBUJO
+   ------------------------------------------------------------ */
+
+function pintarFicha() {
+  if (!FICHA) return;
+
+  var soloLectura = FICHA.modo === 'consulta';
+  var estado = FICHA.guardado ? FICHA.guardado.estado : ESTADO_PENDIENTE;
+
+  /* --- Cabecera --- */
+  $('fichaNombre').textContent = FICHA.docente.nombreCompleto || '(sin nombre)';
+  $('fichaDocumento').textContent =
+    (FICHA.docente.tipoDocumento || 'CC') + ' ' + FICHA.docente.documento;
+
+  var marca = $('fichaInsignia');
+  marca.className = 'insignia insignia-' + estado;
+  marca.textContent = NOMBRES_ESTADO[estado] || NOMBRES_ESTADO.PENDIENTE;
+
+  $('btnEditar').hidden = !soloLectura;
+
+  /* --- Marcas de la revision guardada --- */
+  pintarMarcas();
+
+  /* --- Cinta de modo --- */
+  var cinta = $('cintaModo');
+  if (FICHA.modo === 'consulta') {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      'Está viendo una revisión ya guardada. Para modificarla use "Editar revisión".';
+  } else if (FICHA.modo === 'edicion') {
+    cinta.hidden = false;
+    $('cintaModoTexto').textContent =
+      'Está editando una revisión guardada. Al guardar se actualizará el registro existente, ' +
+      'sin crear uno nuevo.';
+  } else {
+    cinta.hidden = true;
+    $('cintaModoTexto').textContent = '';
+  }
+
+  /* --- Cuerpo --- */
+  pintarCriterios();
+  pintarSoportes();
+
+  $('observaciones').value = FICHA.guardado ? (FICHA.guardado.observaciones || '') : '';
+  $('camposRevision').disabled = soloLectura;
+
+  /* --- Navegacion --- */
+  $('navegacionFicha').hidden = soloLectura;
+  $('btnCancelarEdicion').hidden = FICHA.modo !== 'edicion';
+  $('btnGuardar').textContent = FICHA.modo === 'edicion' ? 'Guardar cambios' : 'Guardar revisión';
+  $('btnGuardar').disabled = false;
+
+  ocultarAviso($('avisoGuardado'));
+}
+
+function pintarMarcas() {
+  var caja = $('fichaMarcas');
+  vaciar(caja);
+
+  if (!FICHA.guardado) {
+    caja.hidden = true;
+    return;
+  }
+
+  var marcas = [
+    ['Fecha de validación (hora Colombia)', FICHA.guardado.fechaValidacion],
+    ['Última modificación (hora Colombia)', FICHA.guardado.fechaModificacion],
+    ['Estado', NOMBRES_ESTADO[FICHA.guardado.estado] || FICHA.guardado.estado]
+  ];
+
+  marcas.forEach(function (par) {
+    var celda = crear('div', 'ficha-marca');
+    celda.appendChild(crear('p', null, par[0]));
+    celda.appendChild(crear('p', null, par[1] || '—'));
+    caja.appendChild(celda);
+  });
+
+  caja.hidden = false;
+}
+
+function pintarCriterios() {
+  var contenedor = $('listaCriterios');
+  vaciar(contenedor);
+
+  APP.criterios.forEach(function (criterio) {
+    var guardado = FICHA.guardado && FICHA.guardado.criterios
+      ? FICHA.guardado.criterios[criterio.clave]
+      : null;
+
+    var reportado = FICHA.docente.valores ? FICHA.docente.valores[criterio.clave] : '';
+
+    var fila = crear('div', 'criterio');
+    fila.setAttribute('data-clave', criterio.clave);
+
+    /* Columna izquierda: que se compara y con que valor */
+    var texto = crear('div');
+    texto.appendChild(crear('p', 'criterio-etiqueta', criterio.etiqueta));
+    texto.appendChild(reportado
+      ? crear('p', 'criterio-valor', reportado)
+      : crear('p', 'criterio-valor vacio', '(sin dato reportado)'));
+    fila.appendChild(texto);
+
+    /* Columna derecha: el par de botones */
+    var opciones = crear('div', 'opciones-criterio');
+    opciones.appendChild(botonCriterio(criterio.clave, COINCIDE, '✓', 'Coincide',
+      guardado && guardado.valor === COINCIDE));
+    opciones.appendChild(botonCriterio(criterio.clave, NO_COINCIDE, '✕', 'No coincide',
+      guardado && guardado.valor === NO_COINCIDE));
+    fila.appendChild(opciones);
+
+    /* Campo de correccion, visible solo cuando algo no coincide */
+    var correccion = crear('div', 'correccion');
+
+    var comparacion = crear('p', 'comparacion');
+    comparacion.appendChild(document.createTextNode('SNIES reporta: '));
+    var reportadoNodo = crear('strong', null, reportado || '(sin dato)');
+    comparacion.appendChild(reportadoNodo);
+    correccion.appendChild(comparacion);
+
+    var etiqueta = crear('label');
+    etiqueta.setAttribute('for', 'corr_' + criterio.clave);
+    etiqueta.appendChild(document.createTextNode('Valor correcto según el soporte '));
+    etiqueta.appendChild(crear('span', 'obligatorio', '*'));
+    correccion.appendChild(etiqueta);
+
+    var opcionesCorreccion = criterio.opcionesCorreccion || [];
+    var campo;
+
+    if (opcionesCorreccion.length) {
+      campo = document.createElement('select');
+
+      var opcionVacia = document.createElement('option');
+      opcionVacia.value = '';
+      opcionVacia.textContent = 'Seleccione una opción';
+      campo.appendChild(opcionVacia);
+
+      opcionesCorreccion.forEach(function (valor) {
+        var opcion = document.createElement('option');
+        opcion.value = valor;
+        opcion.textContent = valor;
+        campo.appendChild(opcion);
+      });
+    } else {
+      campo = document.createElement('input');
+      campo.type = criterio.tipoCorreccion === 'fecha' ? 'date' : 'text';
+
+      if (campo.type === 'text') {
+        campo.maxLength = 500;
+        campo.autocomplete = 'off';
+        campo.placeholder = 'Escriba el valor que figura en el documento soporte';
+      }
+    }
+
+    campo.className = 'campo-correccion';
+    if (criterio.normalizarCorreccion === 'mayusculas') {
+      campo.classList.add('campo-mayusculas');
+    }
+    campo.id = 'corr_' + criterio.clave;
+    var valorGuardado = guardado ? (guardado.correccion || '') : '';
+    if (criterio.normalizarCorreccion === 'mayusculas') {
+      valorGuardado = valorGuardado.toUpperCase();
+    }
+    campo.value = criterio.tipoCorreccion === 'fecha'
+      ? fechaParaControl(valorGuardado)
+      : valorGuardado;
+    correccion.appendChild(campo);
+
+    correccion.appendChild(crear('p', 'mensaje-error',
+      opcionesCorreccion.length
+        ? 'Seleccione el valor correcto según el soporte.'
+        : criterio.tipoCorreccion === 'fecha'
+          ? 'Seleccione la fecha correcta según el soporte.'
+          : 'Escriba el valor correcto según el soporte.'));
+
+    if (guardado && guardado.valor === NO_COINCIDE) correccion.classList.add('visible');
+    fila.appendChild(correccion);
+
+    contenedor.appendChild(fila);
+    refrescarCriterio(fila);
+  });
+}
+
+function botonCriterio(clave, valor, simbolo, texto, marcado) {
+  var etiqueta = crear('label', 'opcion-criterio');
+
+  var radio = document.createElement('input');
+  radio.type = 'radio';
+  radio.name = 'crit_' + clave;
+  radio.value = valor;
+  radio.checked = !!marcado;
+  etiqueta.appendChild(radio);
+
+  etiqueta.appendChild(crear('span', 'marca', simbolo));
+  etiqueta.appendChild(document.createTextNode(texto));
+  return etiqueta;
+}
+
+/** Sincroniza el aspecto de un criterio con el radio que este marcado. */
+function refrescarCriterio(fila) {
+  var elegido = fila.querySelector('input[type="radio"]:checked');
+  var valor = elegido ? elegido.value : '';
+
+  Array.prototype.forEach.call(fila.querySelectorAll('.opcion-criterio'), function (etiqueta) {
+    var radio = etiqueta.querySelector('input[type="radio"]');
+    var activa = radio.checked;
+    etiqueta.classList.toggle('marcada-si', activa && radio.value === COINCIDE);
+    etiqueta.classList.toggle('marcada-no', activa && radio.value === NO_COINCIDE);
+  });
+
+  var correccion = fila.querySelector('.correccion');
+  correccion.classList.toggle('visible', valor === NO_COINCIDE);
+
+  if (valor !== NO_COINCIDE) {
+    correccion.classList.remove('con-error');
+    correccion.querySelector('.campo-correccion').value = '';
+  }
+
+  if (valor) fila.classList.remove('sin-responder');
+}
+
+/* ------------------------------------------------------------
+   FICHA: SOPORTES DOCUMENTALES
+   ------------------------------------------------------------ */
+
+function pintarSoportes() {
+  $('archivoActa').value = '';
+  $('archivoDiploma').value = '';
+  $('errorActa').hidden = true;
+  $('errorDiploma').hidden = true;
+  $('soporteActa').classList.remove('con-error');
+  $('soporteDiploma').classList.remove('con-error');
+
+  pintarEstadoSoporte('acta');
+  pintarEstadoSoporte('diploma');
+  pintarCarpetaDocente();
+}
+
+/** Enlace a la carpeta del docente en Drive, si ya existe. */
+function pintarCarpetaDocente() {
+  var nodo = $('carpetaDocente');
+  var url = FICHA.guardado ? (FICHA.guardado.urlCarpeta || '') : '';
+  vaciar(nodo);
+
+  if (!url) {
+    nodo.hidden = true;
+    return;
+  }
+
+  var enlace = crear('a', null, '📁 Abrir carpeta del docente');
+  enlace.href = url;
+  enlace.target = '_blank';
+  enlace.rel = 'noopener';
+  enlace.setAttribute('aria-label',
+    'Abrir en Google Drive la carpeta con los soportes de ' +
+    (FICHA.docente.nombreCompleto || 'el docente'));
+  nodo.appendChild(enlace);
+  nodo.hidden = false;
+}
+
+function pintarEstadoSoporte(tipo) {
+  var nodo = $(tipo === 'acta' ? 'estadoActa' : 'estadoDiploma');
+  var nombre = tipo === 'acta' ? 'acta' : 'diploma';
+  var url = FICHA.guardado
+    ? (tipo === 'acta' ? FICHA.guardado.urlActa : FICHA.guardado.urlDiploma)
+    : '';
+
+  vaciar(nodo);
+
+  if (FICHA.archivos[tipo]) {
+    nodo.className = 'soporte-estado nuevo';
+    nodo.appendChild(document.createTextNode(
+      'Archivo seleccionado: ' + FICHA.archivos[tipo].nombre));
+    if (url) {
+      nodo.appendChild(crear('span', null, ' (reemplazará al actual)'));
+    }
+    return;
+  }
+
+  if (tipo === 'diploma' && FICHA.quitarDiploma && url) {
+    nodo.className = 'soporte-estado fallo';
+    nodo.appendChild(document.createTextNode('El diploma se retirará al guardar.'));
+    nodo.appendChild(botonSoporte('Conservar', function () {
+      FICHA.quitarDiploma = false;
+      pintarEstadoSoporte('diploma');
+    }));
+    return;
+  }
+
+  if (url) {
+    nodo.className = 'soporte-estado cargado';
+    nodo.appendChild(document.createTextNode('✓ Documento cargado'));
+
+    var enlace = crear('a', null, 'Ver documento');
+    enlace.href = url;
+    enlace.target = '_blank';
+    enlace.rel = 'noopener';
+    enlace.setAttribute('aria-label', 'Ver el ' + nombre + ' en Google Drive');
+    nodo.appendChild(enlace);
+
+    if (tipo === 'diploma' && FICHA.modo !== 'consulta') {
+      nodo.appendChild(botonSoporte('Quitar', function () {
+        FICHA.quitarDiploma = true;
+        pintarEstadoSoporte('diploma');
+      }));
+    }
+    return;
+  }
+
+  nodo.className = 'soporte-estado ausente';
+  nodo.appendChild(document.createTextNode(
+    tipo === 'acta' ? 'Sin acta cargada.' : 'Sin diploma cargado.'));
+}
+
+function botonSoporte(texto, accion) {
+  var boton = crear('button', 'btn-mini', texto);
+  boton.type = 'button';
+  boton.addEventListener('click', accion);
+  return boton;
+}
+
+/**
+ * Comprueba el archivo elegido y lo deja listo en memoria como base64.
+ * Solo se sube al servidor cuando la persona guarda la revision.
+ */
+function recibirArchivo(tipo, input, etiqueta) {
+  var caja = $(tipo === 'acta' ? 'soporteActa' : 'soporteDiploma');
+  var error = $(tipo === 'acta' ? 'errorActa' : 'errorDiploma');
+  var estado = $(tipo === 'acta' ? 'estadoActa' : 'estadoDiploma');
+
+  var fallar = function (mensaje) {
+    input.value = '';
+    FICHA.archivos[tipo] = null;
+    caja.classList.add('con-error');
+    error.textContent = mensaje;
+    error.hidden = false;
+    pintarEstadoSoporte(tipo);
+  };
+
+  caja.classList.remove('con-error');
+  error.hidden = true;
+
+  var archivo = input.files && input.files[0];
+  if (!archivo) {
+    FICHA.archivos[tipo] = null;
+    pintarEstadoSoporte(tipo);
+    return;
+  }
+
+  if (!/\.pdf$/i.test(archivo.name) ||
+      (archivo.type && archivo.type !== 'application/pdf')) {
+    fallar('El ' + etiqueta + ' debe ser un archivo PDF.');
+    return;
+  }
+
+  if (archivo.size > MAX_BYTES_PDF) {
+    fallar('El ' + etiqueta + ' supera el tamaño máximo de 10 MB.');
+    return;
+  }
+
+  if (archivo.size === 0) {
+    fallar('El archivo seleccionado está vacío.');
+    return;
+  }
+
+  estado.className = 'soporte-estado ausente';
+  estado.textContent = 'Leyendo archivo...';
+
+  var lector = new FileReader();
+
+  lector.onload = function () {
+    var resultado = String(lector.result || '');
+    var coma = resultado.indexOf(',');
+    if (coma === -1) {
+      fallar('No fue posible leer el archivo. Vuelva a seleccionarlo.');
+      return;
+    }
+    FICHA.archivos[tipo] = {
+      nombre: archivo.name,
+      tipo: 'application/pdf',
+      datos: resultado.slice(coma + 1)
+    };
+    if (tipo === 'diploma') FICHA.quitarDiploma = false;
+    pintarEstadoSoporte(tipo);
+  };
+
+  lector.onerror = function () {
+    fallar('No fue posible leer el archivo. Vuelva a seleccionarlo.');
+  };
+
+  lector.readAsDataURL(archivo);
+}
+
+/* ------------------------------------------------------------
+   FICHA: MODOS
+   ------------------------------------------------------------ */
+
+function entrarEnEdicion() {
+  if (!FICHA) return;
+  FICHA.modo = 'edicion';
+  FICHA.archivos = { acta: null, diploma: null };
+  FICHA.quitarDiploma = false;
+  pintarFicha();
+
+  var primero = $('listaCriterios').querySelector('input[type="radio"]');
+  if (primero) primero.focus();
+  anunciar('Edición habilitada.');
+}
+
+/** Descarta los cambios y vuelve a dibujar exactamente lo guardado. */
+function cancelarEdicion() {
+  if (!FICHA || !FICHA.guardado) return;
+  FICHA.modo = 'consulta';
+  FICHA.archivos = { acta: null, diploma: null };
+  FICHA.quitarDiploma = false;
+  pintarFicha();
+  anunciar('Edición cancelada. Se restauraron los valores guardados.');
+}
+
+/* ------------------------------------------------------------
+   FICHA: VALIDACION Y GUARDADO
+   ------------------------------------------------------------ */
+
+/** Recoge lo que hay en pantalla en la forma que espera el servidor. */
+function recolectar() {
+  var criterios = {};
+
+  Array.prototype.forEach.call($('listaCriterios').querySelectorAll('.criterio'), function (fila) {
+    var clave = fila.getAttribute('data-clave');
+    var elegido = fila.querySelector('input[type="radio"]:checked');
+    var correccion = fila.querySelector('.campo-correccion');
+    criterios[clave] = {
+      valor: elegido ? elegido.value : '',
+      correccion: correccion ? correccion.value.trim() : ''
+    };
+  });
+
+  return {
+    documento: FICHA.documento,
+    criterios: criterios,
+    observaciones: $('observaciones').value.trim(),
+    acta: FICHA.archivos.acta,
+    diploma: FICHA.archivos.diploma,
+    quitarDiploma: FICHA.quitarDiploma === true
+  };
+}
+
+/**
+ * Revisa lo recogido y devuelve la lista de problemas. Ademas senala en
+ * pantalla cada campo afectado y deja en .foco el primero, para llevar
+ * alli a la persona.
+ */
+function validar(datos) {
+  var problemas = [];
+  var foco = null;
+  var sinRevisar = 0;
+
+  // Se parte de cero: lo que se corrigio desde el intento anterior
+  // debe dejar de aparecer marcado.
+  $('soporteActa').classList.remove('con-error');
+  $('soporteDiploma').classList.remove('con-error');
+  $('errorActa').hidden = true;
+  $('errorDiploma').hidden = true;
+
+  Array.prototype.forEach.call($('listaCriterios').querySelectorAll('.criterio'), function (fila) {
+    var clave = fila.getAttribute('data-clave');
+    var dato = datos.criterios[clave];
+    var correccion = fila.querySelector('.correccion');
+
+    fila.classList.remove('sin-responder');
+    correccion.classList.remove('con-error');
+
+    if (!dato.valor) {
+      sinRevisar++;
+      fila.classList.add('sin-responder');
+      if (!foco) foco = fila.querySelector('input[type="radio"]');
+      return;
+    }
+
+    if (dato.valor === NO_COINCIDE && !dato.correccion) {
+      correccion.classList.add('con-error');
+      problemas.push('Falta el valor correcto de "' + etiquetaDe(clave) + '".');
+      if (!foco) foco = correccion.querySelector('.campo-correccion');
+    }
+  });
+
+  if (sinRevisar) {
+    problemas.unshift(sinRevisar === 1
+      ? 'Queda 1 criterio sin revisar.'
+      : 'Quedan ' + sinRevisar + ' criterios sin revisar.');
+  }
+
+  if (APP.requisitos.actaObligatoria && !datos.acta && !urlGuardada('acta')) {
+    $('soporteActa').classList.add('con-error');
+    $('errorActa').textContent = 'Debe cargar el acta de grado en PDF.';
+    $('errorActa').hidden = false;
+    problemas.push('Falta cargar el acta de grado.');
+    if (!foco) foco = $('archivoActa');
+  }
+
+  if (APP.requisitos.diplomaObligatorio && !datos.diploma &&
+      (!urlGuardada('diploma') || datos.quitarDiploma)) {
+    $('soporteDiploma').classList.add('con-error');
+    $('errorDiploma').textContent = 'Debe cargar el diploma de grado en PDF.';
+    $('errorDiploma').hidden = false;
+    problemas.push('Falta cargar el diploma de grado.');
+    if (!foco) foco = $('archivoDiploma');
+  }
+
+  return { problemas: problemas, foco: foco };
+}
+
+function urlGuardada(tipo) {
+  if (!FICHA.guardado) return '';
+  return (tipo === 'acta' ? FICHA.guardado.urlActa : FICHA.guardado.urlDiploma) || '';
+}
+
+function etiquetaDe(clave) {
+  for (var i = 0; i < APP.criterios.length; i++) {
+    if (APP.criterios[i].clave === clave) return APP.criterios[i].etiqueta;
+  }
+  return clave;
+}
+
+function guardarRevision() {
+  if (!FICHA || FICHA.guardando) return;   // evita el doble envio
+
+  var datos = recolectar();
+  var revision = validar(datos);
+  var aviso = $('avisoGuardado');
+
+  if (revision.problemas.length) {
+    mostrarAviso(aviso, 'error',
+      'No fue posible guardar la revisión: ' + revision.problemas.join(' '));
+    if (revision.foco) {
+      revision.foco.focus();
+      // El radio esta oculto visualmente: se desplaza el bloque que lo contiene.
+      var visible = revision.foco.closest('.criterio, .soporte') || revision.foco;
+      visible.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    return;
+  }
+
+  ocultarAviso(aviso);
+
+  var boton = $('btnGuardar');
+  var textoOriginal = boton.textContent;
+  FICHA.guardando = true;
+  boton.disabled = true;
+  boton.textContent = 'Guardando...';
+  $('btnCancelarEdicion').disabled = true;
+
+  var subeArchivos = !!(datos.acta || datos.diploma);
+  mostrarCapa(subeArchivos ? 'Subiendo documentos...' : 'Guardando revisión...');
+
+  var terminar = function () {
+    FICHA.guardando = false;
+    boton.disabled = false;
+    boton.textContent = textoOriginal;
+    $('btnCancelarEdicion').disabled = false;
+    ocultarCapa();
+  };
+
+  servidor('guardarValidacion', datos, function (respuesta) {
+    terminar();
+
+    if (respuesta && respuesta.resumen) {
+      APP.resumen = respuesta.resumen;
+      pintarIndicadores();
+    }
+
+    actualizarDocenteEnLista(respuesta.documento, respuesta.estado);
+    var nombreDocente = FICHA.docente.nombreCompleto || FICHA.documento;
+
+    // El servidor ya confirmo el guardado: se actualiza el listado y se
+    // regresa de inmediato, sin obligar a pulsar "Volver al listado".
+    volverAlListado();
+    mostrarAviso($('avisoGeneral'), 'exito',
+      '✓ Revisión de ' + nombreDocente + ' guardada correctamente.');
+    anunciar('Revisión guardada. Estado: ' +
+      (NOMBRES_ESTADO[respuesta.estado] || respuesta.estado) + '.');
+
+  }, function (mensaje) {
+    terminar();
+    mostrarAviso($('avisoGuardado'), 'error', 'No fue posible guardar la revisión: ' + mensaje);
+    $('avisoGuardado').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+}
+
+/** Refleja el nuevo estado en la lista sin volver a pedirla al servidor. */
+function actualizarDocenteEnLista(documento, estado) {
+  for (var i = 0; i < APP.docentes.length; i++) {
+    if (APP.docentes[i].documento === documento) {
+      APP.docentes[i].estado = estado;
+      return;
+    }
+  }
+}
+</script>
+
+
+</body>
+</html>

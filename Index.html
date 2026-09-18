@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Informacion institucional del personal: no debe aparecer en buscadores. -->
+  <meta name="robots" content="noindex, nofollow">
+  <title>Validación documental de docentes - UNIMETA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&amp;display=swap">
+  <!--ESTILOS-->
+</head>
+<body>
+
+<a href="#contenido" class="saltar-al-contenido">Saltar al contenido</a>
+
+<!-- ============================================================
+     PUERTA DE ENTRADA
+     Cubre la aplicación hasta que Google confirma quién entra.
+     ============================================================ -->
+<div class="puerta" id="puerta">
+  <div class="puerta-tarjeta">
+    <!--LOGO-->
+    <h1>Validación documental de docentes</h1>
+    <p class="puerta-texto" id="puertaTexto">
+      Esta aplicación es de uso interno. Inicie sesión con su cuenta institucional
+      para continuar.
+    </p>
+
+    <div class="puerta-boton" id="botonGoogle"></div>
+
+    <div class="aviso aviso-error" id="puertaError" hidden role="alert"></div>
+
+    <p class="puerta-pie" id="puertaPie">
+      Solo se permite el acceso con cuentas autorizadas de la institución.
+    </p>
+  </div>
+</div>
+
+<!-- ============================================================
+     ENCABEZADO
+     ============================================================ -->
+<header class="encabezado">
+  <div class="encabezado-interno">
+    <!--LOGO-->
+    <div class="encabezado-textos">
+      <h1>Validación documental de docentes</h1>
+      <p>Talento Humano &middot; <span id="nombreAuditoria">Auditoría documental</span></p>
+    </div>
+    <div class="sesion" id="sesion" hidden>
+      <p class="sesion-correo" id="sesionCorreo"></p>
+      <button type="button" class="btn-mini" id="btnSalir">Cerrar sesión</button>
+    </div>
+  </div>
+</header>
+<div class="franja" aria-hidden="true"></div>
+
+<main id="contenido">
+
+  <!-- Region para lectores de pantalla -->
+  <div class="solo-lectores" aria-live="polite" id="anuncio"></div>
+
+  <!-- Error general de la aplicacion -->
+  <div class="aviso aviso-error" id="avisoGeneral" hidden role="alert"></div>
+
+  <!-- ==========================================================
+       VISTA 1 - LISTADO DE DOCENTES
+       ========================================================== -->
+  <section class="vista" id="vistaLista" aria-labelledby="tituloLista">
+
+    <!-- Las cuatro cifras son además el filtro del listado -->
+    <div class="tira-indicadores" id="tiraIndicadores" role="group"
+         aria-label="Filtrar el listado por estado">
+      <button type="button" class="indicador indicador-total" data-filtro="TODOS" aria-pressed="true">
+        <p>Total docentes</p>
+        <p id="cifraTotal">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-pendientes" data-filtro="PENDIENTE" aria-pressed="false">
+        <p>Pendientes</p>
+        <p id="cifraPendientes">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-validados" data-filtro="VALIDADO" aria-pressed="false">
+        <p>Validados</p>
+        <p id="cifraValidados">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-correccion" data-filtro="REQUIERE_CORRECCION" aria-pressed="false">
+        <p>Con correcciones</p>
+        <p id="cifraCorrecciones">&mdash;</p>
+      </button>
+    </div>
+
+    <div class="tarjeta tarjeta-neutra">
+      <h2 class="titulo-vista" id="tituloLista">Docentes por revisar</h2>
+      <p class="descripcion-vista">
+        Seleccione un docente para comparar la información reportada a SNIES con los
+        documentos de soporte. Pulse una de las cifras de arriba para ver solo los
+        docentes de ese estado. La hoja <strong>Docentes</strong> no se modifica: las
+        diferencias quedan registradas aparte.
+      </p>
+
+      <div class="buscador">
+        <label for="buscador">Buscar docente</label>
+        <input type="search" id="buscador" autocomplete="off" spellcheck="false"
+               placeholder="Buscar por nombre o número de documento...">
+      </div>
+
+      <p class="conteo-resultados" id="conteoResultados"></p>
+    </div>
+
+    <div class="cargando-bloque" id="listaCargando">
+      <span class="girador" aria-hidden="true"></span>
+      <p>Cargando docentes...</p>
+    </div>
+
+    <div class="lista-docentes" id="listaDocentes"></div>
+
+    <div class="vacio" id="listaVacia" hidden>
+      No hay docentes que coincidan con la búsqueda.
+    </div>
+
+  </section>
+
+  <!-- ==========================================================
+       VISTA 2 - FICHA DEL DOCENTE
+       ========================================================== -->
+  <section class="vista" id="vistaFicha" aria-labelledby="fichaNombre">
+
+    <button type="button" class="btn-texto btn-volver" id="btnVolver">&larr; Volver al listado</button>
+
+    <div class="cargando-bloque" id="fichaCargando" hidden>
+      <span class="girador" aria-hidden="true"></span>
+      <p>Cargando revisión...</p>
+    </div>
+
+    <div class="aviso aviso-error" id="fichaError" hidden role="alert"></div>
+
+    <div id="fichaContenido" hidden>
+
+      <!-- Cinta que anuncia el modo consulta o edicion -->
+      <div class="cinta-modo" id="cintaModo" hidden>
+        <span id="cintaModoTexto"></span>
+      </div>
+
+      <div class="tarjeta">
+
+        <div class="ficha-cabecera">
+          <div class="ficha-identidad">
+            <h2 id="fichaNombre"></h2>
+            <p class="ficha-documento" id="fichaDocumento"></p>
+            <span class="insignia" id="fichaInsignia"></span>
+          </div>
+          <div class="ficha-acciones-cabecera">
+            <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
+              Editar revisión
+            </button>
+          </div>
+        </div>
+
+        <div class="ficha-marcas" id="fichaMarcas" hidden></div>
+
+        <form id="formRevision" novalidate>
+
+          <fieldset id="camposRevision">
+            <legend class="solo-lectores">Revisión documental del docente</legend>
+
+            <p class="subtitulo">Verificación de información</p>
+            <div class="criterios" id="listaCriterios"></div>
+
+            <p class="subtitulo">Soportes documentales</p>
+            <div class="soportes">
+
+              <div class="soporte" id="soporteActa">
+                <p class="soporte-titulo">Acta de grado <span class="obligatorio" id="marcaActa">*</span></p>
+                <p class="soporte-nota">Archivo PDF. Máximo 10 MB.</p>
+                <label for="archivoActa" class="solo-lectores">Acta de grado en PDF</label>
+                <input type="file" id="archivoActa" accept="application/pdf,.pdf">
+                <p class="soporte-estado ausente" id="estadoActa">Sin acta cargada.</p>
+                <p class="mensaje-error" id="errorActa" hidden></p>
+              </div>
+
+              <div class="soporte" id="soporteDiploma">
+                <p class="soporte-titulo">Diploma de grado <span class="opcional" id="marcaDiploma">Opcional</span></p>
+                <p class="soporte-nota">Archivo PDF. Máximo 10 MB.</p>
+                <label for="archivoDiploma" class="solo-lectores">Diploma de grado en PDF</label>
+                <input type="file" id="archivoDiploma" accept="application/pdf,.pdf">
+                <p class="soporte-estado ausente" id="estadoDiploma">Sin diploma cargado.</p>
+                <p class="mensaje-error" id="errorDiploma" hidden></p>
+              </div>
+
+            </div>
+
+            <!-- Acceso directo a todos los soportes del docente en Drive -->
+            <p class="carpeta-docente" id="carpetaDocente" hidden></p>
+
+            <p class="subtitulo">Observaciones</p>
+            <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
+            <textarea id="observaciones" maxlength="2000"
+                      placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
+          </fieldset>
+
+          <div class="aviso" id="avisoGuardado" hidden role="status"></div>
+
+          <div class="navegacion" id="navegacionFicha">
+            <div>
+              <button type="button" class="btn-texto" id="btnCancelarEdicion" hidden>
+                Cancelar edición
+              </button>
+            </div>
+            <div class="navegacion-derecha">
+              <button type="submit" class="btn-primario" id="btnGuardar">Guardar revisión</button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Capa de carga a pantalla completa, solo para el arranque y el guardado -->
+<div class="capa-carga" id="capaCarga" aria-hidden="true">
+  <div class="girador"></div>
+  <p id="textoCarga">Cargando...</p>
+</div>
+
+<!--SCRIPTS-->
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Que archivos NO se suben al proyecto de Apps Script.
+# Apps Script solo entiende .gs, .html y appsscript.json; todo lo demas
+# ensucia el editor o falla al subir.
+#
+# A diferencia de FORMULARIO_ACTUALIZACION, aqui la pagina SI la sirve
+# Apps Script (HtmlService), asi que Index, Styles, Scripts y Logo deben
+# subirse. Lo unico que se queda en el escritorio es la vista previa y su
+# generador.
+
+# LA PAGINA NO SE SUBE A APPS SCRIPT.
+#
+# Se publica en GitHub Pages y habla con este proyecto por doPost. Si
+# estos archivos subieran, bastaria con que alguien los sirviera con
+# HtmlService para tener google.script.run a mano, y con el despliegue
+# abierto eso deja TODAS las funciones publicas del proyecto al alcance
+# de cualquiera: crearCarpetasDocentes, consolidarCarpetas, los datos
+# de los 50 docentes... Ver la cabecera de Api.gs.
+Index.html
+Styles.html
+Scripts.html
+Logo.html
+docs/**
+
+# Vista previa local: la aplicacion con datos de muestra y servidor
+# simulado.
+vista_previa.html
+construir_vista_previa.mjs
+construir_sitio.mjs
+sitio.config.json
+
+# Respaldo del codigo que habia en el proyecto antes de esta version
+_respaldo_proyecto_anterior/**
+
+# Documentacion de trabajo
+*.md
+
+# Herramientas y dependencias de escritorio
+node_modules/**
+package.json
+package-lock.json
+
+# Control de versiones y basura del sistema
+.git/**
+.gitignore
+.claspignore
+Thumbs.db
+desktop.ini
