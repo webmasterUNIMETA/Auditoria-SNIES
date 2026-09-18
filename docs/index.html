@@ -2245,7 +2245,7 @@ function pintarFicha() {
     cinta.hidden = false;
     $('cintaModoTexto').textContent =
       estadoRevision === REV_DEVUELTO
-        ? 'El revisor devolvió este registro. Use "Editar revisión" para corregirlo y enviarlo nuevamente.'
+        ? 'El revisor devolvió este registro. Revise el resultado al final de la ficha, corrija y envíe nuevamente.'
         : 'Validación guardada. Puede editarla o enviarla al revisor.';
   } else if (FICHA.modo === 'edicion') {
     cinta.hidden = false;
@@ -2353,13 +2353,15 @@ function mostrarDocumento(tipo) {
 
 function pintarPanelRevisor() {
   var panel = $('panelRevisor');
-  if (!FICHA || !FICHA.guardado || esTalentoHumano()) {
+  if (!FICHA || !FICHA.guardado ||
+      (esTalentoHumano() && !FICHA.guardado.decisionRevision)) {
     panel.hidden = true;
     return;
   }
 
   panel.hidden = false;
   var puedeDecidir = esRevisor() && FICHA.guardado.estadoRevision === REV_EN_REVISION;
+  $('tituloPanelRevisor').textContent = puedeDecidir ? 'Decisión del revisor' : 'Resultado del revisor';
   var contenedor = $('criteriosRevisor');
   vaciar(contenedor);
 
