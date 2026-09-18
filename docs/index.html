@@ -159,6 +159,28 @@ textarea:focus-visible,
   color: var(--color-azul);
 }
 
+.selector-rol {
+  margin: 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-texto-suave);
+}
+
+.selector-rol select {
+  width: auto;
+  min-width: 150px;
+  padding: 6px 30px 6px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-texto);
+  background-color: var(--color-superficie);
+}
+
 /* ============================================================
    PUERTA DE ENTRADA
 
@@ -1266,6 +1288,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
     <div class="sesion" id="sesion" hidden>
       <p class="sesion-correo" id="sesionCorreo"></p>
       <p class="sesion-rol" id="sesionRol"></p>
+      <label class="selector-rol" id="selectorRolContenedor" hidden>
+        <span>Usar como</span>
+        <select id="selectorRol" aria-label="Cambiar rol activo"></select>
+      </label>
       <button type="button" class="btn-mini" id="btnSalir">Cerrar sesión</button>
     </div>
   </div>
@@ -1554,7 +1580,7 @@ var SIN_CONEXION = 'No fue posible comunicarse con el servidor. ' +
 var APP = {
   auditoria: '',
   criterios: [],
-  perfil: { correo: '', nombre: '', rol: '' },
+  perfil: { correo: '', nombre: '', rol: '', roles: [] },
   requisitos: { actaObligatoria: true, diplomaObligatorio: false },
   docentes: [],
   resumen: { total: 0, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 }
@@ -1653,7 +1679,7 @@ function puedeEditarValidacion() {
    memoria: cerrar la pestana cierra la sesion de la aplicacion.
    ------------------------------------------------------------ */
 
-var SESION = { token: null, correo: '' };
+var SESION = { token: null, correo: '', rol: '' };
 var INTENTOS_CARGA_GOOGLE = 50;
 var ESPERA_CARGA_GOOGLE_MS = 200;
 
@@ -1746,14 +1772,34 @@ function abrirAplicacion() {
     $('sesionCorreo').textContent = SESION.correo;
     $('sesionRol').textContent = NOMBRES_ROL[APP.perfil.rol] || APP.perfil.rol || '';
     $('nombreRol').textContent = NOMBRES_ROL[APP.perfil.rol] || 'Acceso autorizado';
+    actualizarSelectorRoles();
     $('sesion').hidden = false;
   }
+}
+
+/** Muestra el selector únicamente cuando la cuenta tiene más de un rol. */
+function actualizarSelectorRoles() {
+  var roles = Array.isArray(APP.perfil.roles) && APP.perfil.roles.length
+    ? APP.perfil.roles
+    : [APP.perfil.rol];
+  var selector = $('selectorRol');
+  selector.innerHTML = '';
+
+  roles.forEach(function (rol) {
+    var opcion = crear('option', '', NOMBRES_ROL[rol] || rol);
+    opcion.value = rol;
+    selector.appendChild(opcion);
+  });
+
+  selector.value = APP.perfil.rol;
+  $('selectorRolContenedor').hidden = roles.length < 2;
 }
 
 /** Devuelve a la puerta de entrada, con un motivo. */
 function cerrarSesion(motivo) {
   SESION.token = null;
   SESION.correo = '';
+  SESION.rol = '';
 
   try {
     if (window.google && google.accounts && google.accounts.id) {
@@ -1763,6 +1809,7 @@ function cerrarSesion(motivo) {
 
   $('sesion').hidden = true;
   $('sesionRol').textContent = '';
+  $('selectorRolContenedor').hidden = true;
   $('puerta').hidden = false;
   $('puertaTexto').textContent = 'Esta aplicación es de uso interno. ' +
     'Inicie sesión con su cuenta institucional para continuar.';
@@ -1799,7 +1846,12 @@ function servidor(accion, argumento, exito, fallo) {
   fetch(window.URL_SERVIDOR, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ token: SESION.token, accion: accion, argumento: argumento }),
+    body: JSON.stringify({
+      token: SESION.token,
+      rol: SESION.rol,
+      accion: accion,
+      argumento: argumento
+    }),
     credentials: 'omit'
   })
     .then(function (r) {
@@ -1860,6 +1912,7 @@ function cargarDocentes() {
     APP.criterios  = datos.criterios || [];
     APP.requisitos = datos.requisitos || APP.requisitos;
     APP.perfil     = datos.perfil || APP.perfil;
+    SESION.rol     = APP.perfil.rol || '';
     APP.docentes   = datos.docentes || [];
     APP.resumen    = datos.resumen || APP.resumen;
 
@@ -1937,6 +1990,18 @@ function conectarEventos() {
     FICHA = null;
     mostrarVista('lista');
     cerrarSesion('');
+  });
+
+  $('selectorRol').addEventListener('change', function () {
+    var nuevoRol = this.value;
+    var permitidos = APP.perfil.roles || [];
+    if (permitidos.indexOf(nuevoRol) === -1 || nuevoRol === SESION.rol) return;
+
+    SESION.rol = nuevoRol;
+    FICHA = null;
+    FILTRO = 'TODOS';
+    mostrarVista('lista');
+    cargarDocentes();
   });
 
   $('buscador').addEventListener('input', pintarLista);

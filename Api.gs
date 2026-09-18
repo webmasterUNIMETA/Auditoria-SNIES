@@ -71,7 +71,7 @@ function doPost(e) {
   var identidad;
   try {
     identidad = verificarIdentidad_(peticion && peticion.token);
-    identidad = autorizarUsuario_(identidad);
+    identidad = autorizarUsuario_(identidad, peticion && peticion.rol);
   } catch (err) {
     console.warn('Acceso rechazado: ' + (err && err.message ? err.message : err));
     return responderJson_({

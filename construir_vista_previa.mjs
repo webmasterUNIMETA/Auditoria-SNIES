@@ -154,12 +154,21 @@ const simulador = `
   var DOCENTES   = ${JSON.stringify(docentes)};
   var GUARDADAS  = ${JSON.stringify(guardadas)};
   var REQUISITOS = { actaObligatoria: true, diplomaObligatorio: false };
-  var PERFIL = { correo: 'revisor@ejemplo.edu.co', nombre: 'Revisor de ejemplo', rol: 'REVISOR' };
-  var rolSimulado = new URLSearchParams(location.search).get('rol');
+  var PERFIL = {
+    correo: 'revisor@ejemplo.edu.co',
+    nombre: 'Revisor de ejemplo',
+    rol: 'REVISOR',
+    roles: ['REVISOR', 'TALENTO_HUMANO']
+  };
+  var parametrosSimulacion = new URLSearchParams(location.search);
+  var rolSimulado = parametrosSimulacion.get('rol');
   if (['TALENTO_HUMANO', 'REVISOR', 'CONSULTA'].indexOf(rolSimulado) !== -1) {
     PERFIL.rol = rolSimulado;
+    PERFIL.roles = [rolSimulado];
     PERFIL.correo = rolSimulado.toLowerCase() + '@ejemplo.edu.co';
   }
+  var rolActivoSimulado = parametrosSimulacion.get('activo');
+  if (PERFIL.roles.indexOf(rolActivoSimulado) !== -1) PERFIL.rol = rolActivoSimulado;
 
   function resumen() {
     var r = { total: DOCENTES.length, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 };
@@ -174,6 +183,10 @@ const simulador = `
 
   var ACCIONES = {
     obtenerDocentes: function () {
+      if (window.SESION && PERFIL.roles.indexOf(SESION.rol) !== -1) {
+        PERFIL.rol = SESION.rol;
+      }
+      if (window.SESION) SESION.correo = PERFIL.correo;
       return {
         auditoria: ${JSON.stringify(NOMBRE_AUDITORIA)},
         criterios: CRITERIOS,

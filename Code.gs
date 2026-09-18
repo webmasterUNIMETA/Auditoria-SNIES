@@ -216,8 +216,9 @@ function prepararUsuarios() {
 /** Agrega o actualiza una sola cuenta sin alterar los demás usuarios. */
 function agregarUsuarioPrivado(correo, rol, nombre) {
   var email = String(correo || '').trim().toLowerCase();
-  var rolNormalizado = normalizarEncabezado_(rol);
-  var nombreLimpio = textoEntrante_(nombre, 100) || rolNormalizado;
+  var rolesNormalizados = normalizarRolesUsuario_(rol);
+  var rolGuardado = rolesNormalizados.join(', ');
+  var nombreLimpio = textoEntrante_(nombre, 100) || rolGuardado;
   var dominio = String(leerConfiguracion_().dominioAutorizado || '').toLowerCase();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -226,10 +227,6 @@ function agregarUsuarioPrivado(correo, rol, nombre) {
   if (dominio && email.slice(-(dominio.length + 1)) !== '@' + dominio) {
     throw new Error('El correo no pertenece al dominio institucional autorizado.');
   }
-  if ([ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA].indexOf(rolNormalizado) === -1) {
-    throw new Error('El rol indicado no es válido.');
-  }
-
   prepararUsuarios();
   var hoja = hojaDe_(HOJA_USUARIOS);
   var datos = hoja.getRange(1, 1, hoja.getLastRow(), hoja.getLastColumn()).getValues();
@@ -246,14 +243,15 @@ function agregarUsuarioPrivado(correo, rol, nombre) {
 
   var valores = {};
   valores.CORREO = email;
-  valores.ROL = rolNormalizado;
+  valores.ROL = rolGuardado;
   valores.ACTIVO = 'SI';
   valores.NOMBRE = nombreLimpio;
   escribirFila_(hoja, mapa, filaDestino, valores, filaDestino > hoja.getLastRow());
   hoja.getRange(filaDestino, mapa.CORREO).setNumberFormat('@');
 
   var avisoDrive = '';
-  if (rolNormalizado === ROL_TALENTO_HUMANO || rolNormalizado === ROL_REVISOR) {
+  if (rolesNormalizados.indexOf(ROL_TALENTO_HUMANO) !== -1 ||
+      rolesNormalizados.indexOf(ROL_REVISOR) !== -1) {
     try {
       carpetaPrincipal_().addViewer(email);
     } catch (e) {
@@ -263,7 +261,7 @@ function agregarUsuarioPrivado(correo, rol, nombre) {
   }
 
   SpreadsheetApp.flush();
-  return 'Usuario activo como ' + rolNormalizado + '.' + avisoDrive;
+  return 'Usuario activo con rol(es): ' + rolGuardado + '.' + avisoDrive;
 }
 
 /**
@@ -322,8 +320,30 @@ function configurarUsuariosPrivados(talento1, talento2, talento3, revisor, consu
       : ' Talento Humano y Revisor tienen lectura de la carpeta de soportes.');
 }
 
-/** Autoriza una identidad ya verificada por Google y le agrega su rol. */
-function autorizarUsuario_(identidad) {
+/** Normaliza uno o varios roles separados por coma, punto y coma o barra. */
+function normalizarRolesUsuario_(valor) {
+  var permitidos = [ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA];
+  var vistos = {};
+  var resultado = [];
+
+  String(valor || '').split(/[,;|]/).forEach(function (parte) {
+    var rol = normalizarEncabezado_(parte);
+    if (!rol) return;
+    if (permitidos.indexOf(rol) === -1) {
+      throw new Error('El rol indicado no es válido: ' + parte + '.');
+    }
+    if (!vistos[rol]) {
+      vistos[rol] = true;
+      resultado.push(rol);
+    }
+  });
+
+  if (!resultado.length) throw new Error('Debe indicar al menos un rol válido.');
+  return resultado;
+}
+
+/** Autoriza la identidad y selecciona solo uno de sus roles permitidos. */
+function autorizarUsuario_(identidad, rolSolicitado) {
   var hoja = libro_().getSheetByName(HOJA_USUARIOS);
   if (!hoja || hoja.getLastRow() < 2) {
     throw new Error('El control de acceso aún no está configurado. Avise al administrador.');
@@ -334,8 +354,6 @@ function autorizarUsuario_(identidad) {
   exigirColumnas_(mapa, ['CORREO', 'ROL', 'ACTIVO'], HOJA_USUARIOS);
 
   var correoBuscado = String(identidad.correo || '').trim().toLowerCase();
-  var roles = [ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA];
-
   for (var i = 1; i < datos.length; i++) {
     var correo = texto_(datos[i][mapa.CORREO - 1]).toLowerCase();
     if (!correo || correo !== correoBuscado) continue;
@@ -345,15 +363,24 @@ function autorizarUsuario_(identidad) {
       throw new Error('Su acceso a esta aplicación está desactivado.');
     }
 
-    var rol = normalizarEncabezado_(datos[i][mapa.ROL - 1]);
-    if (roles.indexOf(rol) === -1) {
+    var roles;
+    try {
+      roles = normalizarRolesUsuario_(datos[i][mapa.ROL - 1]);
+    } catch (e) {
       throw new Error('Su cuenta tiene un rol no reconocido. Avise al administrador.');
+    }
+
+    var solicitado = normalizarEncabezado_(rolSolicitado);
+    var rol = solicitado || roles[0];
+    if (roles.indexOf(rol) === -1) {
+      throw new Error('El rol seleccionado no está autorizado para su cuenta.');
     }
 
     return {
       correo: correoBuscado,
       nombre: identidad.nombre || correoBuscado,
-      rol: rol
+      rol: rol,
+      roles: roles
     };
   }
 
@@ -1070,7 +1097,8 @@ function obtenerDocentes(identidad) {
       perfil: {
         correo: identidad.correo,
         nombre: identidad.nombre,
-        rol: identidad.rol
+        rol: identidad.rol,
+        roles: identidad.roles || [identidad.rol]
       },
       docentes: lista,
       resumen: resumirEstados_(lista)
@@ -1114,7 +1142,12 @@ function obtenerValidacion(documento, identidad) {
       validacion: sinIdentificadores_(validacion),
       estado: validacion ? validacion.estado : ESTADO_PENDIENTE,
       estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
-      perfil: { correo: identidad.correo, nombre: identidad.nombre, rol: identidad.rol }
+      perfil: {
+        correo: identidad.correo,
+        nombre: identidad.nombre,
+        rol: identidad.rol,
+        roles: identidad.roles || [identidad.rol]
+      }
     };
   } catch (e) {
     console.error('obtenerValidacion(' + buscado + '): ' + (e && e.stack ? e.stack : e));

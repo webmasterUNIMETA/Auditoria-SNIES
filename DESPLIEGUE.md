@@ -52,9 +52,13 @@ hoja privada las seis filas creadas. Columnas: `CORREO`, `ROL`, `ACTIVO`, `NOMBR
 
 Roles admitidos:
 
-- `TALENTO_HUMANO`: tres cuentas; validan, corrigen, cargan soportes y envían.
-- `REVISOR`: una cuenta; compara con los PDF, aprueba o devuelve.
+- `TALENTO_HUMANO`: tres cuentas dedicadas; validan, corrigen, cargan soportes y envían.
+- `REVISOR`: una cuenta; compara con los PDF, aprueba o devuelve y puede combinar este rol con otro.
 - `CONSULTA`: dos cuentas; ven el tablero y el avance, sin abrir ni modificar fichas.
+
+Una cuenta puede tener más de un rol separándolos por coma en la columna `ROL`,
+por ejemplo `REVISOR, TALENTO_HUMANO`. En ese caso la aplicación muestra el
+selector **Usar como** y valida en el servidor el rol elegido en cada solicitud.
 
 Tener correo institucional no basta: si la cuenta no figura activa en `Usuarios`,
 el servidor rechaza todas sus solicitudes.
