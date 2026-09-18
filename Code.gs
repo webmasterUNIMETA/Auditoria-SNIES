@@ -187,9 +187,10 @@ function prepararUsuarios() {
 
   if (hoja.getLastRow() === 0) {
     hoja.getRange(1, 1, 1, 4).setValues([encabezadosUsuarios_()]).setFontWeight('bold');
-    hoja.getRange(2, 1, 5, 4).setValues([
+    hoja.getRange(2, 1, 6, 4).setValues([
       ['', ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 1'],
       ['', ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 2'],
+      ['', ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 3'],
       ['', ROL_REVISOR,        'SI', 'Revisor'],
       ['', ROL_CONSULTA,       'SI', 'Consulta 1'],
       ['', ROL_CONSULTA,       'SI', 'Consulta 2']
@@ -209,18 +210,72 @@ function prepararUsuarios() {
   }
 
   return (creada ? 'Hoja Usuarios creada. ' : 'Hoja Usuarios lista. ') +
-    'Complete los cinco correos institucionales y conserve ACTIVO = SI.';
+    'Complete los seis correos institucionales y conserve ACTIVO = SI.';
+}
+
+/** Agrega o actualiza una sola cuenta sin alterar los demás usuarios. */
+function agregarUsuarioPrivado(correo, rol, nombre) {
+  var email = String(correo || '').trim().toLowerCase();
+  var rolNormalizado = normalizarEncabezado_(rol);
+  var nombreLimpio = textoEntrante_(nombre, 100) || rolNormalizado;
+  var dominio = String(leerConfiguracion_().dominioAutorizado || '').toLowerCase();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error('El correo indicado no es válido.');
+  }
+  if (dominio && email.slice(-(dominio.length + 1)) !== '@' + dominio) {
+    throw new Error('El correo no pertenece al dominio institucional autorizado.');
+  }
+  if ([ROL_TALENTO_HUMANO, ROL_REVISOR, ROL_CONSULTA].indexOf(rolNormalizado) === -1) {
+    throw new Error('El rol indicado no es válido.');
+  }
+
+  prepararUsuarios();
+  var hoja = hojaDe_(HOJA_USUARIOS);
+  var datos = hoja.getRange(1, 1, hoja.getLastRow(), hoja.getLastColumn()).getValues();
+  var mapa = mapaEncabezados_(datos[0]);
+  exigirColumnas_(mapa, ['CORREO', 'ROL', 'ACTIVO', 'NOMBRE'], HOJA_USUARIOS);
+
+  var filaDestino = hoja.getLastRow() + 1;
+  for (var i = 1; i < datos.length; i++) {
+    if (texto_(datos[i][mapa.CORREO - 1]).toLowerCase() === email) {
+      filaDestino = i + 1;
+      break;
+    }
+  }
+
+  var valores = {};
+  valores.CORREO = email;
+  valores.ROL = rolNormalizado;
+  valores.ACTIVO = 'SI';
+  valores.NOMBRE = nombreLimpio;
+  escribirFila_(hoja, mapa, filaDestino, valores, filaDestino > hoja.getLastRow());
+  hoja.getRange(filaDestino, mapa.CORREO).setNumberFormat('@');
+
+  var avisoDrive = '';
+  if (rolNormalizado === ROL_TALENTO_HUMANO || rolNormalizado === ROL_REVISOR) {
+    try {
+      carpetaPrincipal_().addViewer(email);
+    } catch (e) {
+      avisoDrive = ' Revise manualmente su permiso de lectura en Drive.';
+      console.warn('No se pudo dar acceso de lectura a Drive a ' + email + ': ' + e);
+    }
+  }
+
+  SpreadsheetApp.flush();
+  return 'Usuario activo como ' + rolNormalizado + '.' + avisoDrive;
 }
 
 /**
  * Configuracion administrativa opcional. Se ejecuta desde el editor o con
- * clasp y recibe cinco correos; nunca se invoca desde la aplicacion web.
+ * clasp y recibe seis correos; nunca se invoca desde la aplicacion web.
  */
-function configurarUsuariosPrivados(talento1, talento2, revisor, consulta1, consulta2) {
+function configurarUsuariosPrivados(talento1, talento2, talento3, revisor, consulta1, consulta2) {
   var dominio = String(leerConfiguracion_().dominioAutorizado || '').toLowerCase();
   var entradas = [
     [talento1, ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 1'],
     [talento2, ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 2'],
+    [talento3, ROL_TALENTO_HUMANO, 'SI', 'Talento Humano 3'],
     [revisor,  ROL_REVISOR,        'SI', 'Revisor'],
     [consulta1, ROL_CONSULTA,      'SI', 'Consulta 1'],
     [consulta2, ROL_CONSULTA,      'SI', 'Consulta 2']
@@ -252,7 +307,7 @@ function configurarUsuariosPrivados(talento1, talento2, revisor, consulta1, cons
   // Las cuentas de consulta permanecen limitadas al tablero de avance.
   var carpeta = carpetaPrincipal_();
   var advertencias = [];
-  entradas.slice(0, 3).forEach(function (fila) {
+  entradas.slice(0, 4).forEach(function (fila) {
     try {
       carpeta.addViewer(fila[0]);
     } catch (e) {
@@ -261,7 +316,7 @@ function configurarUsuariosPrivados(talento1, talento2, revisor, consulta1, cons
     }
   });
   SpreadsheetApp.flush();
-  return 'Usuarios configurados: 2 Talento Humano, 1 Revisor y 2 de Consulta.' +
+  return 'Usuarios configurados: 3 Talento Humano, 1 Revisor y 2 de Consulta.' +
     (advertencias.length
       ? ' Revise manualmente el permiso de lectura en Drive para: ' + advertencias.join(', ') + '.'
       : ' Talento Humano y Revisor tienen lectura de la carpeta de soportes.');
@@ -1815,7 +1870,7 @@ function prepararAuditoria() {
     'Diploma obligatorio: ' + (configuracion.diplomaObligatorio ? 'SI' : 'NO') + '\n' +
     'Carpeta principal de Drive: ' + carpeta.getName() + '\n' +
     'Hoja Validaciones: lista con ' + encabezadosValidaciones_().length + ' columnas.\n' +
-    'Hoja Usuarios: lista para 2 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.\n' +
+    'Hoja Usuarios: lista para 3 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.\n' +
     'Hoja HistorialRevisiones: lista.';
 
   console.log(informe);

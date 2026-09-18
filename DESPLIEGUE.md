@@ -48,11 +48,11 @@ encabezado, así que el orden puede cambiar sin romper nada.
 ### Hoja `Usuarios`
 
 **No escriba correos en el código.** Ejecute `prepararAuditoria` y complete en esta
-hoja privada las cinco filas creadas. Columnas: `CORREO`, `ROL`, `ACTIVO`, `NOMBRE`.
+hoja privada las seis filas creadas. Columnas: `CORREO`, `ROL`, `ACTIVO`, `NOMBRE`.
 
 Roles admitidos:
 
-- `TALENTO_HUMANO`: dos cuentas; validan, corrigen, cargan soportes y envían.
+- `TALENTO_HUMANO`: tres cuentas; validan, corrigen, cargan soportes y envían.
 - `REVISOR`: una cuenta; compara con los PDF, aprueba o devuelve.
 - `CONSULTA`: dos cuentas; ven el tablero y el avance, sin abrir ni modificar fichas.
 
@@ -101,15 +101,16 @@ es necesaria para el uso diario.
 | Función | Qué hace | ¿Modifica algo? |
 |---|---|---|
 | `prepararAuditoria` | Prepara `Validaciones`, `Usuarios` e `HistorialRevisiones` y comprueba Drive | Crea hojas/columnas si faltan |
-| `configurarUsuariosPrivados` | Carga los cinco correos en la hoja privada `Usuarios` | Reemplaza la lista autorizada |
-
-Al configurar los usuarios, la carpeta principal de soportes se comparte en modo
-lector con las dos cuentas de Talento Humano y con el Revisor para que puedan
-abrir y previsualizar los PDF. Las cuentas de Consulta no reciben acceso a Drive.
+| `configurarUsuariosPrivados` | Carga los seis correos en la hoja privada `Usuarios` | Reemplaza la lista autorizada |
+| `agregarUsuarioPrivado` | Agrega o actualiza una cuenta sin alterar las demás | Actualiza `Usuarios` y su lectura de Drive |
 | `inspeccionarDrive` | Muestra el árbol de carpetas, dos niveles, con IDs y archivos | No |
 | `revisarCarpetas` | Informa qué carpetas no siguen el patrón `NÚMERO - NOMBRE` y qué contienen | No |
 | `crearCarpetasDocentes` | Crea de una vez la carpeta de cada docente de la hoja | Crea carpetas (reutiliza las que existan) |
 | `consolidarCarpetas` | Mueve documentos de carpetas sueltas a la carpeta canónica del docente | **Sí: mueve archivos y vacía carpetas** |
+
+Al configurar los usuarios, la carpeta principal de soportes se comparte en modo
+lector con las tres cuentas de Talento Humano y con el Revisor para que puedan
+abrir y previsualizar los PDF. Las cuentas de Consulta no reciben acceso a Drive.
 
 Orden recomendado al instalar: `prepararAuditoria` → `inspeccionarDrive` →
 `crearCarpetasDocentes` → `revisarCarpetas` para confirmar.
@@ -133,7 +134,7 @@ Acta obligatoria: SI
 Diploma obligatorio: NO
 Carpeta principal de Drive: SOPORTES DOCENTES
     Hoja Validaciones: lista con las columnas vigentes.
-    Hoja Usuarios: lista para 2 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.
+    Hoja Usuarios: lista para 3 cuentas de Talento Humano, 1 Revisor y 2 de Consulta.
     Hoja HistorialRevisiones: lista.
 ```
 
