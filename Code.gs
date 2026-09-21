@@ -114,6 +114,8 @@ function encabezadosValidaciones_() {
     'RADICADO_MEN', 'RADICADO_POR', 'FECHA_RADICACION_MEN'
   ]).concat(CRITERIOS.map(function (c) {
     return 'REV_' + c.clave;
+  })).concat(CRITERIOS.map(function (c) {
+    return 'REV_CORR_' + c.clave;
   }));
 }
 
@@ -710,6 +712,7 @@ function armarValidacion_(registro) {
 
   var criterios = {};
   var revisionCriterios = {};
+  var revisionCorrecciones = {};
   CRITERIOS.forEach(function (c) {
     var valor = texto_(leer('VAL_' + c.clave)).toUpperCase();
     criterios[c.clave] = {
@@ -719,6 +722,7 @@ function armarValidacion_(registro) {
     var revision = texto_(leer('REV_' + c.clave)).toUpperCase();
     revisionCriterios[c.clave] =
       (revision === REV_CONFORME || revision === REV_NO_CONFORME) ? revision : '';
+    revisionCorrecciones[c.clave] = texto_(leer('REV_CORR_' + c.clave));
   });
 
   var estado = texto_(leer('ESTADO')).toUpperCase();
@@ -763,7 +767,8 @@ function armarValidacion_(registro) {
     radicadoMen: radicadoMen === 'SI' || radicadoMen === 'SÍ' || radicadoMen === 'TRUE' || radicadoMen === '1',
     radicadoPor: texto_(leer('RADICADO_POR')),
     fechaRadicacionMen: textoFechaHora_(leer('FECHA_RADICACION_MEN')),
-    revisionCriterios: revisionCriterios
+    revisionCriterios: revisionCriterios,
+    revisionCorrecciones: revisionCorrecciones
   };
 }
 
@@ -803,7 +808,8 @@ function sinIdentificadores_(validacion) {
     radicadoMen: validacion.radicadoMen,
     radicadoPor: validacion.radicadoPor,
     fechaRadicacionMen: validacion.fechaRadicacionMen,
-    revisionCriterios: validacion.revisionCriterios
+    revisionCriterios: validacion.revisionCriterios,
+    revisionCorrecciones: validacion.revisionCorrecciones
   };
 }
 
@@ -1384,7 +1390,8 @@ function guardarValidacion(payload, identidad) {
         fechaRevision: previo ? previo.fechaRevision : '',
         decisionRevision: previo ? previo.decisionRevision : '',
         observacionRevision: previo ? previo.observacionRevision : '',
-        revisionCriterios: previo ? previo.revisionCriterios : {}
+        revisionCriterios: previo ? previo.revisionCriterios : {},
+        revisionCorrecciones: previo ? previo.revisionCorrecciones : {}
       }),
       resumen: resumenActual_()
     };
@@ -1485,7 +1492,10 @@ function enviarARevision(payload, identidad) {
       DECISION_REVISION: '',
       OBSERVACION_REVISION: ''
     };
-    CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = ''; });
+    CRITERIOS.forEach(function (c) {
+      valores['REV_' + c.clave] = '';
+      valores['REV_CORR_' + c.clave] = '';
+    });
 
     escribirFila_(hoja, mapa, registro.fila, valores, false);
     registrarHistorial_(docente.documento, nuevaVersion, identidad, 'ENVIADO_A_REVISION',
@@ -1534,19 +1544,41 @@ function decidirRevision(payload, identidad) {
     var entrantes = payload.criterios && typeof payload.criterios === 'object'
       ? payload.criterios : {};
     var resultados = {};
+    var correccionesRevisor = {};
     var noConformes = 0;
     CRITERIOS.forEach(function (c) {
-      var valor = String(entrantes[c.clave] || '').trim().toUpperCase();
+      var recibido = entrantes[c.clave];
+      var valor = String(recibido && typeof recibido === 'object'
+        ? recibido.valor : recibido || '').trim().toUpperCase();
       if (valor !== REV_CONFORME && valor !== REV_NO_CONFORME) {
         throw new Error('Falta revisar el criterio "' + c.etiqueta + '".');
       }
+      var correccion = textoEntrante_(
+        recibido && typeof recibido === 'object' ? recibido.correccion : '', 500);
+      if (valor === REV_NO_CONFORME && correccion && c.normalizarCorreccion === 'mayusculas') {
+        correccion = correccion.toUpperCase();
+      }
+      if (valor === REV_NO_CONFORME && correccion && c.opcionesCorreccion &&
+          c.opcionesCorreccion.indexOf(correccion) === -1) {
+        throw new Error('Seleccione un valor permitido para "' + c.etiqueta + '".');
+      }
+      if (valor === REV_NO_CONFORME && correccion && c.tipoCorreccion === 'fecha') {
+        correccion = normalizarFechaCorreccion_(correccion, c.etiqueta);
+      }
+      if (valor === REV_CONFORME) correccion = '';
       resultados[c.clave] = valor;
+      correccionesRevisor[c.clave] = correccion;
       if (valor === REV_NO_CONFORME) noConformes++;
     });
 
     var observacion = textoEntrante_(payload.observacion, 2000);
     if (decision === REV_APROBADO && noConformes) {
-      throw new Error('No se puede aprobar mientras haya criterios marcados como no conformes.');
+      CRITERIOS.forEach(function (c) {
+        if (resultados[c.clave] === REV_NO_CONFORME && !correccionesRevisor[c.clave]) {
+          throw new Error('Indique el valor correcto para "' + c.etiqueta +
+            '" o devuelva el registro a Talento Humano.');
+        }
+      });
     }
     if (decision === REV_DEVUELTO && !observacion) {
       throw new Error('Explique en la observación qué debe corregir Talento Humano.');
@@ -1567,16 +1599,34 @@ function decidirRevision(payload, identidad) {
       RADICADO_POR: '',
       FECHA_RADICACION_MEN: ''
     };
-    CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = resultados[c.clave]; });
+    var detalleCorrecciones = [];
+    CRITERIOS.forEach(function (c) {
+      valores['REV_' + c.clave] = resultados[c.clave];
+      valores['REV_CORR_' + c.clave] = correccionesRevisor[c.clave];
+      if (decision === REV_APROBADO && resultados[c.clave] === REV_NO_CONFORME) {
+        valores['VAL_' + c.clave] = NO_COINCIDE;
+        valores['CORR_' + c.clave] = correccionesRevisor[c.clave];
+        detalleCorrecciones.push(c.etiqueta + ': ' + correccionesRevisor[c.clave]);
+      }
+    });
+    if (detalleCorrecciones.length) valores.ESTADO = ESTADO_CORRECCION;
 
     escribirFila_(hoja, mapa, registro.fila, valores, false);
+    var notaHistorial = observacion;
+    if (detalleCorrecciones.length) {
+      notaHistorial = 'Corrección directa del revisor: ' + detalleCorrecciones.join('; ') +
+        (observacion ? '. Observación: ' + observacion : '');
+    }
     registrarHistorial_(docente.documento, nuevaVersion, identidad,
-      decision === REV_APROBADO ? 'APROBADO' : 'DEVUELTO',
-      REV_EN_REVISION, decision, observacion);
+      decision === REV_APROBADO
+        ? (detalleCorrecciones.length ? 'APROBADO_CON_CORRECCION_REVISOR' : 'APROBADO')
+        : 'DEVUELTO',
+      REV_EN_REVISION, decision, notaHistorial);
     SpreadsheetApp.flush();
 
     return {
       documento: docente.documento,
+      estado: detalleCorrecciones.length ? ESTADO_CORRECCION : validacion.estado,
       estadoRevision: decision,
       version: nuevaVersion,
       resumen: resumenActual_()

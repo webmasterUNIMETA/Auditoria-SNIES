@@ -106,7 +106,9 @@ guardadas['DOC-EJ-002'] = {
   enviadoPor: 'talento.humano@ejemplo.edu.co',
   fechaEnvio: '12/09/2026 09:20',
   revisadoPor: '', fechaRevision: '', decisionRevision: '', observacionRevision: '',
-  revisionCriterios: {}
+  revisionCriterios: Object.fromEntries(CRITERIOS.map((c) =>
+    [c.clave, c.clave === 'TITULO' ? 'NO_CONFORME' : 'CONFORME'])),
+  revisionCorrecciones: {}
 };
 
 guardadas['DOC-EJ-003'] = {
@@ -139,7 +141,8 @@ guardadas['DOC-EJ-003'] = {
   observacionRevision: 'Verificar nivel de estudio y fecha de grado.',
   revisionCriterios: Object.fromEntries(CRITERIOS.map((c) =>
     [c.clave, c.clave === 'NIVEL_ESTUDIO' || c.clave === 'FECHA_GRADO'
-      ? 'NO_CONFORME' : 'CONFORME']))
+      ? 'NO_CONFORME' : 'CONFORME'])),
+  revisionCorrecciones: {}
 };
 
 /* Ejemplo de documentos ya guardados, todavía pendientes de envío formal. */
@@ -153,7 +156,8 @@ guardadas['DOC-EJ-004'] = {
   fechaRevision: '',
   decisionRevision: '',
   observacionRevision: '',
-  revisionCriterios: {}
+  revisionCriterios: {},
+  revisionCorrecciones: {}
 };
 
 /* Ejemplo aprobado, listo para probar la confirmación de Radicado MEN. */
@@ -306,7 +310,8 @@ const simulador = `
         fechaRevision: previa ? previa.fechaRevision : '',
         decisionRevision: previa ? previa.decisionRevision : '',
         observacionRevision: previa ? previa.observacionRevision : '',
-        revisionCriterios: previa ? previa.revisionCriterios : {}
+        revisionCriterios: previa ? previa.revisionCriterios : {},
+        revisionCorrecciones: previa ? previa.revisionCorrecciones : {}
       };
 
       DOCENTES.forEach(function (d) {
@@ -340,16 +345,33 @@ const simulador = `
     decidirRevision: function (payload) {
       var v = GUARDADAS[payload.documento];
       if (!v) throw new Error('No existe una validación para revisar.');
+      var estado = v.estado;
+      v.revisionCriterios = {};
+      v.revisionCorrecciones = {};
+      CRITERIOS.forEach(function (c) {
+        var recibido = payload.criterios[c.clave];
+        v.revisionCriterios[c.clave] = recibido.valor;
+        v.revisionCorrecciones[c.clave] = recibido.correccion || '';
+        if (payload.decision === 'APROBADO' && recibido.valor === 'NO_CONFORME') {
+          if (!recibido.correccion) throw new Error('Indique el valor correcto para "' + c.etiqueta + '".');
+          v.criterios[c.clave] = { valor: 'NO_COINCIDE', correccion: recibido.correccion };
+          estado = 'REQUIERE_CORRECCION';
+        }
+      });
       v.estadoRevision = payload.decision;
+      v.estado = estado;
       v.decisionRevision = payload.decision;
-      v.revisionCriterios = payload.criterios;
       v.observacionRevision = payload.observacion;
       v.revisadoPor = PERFIL.correo;
       v.version++;
       DOCENTES.forEach(function (d) {
-        if (d.documento === payload.documento) d.estadoRevision = payload.decision;
+        if (d.documento === payload.documento) {
+          d.estadoRevision = payload.decision;
+          d.estado = estado;
+          d.version = v.version;
+        }
       });
-      return { documento: payload.documento, estadoRevision: payload.decision, version: v.version, resumen: resumen() };
+      return { documento: payload.documento, estado: estado, estadoRevision: payload.decision, version: v.version, resumen: resumen() };
     },
 
     confirmarRadicadoMen: function (payload) {

@@ -211,6 +211,13 @@ una sola versión vigente, pero la evidencia anterior se conserva para auditorí
 `POR_ENVIAR → EN_REVISION → APROBADO`, o bien
 `EN_REVISION → DEVUELTO → EN_REVISION` después de la corrección.
 
+Si el Revisor detecta que un dato marcado como coincidente por Talento Humano
+no coincide con el soporte, puede marcarlo **No conforme**, registrar el valor
+correcto y aprobar sin devolver el registro. La corrección queda identificada
+como realizada por el Revisor, cambia el resultado técnico a
+`REQUIERE_CORRECCION` y registra el evento `APROBADO_CON_CORRECCION_REVISOR`
+en el historial.
+
 El resultado técnico (`VALIDADO` o `REQUIERE_CORRECCION`) se conserva separado
 del estado del flujo. Mientras un registro está `EN_REVISION` o `APROBADO`,
 Talento Humano no puede editarlo. Cada guardado exige la versión vigente para

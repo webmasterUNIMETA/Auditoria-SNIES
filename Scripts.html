@@ -1027,14 +1027,17 @@ function pintarPanelRevisor() {
     var valorFinal = th && th.valor === NO_COINCIDE ? th.correccion : reportado;
     var guardado = FICHA.guardado.revisionCriterios
       ? FICHA.guardado.revisionCriterios[criterio.clave] : '';
+    var correccionGuardada = FICHA.guardado.revisionCorrecciones
+      ? (FICHA.guardado.revisionCorrecciones[criterio.clave] || '') : '';
 
     var fila = crear('div', 'criterio-revisor');
     fila.setAttribute('data-clave', criterio.clave);
     var comparacion = crear('div', 'revision-comparacion');
     comparacion.appendChild(crear('p', 'criterio-etiqueta', criterio.etiqueta));
     comparacion.appendChild(crear('p', 'revision-original', 'SNIES: ' + (reportado || '(sin dato)')));
-    comparacion.appendChild(crear('p', 'revision-final',
-      'Talento Humano: ' + (valorFinal || '(sin dato)')));
+    comparacion.appendChild(crear('p', 'revision-final', correccionGuardada
+      ? 'Corrección del revisor: ' + correccionGuardada
+      : 'Talento Humano: ' + (valorFinal || '(sin dato)')));
     fila.appendChild(comparacion);
 
     var opciones = crear('div', 'opciones-criterio');
@@ -1043,7 +1046,27 @@ function pintarPanelRevisor() {
     opciones.appendChild(botonRevision(criterio.clave, REV_NO_CONFORME, '✕', 'No conforme',
       guardado === REV_NO_CONFORME));
     fila.appendChild(opciones);
+
+    var correccionRevisor = crear('div', 'correccion-revisor');
+    var etiquetaCorreccion = crear('label');
+    etiquetaCorreccion.setAttribute('for', 'rev_corr_' + criterio.clave);
+    etiquetaCorreccion.appendChild(document.createTextNode('Valor correcto según el soporte '));
+    etiquetaCorreccion.appendChild(crear('span', 'obligatorio', '*'));
+    correccionRevisor.appendChild(etiquetaCorreccion);
+
+    var campoCorreccion = campoCorreccionRevisor(criterio);
+    campoCorreccion.id = 'rev_corr_' + criterio.clave;
+    if (criterio.normalizarCorreccion === 'mayusculas') {
+      correccionGuardada = correccionGuardada.toUpperCase();
+    }
+    campoCorreccion.value = criterio.tipoCorreccion === 'fecha'
+      ? fechaParaControl(correccionGuardada) : correccionGuardada;
+    correccionRevisor.appendChild(campoCorreccion);
+    correccionRevisor.appendChild(crear('p', 'ayuda-correccion-revisor',
+      'La corrección quedará registrada a nombre del revisor y permitirá aprobar sin devolver.'));
+    fila.appendChild(correccionRevisor);
     contenedor.appendChild(fila);
+    refrescarCriterioRevisor(fila);
   });
 
   $('observacionRevisor').value = FICHA.guardado.observacionRevision || '';
@@ -1073,8 +1096,48 @@ function botonRevision(clave, valor, simbolo, texto, marcado) {
       e.classList.toggle('marcada-si', r.checked && r.value === REV_CONFORME);
       e.classList.toggle('marcada-no', r.checked && r.value === REV_NO_CONFORME);
     });
+    refrescarCriterioRevisor(etiqueta.closest('.criterio-revisor'));
   });
   return etiqueta;
+}
+
+function campoCorreccionRevisor(criterio) {
+  var opciones = criterio.opcionesCorreccion || [];
+  var campo;
+  if (opciones.length) {
+    campo = document.createElement('select');
+    var vacia = document.createElement('option');
+    vacia.value = '';
+    vacia.textContent = 'Seleccione una opción';
+    campo.appendChild(vacia);
+    opciones.forEach(function (valor) {
+      var opcion = document.createElement('option');
+      opcion.value = valor;
+      opcion.textContent = valor;
+      campo.appendChild(opcion);
+    });
+  } else {
+    campo = document.createElement('input');
+    campo.type = criterio.tipoCorreccion === 'fecha' ? 'date' : 'text';
+    if (campo.type === 'text') {
+      campo.maxLength = 500;
+      campo.autocomplete = 'off';
+      campo.placeholder = 'Escriba el valor correcto según el soporte';
+    }
+  }
+  campo.className = 'campo-correccion-revisor';
+  if (criterio.normalizarCorreccion === 'mayusculas') campo.classList.add('campo-mayusculas');
+  return campo;
+}
+
+function refrescarCriterioRevisor(fila) {
+  if (!fila) return;
+  var elegido = fila.querySelector('input[type="radio"]:checked');
+  var correccion = fila.querySelector('.correccion-revisor');
+  if (correccion) {
+    correccion.classList.toggle('visible', !!(elegido && elegido.value === REV_NO_CONFORME));
+  }
+  if (elegido) fila.classList.remove('sin-responder');
 }
 
 function pintarCriterios() {
@@ -1620,7 +1683,11 @@ function recolectarDecision() {
   var criterios = {};
   Array.prototype.forEach.call($('criteriosRevisor').querySelectorAll('.criterio-revisor'), function (fila) {
     var elegido = fila.querySelector('input[type="radio"]:checked');
-    criterios[fila.getAttribute('data-clave')] = elegido ? elegido.value : '';
+    var campo = fila.querySelector('.campo-correccion-revisor');
+    criterios[fila.getAttribute('data-clave')] = {
+      valor: elegido ? elegido.value : '',
+      correccion: elegido && elegido.value === REV_NO_CONFORME && campo ? campo.value.trim() : ''
+    };
     fila.classList.toggle('sin-responder', !elegido);
   });
   return criterios;
@@ -1631,18 +1698,22 @@ function decidirRevision(decision) {
       FICHA.guardado.estadoRevision !== REV_EN_REVISION) return;
 
   var criterios = recolectarDecision();
-  var faltantes = Object.keys(criterios).filter(function (clave) { return !criterios[clave]; });
+  var faltantes = Object.keys(criterios).filter(function (clave) { return !criterios[clave].valor; });
   var observacion = $('observacionRevisor').value.trim();
   if (faltantes.length) {
     mostrarAviso($('avisoGuardado'), 'error',
       'Debe revisar todos los criterios antes de tomar una decisión.');
     return;
   }
-  if (decision === REV_APROBADO && Object.keys(criterios).some(function (clave) {
-    return criterios[clave] === REV_NO_CONFORME;
-  })) {
+  var correccionesFaltantes = decision === REV_APROBADO && Object.keys(criterios).filter(function (clave) {
+    return criterios[clave].valor === REV_NO_CONFORME && !criterios[clave].correccion;
+  });
+  if (correccionesFaltantes && correccionesFaltantes.length) {
     mostrarAviso($('avisoGuardado'), 'error',
-      'No puede aprobar mientras exista un criterio marcado como no conforme.');
+      'Para aprobar, escriba el valor correcto de cada criterio marcado como no conforme.');
+    var primera = $('criteriosRevisor').querySelector(
+      '.criterio-revisor[data-clave="' + correccionesFaltantes[0] + '"] .campo-correccion-revisor');
+    if (primera) primera.focus();
     return;
   }
   if (decision === REV_DEVUELTO && !observacion) {
@@ -1667,7 +1738,8 @@ function decidirRevision(decision) {
     FICHA.guardando = false;
     ocultarCapa();
     if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
-    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
+    actualizarDocenteEnLista(respuesta.documento, respuesta.estado,
+      respuesta.estadoRevision, respuesta.version);
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
     volverAlListado();
     pintarIndicadores();

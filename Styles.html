@@ -1012,6 +1012,21 @@ main {
   border-bottom: 1px solid var(--color-borde);
 }
 .criterio-revisor.sin-responder { border-left: 3px solid var(--color-error); padding-left: 12px; }
+.correccion-revisor {
+  display: none;
+  grid-column: 1 / -1;
+  padding: 12px;
+  background: var(--color-error-fondo);
+  border-left: 3px solid var(--color-error);
+}
+.correccion-revisor.visible { display: block; }
+.correccion-revisor label { margin-bottom: 7px; }
+.ayuda-correccion-revisor {
+  margin: 7px 0 0;
+  color: var(--color-texto-medio);
+  font-size: 12px;
+  line-height: 1.4;
+}
 .revision-original, .revision-final { margin: 3px 0 0; font-size: 13px; }
 .revision-original { color: var(--color-texto-suave); }
 .revision-final { color: var(--color-texto); font-weight: 600; }
