@@ -1012,6 +1012,10 @@ function pintarPanelRevisor() {
   $('observacionRevisor').value = FICHA.guardado.observacionRevision || '';
   $('camposRevisor').disabled = !puedeDecidir;
   $('accionesRevisor').hidden = !puedeDecidir;
+  // Los botones viven entre aperturas de fichas. Se restablecen aquí para
+  // que una decisión anterior no deje deshabilitado el siguiente docente.
+  $('btnAprobar').disabled = !puedeDecidir;
+  $('btnDevolver').disabled = !puedeDecidir;
   actualizarDisposicionRevision();
 }
 
