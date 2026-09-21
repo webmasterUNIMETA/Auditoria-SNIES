@@ -2364,6 +2364,12 @@ function tarjetaDocente(docente) {
   fila.appendChild(datos);
 
   var acciones = crear('div', 'docente-acciones');
+  if (docente.estado === ESTADO_CORRECCION) {
+    var correccion = crear('span', 'insignia insignia-REQUIERE_CORRECCION',
+      'Requiere corrección');
+    correccion.title = 'Talento Humano registró uno o más datos diferentes a lo reportado en SNIES.';
+    acciones.appendChild(correccion);
+  }
   acciones.appendChild(insignia(estadoVisual));
 
   if (esConsulta()) {

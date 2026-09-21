@@ -158,7 +158,7 @@ guardadas['DOC-EJ-004'] = {
 
 /* Ejemplo aprobado, listo para probar la confirmación de Radicado MEN. */
 guardadas['DOC-EJ-005'] = {
-  ...guardadas['DOC-EJ-002'],
+  ...guardadas['DOC-EJ-003'],
   estadoRevision: 'APROBADO',
   version: 3,
   revisadoPor: 'revisor@ejemplo.edu.co',
@@ -175,7 +175,7 @@ docentePorEnviar.estado = 'VALIDADO';
 docentePorEnviar.tieneValidacion = true;
 docentePorEnviar.estadoRevision = 'POR_ENVIAR';
 const docenteAprobado = docentes.find((d) => d.documento === 'DOC-EJ-005');
-docenteAprobado.estado = 'VALIDADO';
+docenteAprobado.estado = 'REQUIERE_CORRECCION';
 docenteAprobado.tieneValidacion = true;
 docenteAprobado.estadoRevision = 'APROBADO';
 docenteAprobado.version = 3;
