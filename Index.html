@@ -118,6 +118,21 @@
       </div>
 
       <p class="conteo-resultados" id="conteoResultados"></p>
+
+      <div class="filtro-men" id="filtroRadicadoMen" hidden>
+        <span class="filtro-men-etiqueta">Mostrar aprobados:</span>
+        <div class="filtro-men-opciones" role="group" aria-label="Filtrar aprobados por radicación MEN">
+          <button type="button" data-filtro-men="PENDIENTES" aria-pressed="true">
+            Pendientes MEN <span id="conteoMenPendientes">0</span>
+          </button>
+          <button type="button" data-filtro-men="RADICADOS" aria-pressed="false">
+            Radicados MEN <span id="conteoMenRadicados">0</span>
+          </button>
+          <button type="button" data-filtro-men="TODOS" aria-pressed="false">
+            Todos <span id="conteoMenTodos">0</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="cargando-bloque" id="listaCargando">

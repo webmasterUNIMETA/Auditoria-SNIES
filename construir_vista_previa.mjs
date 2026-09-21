@@ -63,7 +63,10 @@ const MUESTRA = [
    '20/09/2019', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
   ['TI', 'DOC-EJ-005', 'DOCENTE', 'EJEMPLO', 'CINCO', '',
    'Universitaria', 'TÍTULO UNIVERSITARIO DE EJEMPLO',
-   '11/03/2020', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
+   '11/03/2020', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
+  ['CC', 'DOC-EJ-006', 'DOCENTE', 'EJEMPLO', 'SEIS', '',
+   'MAESTRÍA', 'TÍTULO DE MAESTRÍA DE EJEMPLO',
+   '08/07/2022', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
 ];
 
 const docentes = MUESTRA.map((f) => {
@@ -174,6 +177,17 @@ guardadas['DOC-EJ-005'] = {
   radicadoPor: '',
   fechaRadicacionMen: ''
 };
+guardadas['DOC-EJ-006'] = {
+  ...guardadas['DOC-EJ-002'],
+  estadoRevision: 'APROBADO',
+  version: 4,
+  revisadoPor: 'revisor@ejemplo.edu.co',
+  fechaRevision: '19/09/2026 10:15',
+  decisionRevision: 'APROBADO',
+  radicadoMen: true,
+  radicadoPor: 'revisor@ejemplo.edu.co',
+  fechaRadicacionMen: '20/09/2026 09:30'
+};
 const docentePorEnviar = docentes.find((d) => d.documento === 'DOC-EJ-004');
 docentePorEnviar.estado = 'VALIDADO';
 docentePorEnviar.tieneValidacion = true;
@@ -184,6 +198,12 @@ docenteAprobado.tieneValidacion = true;
 docenteAprobado.estadoRevision = 'APROBADO';
 docenteAprobado.version = 3;
 docenteAprobado.radicadoMen = false;
+const docenteRadicado = docentes.find((d) => d.documento === 'DOC-EJ-006');
+docenteRadicado.estado = 'VALIDADO';
+docenteRadicado.tieneValidacion = true;
+docenteRadicado.estadoRevision = 'APROBADO';
+docenteRadicado.version = 4;
+docenteRadicado.radicadoMen = true;
 
 /* ------------------------------------------------------------------
    Servidor simulado
@@ -419,6 +439,9 @@ const simulador = `
   window.addEventListener('load', function () {
     var documento = String(location.hash || '').replace(/^#/, '');
     if (documento) setTimeout(function () { abrirFicha(documento); }, 900);
+    if (!documento && parametrosSimulacion.get('filtro') === 'APROBADO') {
+      setTimeout(function () { aplicarFiltro('APROBADO'); }, 900);
+    }
   });
 })();
 <\/script>

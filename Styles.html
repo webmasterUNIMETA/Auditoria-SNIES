@@ -466,6 +466,45 @@ main {
   flex-wrap: wrap;
 }
 
+.filtro-men {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-borde);
+  flex-wrap: wrap;
+}
+.filtro-men[hidden] { display: none; }
+.filtro-men-etiqueta { font-size: 13px; font-weight: 700; color: var(--color-texto-medio); }
+.filtro-men-opciones { display: flex; gap: 7px; flex-wrap: wrap; }
+.filtro-men-opciones button {
+  padding: 7px 10px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto-medio);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.filtro-men-opciones button:hover { border-color: var(--color-exito); }
+.filtro-men-opciones button.activo {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
+}
+.filtro-men-opciones button span {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .75);
+  text-align: center;
+}
+
 /* Insignia de estado */
 .insignia {
   display: inline-block;

@@ -478,6 +478,45 @@ main {
   flex-wrap: wrap;
 }
 
+.filtro-men {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-borde);
+  flex-wrap: wrap;
+}
+.filtro-men[hidden] { display: none; }
+.filtro-men-etiqueta { font-size: 13px; font-weight: 700; color: var(--color-texto-medio); }
+.filtro-men-opciones { display: flex; gap: 7px; flex-wrap: wrap; }
+.filtro-men-opciones button {
+  padding: 7px 10px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--color-superficie);
+  color: var(--color-texto-medio);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.filtro-men-opciones button:hover { border-color: var(--color-exito); }
+.filtro-men-opciones button.activo {
+  color: var(--color-exito);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
+}
+.filtro-men-opciones button span {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .75);
+  text-align: center;
+}
+
 /* Insignia de estado */
 .insignia {
   display: inline-block;
@@ -1521,6 +1560,21 @@ button:disabled { opacity: .5; cursor: not-allowed; }
       </div>
 
       <p class="conteo-resultados" id="conteoResultados"></p>
+
+      <div class="filtro-men" id="filtroRadicadoMen" hidden>
+        <span class="filtro-men-etiqueta">Mostrar aprobados:</span>
+        <div class="filtro-men-opciones" role="group" aria-label="Filtrar aprobados por radicación MEN">
+          <button type="button" data-filtro-men="PENDIENTES" aria-pressed="true">
+            Pendientes MEN <span id="conteoMenPendientes">0</span>
+          </button>
+          <button type="button" data-filtro-men="RADICADOS" aria-pressed="false">
+            Radicados MEN <span id="conteoMenRadicados">0</span>
+          </button>
+          <button type="button" data-filtro-men="TODOS" aria-pressed="false">
+            Todos <span id="conteoMenTodos">0</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="cargando-bloque" id="listaCargando">
@@ -1744,8 +1798,17 @@ var NOMBRES_GRUPO = {
   APROBADO: 'aprobados'
 };
 
+var NOMBRES_GRUPO_SINGULAR = {
+  PENDIENTE_CARGA: 'pendiente de cargar',
+  POR_ENVIAR: 'para enviar a revisión',
+  EN_REVISION: 'en revisión',
+  DEVUELTO: 'devuelto',
+  APROBADO: 'aprobado'
+};
+
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
 var FILTRO = 'TODOS';
+var FILTRO_MEN = 'PENDIENTES';
 
 var MAX_BYTES_PDF = 10 * 1024 * 1024;
 
@@ -2200,6 +2263,14 @@ function conectarEventos() {
     if (boton) aplicarFiltro(boton.getAttribute('data-filtro'));
   });
 
+  $('filtroRadicadoMen').addEventListener('click', function (evento) {
+    var boton = evento.target.closest('[data-filtro-men]');
+    if (!boton) return;
+    FILTRO_MEN = boton.getAttribute('data-filtro-men');
+    marcarFiltroMen();
+    pintarLista();
+  });
+
   // Delegacion: los botones del listado se crean y destruyen al filtrar.
   $('listaDocentes').addEventListener('click', function (evento) {
     var boton = evento.target.closest('button[data-documento]');
@@ -2295,6 +2366,26 @@ function pintarLista() {
     return (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
+  var aprobadosPendientes = delEstado.filter(function (d) { return !d.radicadoMen; }).length;
+  var aprobadosRadicados = delEstado.filter(function (d) { return !!d.radicadoMen; }).length;
+  $('filtroRadicadoMen').hidden = FILTRO !== REV_APROBADO;
+  if (FILTRO === REV_APROBADO) {
+    $('conteoMenPendientes').textContent = aprobadosPendientes;
+    $('conteoMenRadicados').textContent = aprobadosRadicados;
+    $('conteoMenTodos').textContent = delEstado.length;
+    marcarFiltroMen();
+    if (FILTRO_MEN === 'PENDIENTES') {
+      delEstado = delEstado.filter(function (d) { return !d.radicadoMen; });
+    } else if (FILTRO_MEN === 'RADICADOS') {
+      delEstado = delEstado.filter(function (d) { return !!d.radicadoMen; });
+    }
+    delEstado.sort(function (a, b) {
+      var porRadicado = Number(!!a.radicadoMen) - Number(!!b.radicadoMen);
+      return porRadicado || String(a.nombreCompleto || '').localeCompare(
+        String(b.nombreCompleto || ''), 'es');
+    });
+  }
+
   var visibles = delEstado.filter(function (d) {
     if (!texto) return true;
     return plano(d.nombreCompleto).indexOf(texto) !== -1 ||
@@ -2326,7 +2417,8 @@ function pintarConteo(visibles, delEstado, texto) {
     frase = 'Mostrando ' + visibles + ' de ' + delEstado + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
   } else {
     frase = 'Mostrando ' + delEstado + ' ' +
-      (delEstado === 1 ? 'docente' : 'docentes') + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
+      (delEstado === 1 ? 'docente' : 'docentes') + ' ' +
+      (delEstado === 1 ? NOMBRES_GRUPO_SINGULAR[FILTRO] : NOMBRES_GRUPO[FILTRO]) + '.';
   }
 
   nodo.appendChild(document.createTextNode(frase + ' '));
@@ -2348,11 +2440,22 @@ function pintarConteo(visibles, delEstado, texto) {
 function aplicarFiltro(estado) {
   // Volver a pulsar la misma cifra quita el filtro.
   FILTRO = (FILTRO === estado) ? 'TODOS' : estado;
+  if (FILTRO === REV_APROBADO) FILTRO_MEN = 'PENDIENTES';
   marcarFiltro();
   pintarLista();
   anunciar(FILTRO === 'TODOS'
     ? 'Mostrando todos los docentes.'
     : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
+}
+
+function marcarFiltroMen() {
+  Array.prototype.forEach.call(
+    $('filtroRadicadoMen').querySelectorAll('[data-filtro-men]'),
+    function (boton) {
+      var activo = boton.getAttribute('data-filtro-men') === FILTRO_MEN;
+      boton.classList.toggle('activo', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
 }
 
 /** Sincroniza el aspecto de las cifras con el filtro vigente. */

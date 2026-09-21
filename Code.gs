@@ -925,6 +925,18 @@ function nombreCarpeta_(docente) {
   return docente.documento + ' - ' + nombre;
 }
 
+/** Nombre legible y único para cada soporte vigente en Drive. */
+function nombreSoporte_(docente, tipo) {
+  var documento = String(docente.documento || '').replace(/[\\/:*?"<>|]/g, '-').trim();
+  var nombre = String(docente.nombreCompleto || '')
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+  var clase = tipo === 'diploma' ? 'DIPLOMA DE GRADO' : 'ACTA DE GRADO';
+  return documento + '-' + nombre + '-' + clase + '.pdf';
+}
+
 /**
  * Comprueba que lo recibido sea de verdad un PDF antes de tocar Drive:
  * extension, tipo declarado, tamano y firma "%PDF-" al inicio del archivo.
@@ -981,10 +993,19 @@ function blobPdf_(archivo, etiqueta, nombreDestino) {
  *
  * Devuelve { id, url } del archivo vigente.
  */
-function guardarPdf_(carpeta, blob, nombreDestino) {
+function guardarPdf_(carpeta, blob, nombreDestino, nombresCompatibles) {
   var previos = [];
-  var existentes = carpeta.getFilesByName(nombreDestino);
-  while (existentes.hasNext()) previos.push(existentes.next());
+  var vistos = {};
+  [nombreDestino].concat(nombresCompatibles || []).forEach(function (nombreBuscado) {
+    var existentes = carpeta.getFilesByName(nombreBuscado);
+    while (existentes.hasNext()) {
+      var archivo = existentes.next();
+      if (!vistos[archivo.getId()]) {
+        vistos[archivo.getId()] = true;
+        previos.push(archivo);
+      }
+    }
+  });
 
   var nuevo = carpeta.createFile(blob);
   nuevo.setName(nombreDestino);
@@ -1009,23 +1030,28 @@ function guardarPdf_(carpeta, blob, nombreDestino) {
 }
 
 /** Retira el soporte vigente y lo conserva en el historial documental. */
-function retirarPdf_(carpeta, nombreDestino) {
+function retirarPdf_(carpeta, nombreDestino, nombresCompatibles) {
   var carpetas = carpeta.getFoldersByName('HISTORIAL_DOCUMENTOS');
   var historial = carpetas.hasNext() ? carpetas.next() : carpeta.createFolder('HISTORIAL_DOCUMENTOS');
   var marca = Utilities.formatDate(new Date(), zonaHoraria_(), 'yyyyMMdd_HHmmss');
-  var existentes = carpeta.getFilesByName(nombreDestino);
   var indice = 0;
-  while (existentes.hasNext()) {
-    try {
-      var archivo = existentes.next();
-      var base = nombreDestino.replace(/\.pdf$/i, '');
-      archivo.setName(base + '_RETIRADO_' + marca + (indice ? '_' + (indice + 1) : '') + '.pdf');
-      archivo.moveTo(historial);
-      indice++;
-    } catch (e) {
-      console.warn('No se pudo retirar ' + nombreDestino + ': ' + e);
+  var vistos = {};
+  [nombreDestino].concat(nombresCompatibles || []).forEach(function (nombreBuscado) {
+    var existentes = carpeta.getFilesByName(nombreBuscado);
+    while (existentes.hasNext()) {
+      try {
+        var archivo = existentes.next();
+        if (vistos[archivo.getId()]) continue;
+        vistos[archivo.getId()] = true;
+        var base = nombreDestino.replace(/\.pdf$/i, '');
+        archivo.setName(base + '_RETIRADO_' + marca + (indice ? '_' + (indice + 1) : '') + '.pdf');
+        archivo.moveTo(historial);
+        indice++;
+      } catch (e) {
+        console.warn('No se pudo retirar ' + nombreBuscado + ': ' + e);
+      }
     }
-  }
+  });
 }
 
 /* ============================================================
@@ -1288,8 +1314,12 @@ function guardarValidacion(payload, identidad) {
 
     // Los blobs se arman ANTES de tocar Drive: si un archivo no es un PDF
     // valido, la revision se rechaza sin haber creado carpetas ni archivos.
-    var blobActa    = traeActa    ? blobPdf_(payload.acta,    'acta de grado',    NOMBRE_ACTA)    : null;
-    var blobDiploma = traeDiploma ? blobPdf_(payload.diploma, 'diploma de grado', NOMBRE_DIPLOMA) : null;
+    var nombreActa = nombreSoporte_(docente, 'acta');
+    var nombreDiploma = nombreSoporte_(docente, 'diploma');
+    var blobActa = traeActa
+      ? blobPdf_(payload.acta, 'acta de grado', nombreActa) : null;
+    var blobDiploma = traeDiploma
+      ? blobPdf_(payload.diploma, 'diploma de grado', nombreDiploma) : null;
 
     // Solo se toca Drive si al terminar el docente conserva algun soporte,
     // o si hay que retirar el diploma. Asi no se crean carpetas vacias.
@@ -1304,19 +1334,19 @@ function guardarValidacion(payload, identidad) {
       soportes.urlCarpeta = carpeta.getUrl();
 
       if (blobActa) {
-        var acta = guardarPdf_(carpeta, blobActa, NOMBRE_ACTA);
+        var acta = guardarPdf_(carpeta, blobActa, nombreActa, [NOMBRE_ACTA]);
         soportes.idActa  = acta.id;
         soportes.urlActa = acta.url;
       }
 
       if (blobDiploma) {
-        var diploma = guardarPdf_(carpeta, blobDiploma, NOMBRE_DIPLOMA);
+        var diploma = guardarPdf_(carpeta, blobDiploma, nombreDiploma, [NOMBRE_DIPLOMA]);
         soportes.idDiploma  = diploma.id;
         soportes.urlDiploma = diploma.url;
       }
 
       if (quitarDiploma && !blobDiploma) {
-        retirarPdf_(carpeta, NOMBRE_DIPLOMA);
+        retirarPdf_(carpeta, nombreDiploma, [NOMBRE_DIPLOMA]);
         soportes.idDiploma  = '';
         soportes.urlDiploma = '';
       }

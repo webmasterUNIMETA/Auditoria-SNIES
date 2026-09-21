@@ -66,8 +66,17 @@ var NOMBRES_GRUPO = {
   APROBADO: 'aprobados'
 };
 
+var NOMBRES_GRUPO_SINGULAR = {
+  PENDIENTE_CARGA: 'pendiente de cargar',
+  POR_ENVIAR: 'para enviar a revisión',
+  EN_REVISION: 'en revisión',
+  DEVUELTO: 'devuelto',
+  APROBADO: 'aprobado'
+};
+
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
 var FILTRO = 'TODOS';
+var FILTRO_MEN = 'PENDIENTES';
 
 var MAX_BYTES_PDF = 10 * 1024 * 1024;
 
@@ -522,6 +531,14 @@ function conectarEventos() {
     if (boton) aplicarFiltro(boton.getAttribute('data-filtro'));
   });
 
+  $('filtroRadicadoMen').addEventListener('click', function (evento) {
+    var boton = evento.target.closest('[data-filtro-men]');
+    if (!boton) return;
+    FILTRO_MEN = boton.getAttribute('data-filtro-men');
+    marcarFiltroMen();
+    pintarLista();
+  });
+
   // Delegacion: los botones del listado se crean y destruyen al filtrar.
   $('listaDocentes').addEventListener('click', function (evento) {
     var boton = evento.target.closest('button[data-documento]');
@@ -617,6 +634,26 @@ function pintarLista() {
     return (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
+  var aprobadosPendientes = delEstado.filter(function (d) { return !d.radicadoMen; }).length;
+  var aprobadosRadicados = delEstado.filter(function (d) { return !!d.radicadoMen; }).length;
+  $('filtroRadicadoMen').hidden = FILTRO !== REV_APROBADO;
+  if (FILTRO === REV_APROBADO) {
+    $('conteoMenPendientes').textContent = aprobadosPendientes;
+    $('conteoMenRadicados').textContent = aprobadosRadicados;
+    $('conteoMenTodos').textContent = delEstado.length;
+    marcarFiltroMen();
+    if (FILTRO_MEN === 'PENDIENTES') {
+      delEstado = delEstado.filter(function (d) { return !d.radicadoMen; });
+    } else if (FILTRO_MEN === 'RADICADOS') {
+      delEstado = delEstado.filter(function (d) { return !!d.radicadoMen; });
+    }
+    delEstado.sort(function (a, b) {
+      var porRadicado = Number(!!a.radicadoMen) - Number(!!b.radicadoMen);
+      return porRadicado || String(a.nombreCompleto || '').localeCompare(
+        String(b.nombreCompleto || ''), 'es');
+    });
+  }
+
   var visibles = delEstado.filter(function (d) {
     if (!texto) return true;
     return plano(d.nombreCompleto).indexOf(texto) !== -1 ||
@@ -648,7 +685,8 @@ function pintarConteo(visibles, delEstado, texto) {
     frase = 'Mostrando ' + visibles + ' de ' + delEstado + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
   } else {
     frase = 'Mostrando ' + delEstado + ' ' +
-      (delEstado === 1 ? 'docente' : 'docentes') + ' ' + NOMBRES_GRUPO[FILTRO] + '.';
+      (delEstado === 1 ? 'docente' : 'docentes') + ' ' +
+      (delEstado === 1 ? NOMBRES_GRUPO_SINGULAR[FILTRO] : NOMBRES_GRUPO[FILTRO]) + '.';
   }
 
   nodo.appendChild(document.createTextNode(frase + ' '));
@@ -670,11 +708,22 @@ function pintarConteo(visibles, delEstado, texto) {
 function aplicarFiltro(estado) {
   // Volver a pulsar la misma cifra quita el filtro.
   FILTRO = (FILTRO === estado) ? 'TODOS' : estado;
+  if (FILTRO === REV_APROBADO) FILTRO_MEN = 'PENDIENTES';
   marcarFiltro();
   pintarLista();
   anunciar(FILTRO === 'TODOS'
     ? 'Mostrando todos los docentes.'
     : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
+}
+
+function marcarFiltroMen() {
+  Array.prototype.forEach.call(
+    $('filtroRadicadoMen').querySelectorAll('[data-filtro-men]'),
+    function (boton) {
+      var activo = boton.getAttribute('data-filtro-men') === FILTRO_MEN;
+      boton.classList.toggle('activo', activo);
+      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
+    });
 }
 
 /** Sincroniza el aspecto de las cifras con el filtro vigente. */

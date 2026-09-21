@@ -194,9 +194,12 @@ VERIFICACIÓN DOCUMENTAL - AUDITORIA SNIES 2026
 
 - La carpeta de un docente se crea una sola vez. Si ya existe se reutiliza,
   incluso si alguien la renombró conservando el número de documento al inicio.
-- Los soportes vigentes se guardan **siempre** con los nombres `01_ACTA_GRADO.pdf` y
-  `02_DIPLOMA_GRADO.pdf`. El nombre original del archivo que cargó la persona
-  no se conserva.
+- Los soportes vigentes se guardan con el número de documento y el nombre del
+  docente, por ejemplo `86052625-ALEXANDRO GUERRERO ANDRADE-ACTA DE GRADO.pdf`
+  y `86052625-ALEXANDRO GUERRERO ANDRADE-DIPLOMA DE GRADO.pdf`. El nombre
+  original del archivo cargado no se conserva. Al reemplazar un soporte con la
+  nomenclatura anterior (`01_ACTA_GRADO.pdf` o `02_DIPLOMA_GRADO.pdf`), este se
+  archiva automáticamente en `HISTORIAL_DOCUMENTOS`.
 - No se crean carpetas vacías: la carpeta aparece cuando el docente tiene al
   menos un soporte.
 
@@ -222,6 +225,11 @@ El resultado técnico (`VALIDADO` o `REQUIERE_CORRECCION`) se conserva separado
 del estado del flujo. Mientras un registro está `EN_REVISION` o `APROBADO`,
 Talento Humano no puede editarlo. Cada guardado exige la versión vigente para
 evitar sobrescrituras entre usuarios concurrentes.
+
+Al abrir el indicador **Aprobados**, el listado muestra inicialmente los que
+aún no tienen confirmación de Radicado MEN. El selector permite alternar entre
+pendientes, radicados y todos; en la vista completa los pendientes aparecen
+primero.
 
 ### Trazabilidad hoja ↔ Drive
 
