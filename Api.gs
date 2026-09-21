@@ -43,7 +43,8 @@ var ACCIONES_API = {
   obtenerValidacion:     function (argumento, identidad) { return obtenerValidacion(argumento, identidad); },
   guardarValidacion:     function (argumento, identidad) { return guardarValidacion(argumento, identidad); },
   enviarARevision:       function (argumento, identidad) { return enviarARevision(argumento, identidad); },
-  decidirRevision:       function (argumento, identidad) { return decidirRevision(argumento, identidad); }
+  decidirRevision:       function (argumento, identidad) { return decidirRevision(argumento, identidad); },
+  confirmarRadicadoMen:  function (argumento, identidad) { return confirmarRadicadoMen(argumento, identidad); }
 };
 
 /* ============================================================

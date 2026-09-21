@@ -110,7 +110,8 @@ function encabezadosValidaciones_() {
     'ESTADO_REVISION', 'VERSION', 'GUARDADO_POR',
     'ENVIADO_POR', 'FECHA_ENVIO',
     'REVISADO_POR', 'FECHA_REVISION',
-    'DECISION_REVISION', 'OBSERVACION_REVISION'
+    'DECISION_REVISION', 'OBSERVACION_REVISION',
+    'RADICADO_MEN', 'RADICADO_POR', 'FECHA_RADICACION_MEN'
   ]).concat(CRITERIOS.map(function (c) {
     return 'REV_' + c.clave;
   }));
@@ -736,6 +737,8 @@ function armarValidacion_(registro) {
   var version = Number(leer('VERSION'));
   if (!isFinite(version) || version < 1) version = 1;
 
+  var radicadoMen = texto_(leer('RADICADO_MEN')).toUpperCase();
+
   return {
     criterios: criterios,
     observaciones: texto_(leer('OBSERVACIONES')),
@@ -757,6 +760,9 @@ function armarValidacion_(registro) {
     fechaRevision: textoFechaHora_(leer('FECHA_REVISION')),
     decisionRevision: texto_(leer('DECISION_REVISION')).toUpperCase(),
     observacionRevision: texto_(leer('OBSERVACION_REVISION')),
+    radicadoMen: radicadoMen === 'SI' || radicadoMen === 'SÍ' || radicadoMen === 'TRUE' || radicadoMen === '1',
+    radicadoPor: texto_(leer('RADICADO_POR')),
+    fechaRadicacionMen: textoFechaHora_(leer('FECHA_RADICACION_MEN')),
     revisionCriterios: revisionCriterios
   };
 }
@@ -794,6 +800,9 @@ function sinIdentificadores_(validacion) {
     fechaRevision: validacion.fechaRevision,
     decisionRevision: validacion.decisionRevision,
     observacionRevision: validacion.observacionRevision,
+    radicadoMen: validacion.radicadoMen,
+    radicadoPor: validacion.radicadoPor,
+    fechaRadicacionMen: validacion.fechaRadicacionMen,
     revisionCriterios: validacion.revisionCriterios
   };
 }
@@ -1071,6 +1080,7 @@ function obtenerDocentes(identidad) {
 
     var lista = docentes.map(function (d) {
       var tieneValidacion = !!indice[d.clave];
+      var validacion = tieneValidacion ? armarValidacion_(indice[d.clave]) : null;
       return {
         documento: d.documento,
         tipoDocumento: d.tipoDocumento,
@@ -1078,8 +1088,12 @@ function obtenerDocentes(identidad) {
         tieneValidacion: tieneValidacion,
         // Consulta ve el avance, no el detalle academico de cada ficha.
         valores: identidad.rol === ROL_CONSULTA ? {} : d.valores,
-        estado: estadoDesdeIndice_(indice, d.clave),
-        estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave)
+        estado: validacion ? validacion.estado : ESTADO_PENDIENTE,
+        estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
+        version: validacion ? validacion.version : 0,
+        radicadoMen: validacion ? validacion.radicadoMen : false,
+        radicadoPor: validacion ? validacion.radicadoPor : '',
+        fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : ''
       };
     });
 
@@ -1548,7 +1562,10 @@ function decidirRevision(payload, identidad) {
       REVISADO_POR: identidad.correo,
       FECHA_REVISION: ahora,
       DECISION_REVISION: decision,
-      OBSERVACION_REVISION: observacion
+      OBSERVACION_REVISION: observacion,
+      RADICADO_MEN: '',
+      RADICADO_POR: '',
+      FECHA_RADICACION_MEN: ''
     };
     CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = resultados[c.clave]; });
 
@@ -1563,6 +1580,64 @@ function decidirRevision(payload, identidad) {
       estadoRevision: decision,
       version: nuevaVersion,
       resumen: resumenActual_()
+    };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/** Registra que un aprobado ya fue cargado externamente en SNIES/MEN. */
+function confirmarRadicadoMen(payload, identidad) {
+  exigirRol_(identidad, [ROL_REVISOR]);
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo en unos segundos.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(payload && payload.documento);
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El docente indicado no figura en la hoja Docentes.');
+
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('No existe una validación para este docente.');
+    var validacion = armarValidacion_(registro);
+    exigirVersion_(payload, validacion);
+    if (validacion.estadoRevision !== REV_APROBADO) {
+      throw new Error('Solo se puede confirmar el radicado MEN de una revisión aprobada.');
+    }
+    if (validacion.radicadoMen) {
+      return {
+        documento: docente.documento,
+        version: validacion.version,
+        radicadoMen: true,
+        radicadoPor: validacion.radicadoPor,
+        fechaRadicacionMen: validacion.fechaRadicacionMen
+      };
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var ahora = formatearFechaHora_(new Date());
+    var nuevaVersion = validacion.version + 1;
+    escribirFila_(hoja, mapa, registro.fila, {
+      RADICADO_MEN: 'SI',
+      RADICADO_POR: identidad.correo,
+      FECHA_RADICACION_MEN: ahora,
+      VERSION: nuevaVersion
+    }, false);
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'RADICADO_MEN',
+      REV_APROBADO, REV_APROBADO, 'Carga externa en SNIES/MEN confirmada.');
+    SpreadsheetApp.flush();
+
+    return {
+      documento: docente.documento,
+      version: nuevaVersion,
+      radicadoMen: true,
+      radicadoPor: identidad.correo,
+      fechaRadicacionMen: ahora
     };
   } finally {
     candado.releaseLock();

@@ -155,10 +155,31 @@ guardadas['DOC-EJ-004'] = {
   observacionRevision: '',
   revisionCriterios: {}
 };
+
+/* Ejemplo aprobado, listo para probar la confirmación de Radicado MEN. */
+guardadas['DOC-EJ-005'] = {
+  ...guardadas['DOC-EJ-002'],
+  estadoRevision: 'APROBADO',
+  version: 3,
+  revisadoPor: 'revisor@ejemplo.edu.co',
+  fechaRevision: '18/09/2026 18:43',
+  decisionRevision: 'APROBADO',
+  observacionRevision: '',
+  revisionCriterios: Object.fromEntries(CRITERIOS.map((c) => [c.clave, 'CONFORME'])),
+  radicadoMen: false,
+  radicadoPor: '',
+  fechaRadicacionMen: ''
+};
 const docentePorEnviar = docentes.find((d) => d.documento === 'DOC-EJ-004');
 docentePorEnviar.estado = 'VALIDADO';
 docentePorEnviar.tieneValidacion = true;
 docentePorEnviar.estadoRevision = 'POR_ENVIAR';
+const docenteAprobado = docentes.find((d) => d.documento === 'DOC-EJ-005');
+docenteAprobado.estado = 'VALIDADO';
+docenteAprobado.tieneValidacion = true;
+docenteAprobado.estadoRevision = 'APROBADO';
+docenteAprobado.version = 3;
+docenteAprobado.radicadoMen = false;
 
 /* ------------------------------------------------------------------
    Servidor simulado
@@ -329,6 +350,32 @@ const simulador = `
         if (d.documento === payload.documento) d.estadoRevision = payload.decision;
       });
       return { documento: payload.documento, estadoRevision: payload.decision, version: v.version, resumen: resumen() };
+    },
+
+    confirmarRadicadoMen: function (payload) {
+      var v = GUARDADAS[payload.documento];
+      if (!v || v.estadoRevision !== 'APROBADO') {
+        throw new Error('Solo se puede confirmar el radicado MEN de una revisión aprobada.');
+      }
+      v.radicadoMen = true;
+      v.radicadoPor = PERFIL.correo;
+      v.fechaRadicacionMen = '21/09/2026 11:45';
+      v.version++;
+      DOCENTES.forEach(function (d) {
+        if (d.documento === payload.documento) {
+          d.version = v.version;
+          d.radicadoMen = true;
+          d.radicadoPor = v.radicadoPor;
+          d.fechaRadicacionMen = v.fechaRadicacionMen;
+        }
+      });
+      return {
+        documento: payload.documento,
+        version: v.version,
+        radicadoMen: true,
+        radicadoPor: v.radicadoPor,
+        fechaRadicacionMen: v.fechaRadicacionMen
+      };
     }
   };
 

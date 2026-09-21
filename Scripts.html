@@ -140,12 +140,18 @@ function fechaParaControl(valor) {
 function anunciar(texto) { $('anuncio').textContent = texto; }
 
 function mostrarAviso(nodo, tipo, texto) {
+  if (nodo._temporizadorAviso) clearTimeout(nodo._temporizadorAviso);
   nodo.className = 'aviso aviso-' + tipo;
   nodo.textContent = texto;
   nodo.hidden = false;
+  nodo._temporizadorAviso = tipo === 'exito' ? setTimeout(function () {
+    ocultarAviso(nodo);
+  }, 6000) : null;
 }
 
 function ocultarAviso(nodo) {
+  if (nodo._temporizadorAviso) clearTimeout(nodo._temporizadorAviso);
+  nodo._temporizadorAviso = null;
   nodo.hidden = true;
   nodo.textContent = '';
 }
@@ -519,7 +525,12 @@ function conectarEventos() {
   // Delegacion: los botones del listado se crean y destruyen al filtrar.
   $('listaDocentes').addEventListener('click', function (evento) {
     var boton = evento.target.closest('button[data-documento]');
-    if (boton) abrirFicha(boton.getAttribute('data-documento'));
+    if (!boton) return;
+    if (boton.getAttribute('data-accion') === 'radicar-men') {
+      confirmarRadicadoMenDesdeLista(boton);
+      return;
+    }
+    abrirFicha(boton.getAttribute('data-documento'));
   });
 
   $('btnVolver').addEventListener('click', volverAlListado);
@@ -710,6 +721,20 @@ function tarjetaDocente(docente) {
     textoBoton + ' de ' + docente.nombreCompleto);
   acciones.appendChild(boton);
 
+  if (esRevisor() && estado === REV_APROBADO) {
+    if (docente.radicadoMen) {
+      acciones.appendChild(crear('span', 'insignia insignia-radicado-men', 'RADICADO MEN ✓'));
+    } else {
+      var radicar = crear('button', 'btn-compacto btn-radicado-men', 'RADICADO MEN');
+      radicar.type = 'button';
+      radicar.setAttribute('data-documento', docente.documento);
+      radicar.setAttribute('data-version', String(docente.version || 0));
+      radicar.setAttribute('data-accion', 'radicar-men');
+      radicar.setAttribute('aria-label', 'Confirmar radicado MEN de ' + docente.nombreCompleto);
+      acciones.appendChild(radicar);
+    }
+  }
+
   fila.appendChild(acciones);
   return fila;
 }
@@ -897,6 +922,12 @@ function pintarMarcas() {
       valor: FICHA.guardado.fechaRevision,
       detalle: FICHA.guardado.revisadoPor,
       completo: !!FICHA.guardado.fechaRevision
+    },
+    {
+      titulo: 'Radicado MEN',
+      valor: FICHA.guardado.fechaRadicacionMen,
+      detalle: FICHA.guardado.radicadoPor,
+      completo: !!FICHA.guardado.radicadoMen
     }
   ];
 
@@ -1531,7 +1562,8 @@ function guardarRevision() {
       pintarIndicadores();
     }
 
-    actualizarDocenteEnLista(respuesta.documento, respuesta.estado, respuesta.validacion.estadoRevision);
+    actualizarDocenteEnLista(respuesta.documento, respuesta.estado,
+      respuesta.validacion.estadoRevision, respuesta.validacion.version);
     var nombreDocente = FICHA.docente.nombreCompleto || FICHA.documento;
 
     // El servidor ya confirmo el guardado: se actualiza el listado y se
@@ -1564,7 +1596,7 @@ function enviarRevision() {
     boton.disabled = false;
     ocultarCapa();
     if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
-    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision);
+    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
     volverAlListado();
     pintarIndicadores();
@@ -1629,7 +1661,7 @@ function decidirRevision(decision) {
     FICHA.guardando = false;
     ocultarCapa();
     if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
-    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision);
+    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
     volverAlListado();
     pintarIndicadores();
@@ -1645,13 +1677,64 @@ function decidirRevision(decision) {
   });
 }
 
+/** Confirmación en dos pasos para evitar registrar el radicado por accidente. */
+function confirmarRadicadoMenDesdeLista(boton) {
+  if (!esRevisor() || !boton || boton.disabled) return;
+
+  if (boton.getAttribute('data-confirmando') !== 'si') {
+    boton.setAttribute('data-confirmando', 'si');
+    boton.textContent = 'CONFIRMAR RADICADO MEN';
+    boton.classList.add('confirmando');
+    anunciar('Pulse nuevamente para confirmar el radicado MEN.');
+    setTimeout(function () {
+      if (boton.isConnected && !boton.disabled) {
+        boton.removeAttribute('data-confirmando');
+        boton.textContent = 'RADICADO MEN';
+        boton.classList.remove('confirmando');
+      }
+    }, 8000);
+    return;
+  }
+
+  var documento = boton.getAttribute('data-documento');
+  var docente = APP.docentes.filter(function (item) { return item.documento === documento; })[0];
+  boton.disabled = true;
+  boton.textContent = 'Registrando...';
+  mostrarCapa('Registrando radicado MEN...');
+
+  servidor('confirmarRadicadoMen', {
+    documento: documento,
+    version: Number(boton.getAttribute('data-version'))
+  }, function (respuesta) {
+    ocultarCapa();
+    if (docente) {
+      docente.version = respuesta.version;
+      docente.radicadoMen = true;
+      docente.radicadoPor = respuesta.radicadoPor;
+      docente.fechaRadicacionMen = respuesta.fechaRadicacionMen;
+    }
+    pintarLista();
+    mostrarAviso($('avisoGeneral'), 'exito',
+      '✓ Radicado MEN de ' + (docente && docente.nombreCompleto ? docente.nombreCompleto : documento) + ' confirmado.');
+    anunciar('Radicado MEN confirmado.');
+  }, function (mensaje) {
+    ocultarCapa();
+    boton.disabled = false;
+    boton.removeAttribute('data-confirmando');
+    boton.textContent = 'RADICADO MEN';
+    boton.classList.remove('confirmando');
+    mostrarAviso($('avisoGeneral'), 'error', 'No fue posible registrar el radicado MEN: ' + mensaje);
+  });
+}
+
 /** Refleja el nuevo estado en la lista sin volver a pedirla al servidor. */
-function actualizarDocenteEnLista(documento, estado, estadoRevision) {
+function actualizarDocenteEnLista(documento, estado, estadoRevision, version) {
   for (var i = 0; i < APP.docentes.length; i++) {
     if (APP.docentes[i].documento === documento) {
       if (estado) APP.docentes[i].estado = estado;
       if (estado) APP.docentes[i].tieneValidacion = true;
       if (estadoRevision) APP.docentes[i].estadoRevision = estadoRevision;
+      if (version) APP.docentes[i].version = version;
       return;
     }
   }
