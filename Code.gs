@@ -1605,6 +1605,79 @@ function resumenActual_() {
   }));
 }
 
+/**
+ * Migra a EN_REVISION las validaciones existentes que siguen POR_ENVIAR
+ * y ya cumplen los soportes obligatorios. Es idempotente: los registros
+ * enviados, devueltos o aprobados no se modifican.
+ */
+function enviarCargadosExistentesARevision(correoAdministrador) {
+  var actor = String(correoAdministrador || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(actor)) {
+    throw new Error('Indique el correo institucional del responsable de la migración.');
+  }
+
+  var configuracion = leerConfiguracion_();
+  var dominio = String(configuracion.dominioAutorizado || '').toLowerCase();
+  if (dominio && actor.slice(-(dominio.length + 1)) !== '@' + dominio) {
+    throw new Error('El responsable no pertenece al dominio institucional autorizado.');
+  }
+
+  var candado = LockService.getScriptLock();
+  candado.waitLock(30000);
+  try {
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var indice = leerValidaciones_();
+    var ahora = formatearFechaHora_(new Date());
+    var enviados = 0;
+    var omitidosSinSoporte = 0;
+
+    Object.keys(indice).forEach(function (clave) {
+      var registro = indice[clave];
+      var validacion = armarValidacion_(registro);
+      if (validacion.estadoRevision !== REV_POR_ENVIAR) return;
+
+      var tieneSoporte = !!validacion.urlActa || !!validacion.urlDiploma;
+      var cumpleActa = !configuracion.actaObligatoria || !!validacion.urlActa;
+      var cumpleDiploma = !configuracion.diplomaObligatorio || !!validacion.urlDiploma;
+      if (!tieneSoporte || !cumpleActa || !cumpleDiploma) {
+        omitidosSinSoporte++;
+        return;
+      }
+
+      var documento = normalizarDocumento_(
+        registro.datos[registro.mapa.NUM_DOCUMENTO - 1]);
+      var nuevaVersion = validacion.version + 1;
+      var valores = {
+        ESTADO_REVISION: REV_EN_REVISION,
+        VERSION: nuevaVersion,
+        ENVIADO_POR: validacion.guardadoPor || actor,
+        FECHA_ENVIO: ahora,
+        REVISADO_POR: '',
+        FECHA_REVISION: '',
+        DECISION_REVISION: '',
+        OBSERVACION_REVISION: ''
+      };
+      CRITERIOS.forEach(function (c) { valores['REV_' + c.clave] = ''; });
+      escribirFila_(hoja, mapa, registro.fila, valores, false);
+      registrarHistorial_(documento, nuevaVersion,
+        { correo: actor, rol: 'ADMINISTRADOR' },
+        'MIGRADO_A_REVISION', REV_POR_ENVIAR, REV_EN_REVISION,
+        'Envío administrativo de documentos previamente cargados.');
+      enviados++;
+    });
+
+    SpreadsheetApp.flush();
+    return {
+      enviados: enviados,
+      omitidosSinSoporte: omitidosSinSoporte,
+      resumen: resumenActual_()
+    };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
 /* ============================================================
    PREPARACION (se ejecuta una sola vez desde el editor)
    ============================================================ */

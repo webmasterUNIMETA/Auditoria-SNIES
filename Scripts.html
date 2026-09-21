@@ -866,24 +866,53 @@ function pintarMarcas() {
     return;
   }
 
-  var marcas = [
-    ['Fecha de validación (hora Colombia)', FICHA.guardado.fechaValidacion],
-    ['Última modificación (hora Colombia)', FICHA.guardado.fechaModificacion],
-    ['Resultado de datos', NOMBRES_ESTADO[FICHA.guardado.estado] || FICHA.guardado.estado],
-    ['Estado de revisión', NOMBRES_REVISION[FICHA.guardado.estadoRevision] || FICHA.guardado.estadoRevision],
-    ['Guardado por', FICHA.guardado.guardadoPor],
-    ['Enviado por', FICHA.guardado.enviadoPor],
-    ['Fecha de envío (hora Colombia)', FICHA.guardado.fechaEnvio],
-    ['Revisado por', FICHA.guardado.revisadoPor],
-    ['Fecha de decisión (hora Colombia)', FICHA.guardado.fechaRevision]
+  var cabecera = crear('div', 'ficha-marcas-cabecera');
+  var textosCabecera = crear('div');
+  textosCabecera.appendChild(crear('p', 'ficha-marcas-titulo', 'Trazabilidad del registro'));
+  textosCabecera.appendChild(crear('p', 'ficha-marcas-nota', 'Fechas registradas en hora de Colombia'));
+  cabecera.appendChild(textosCabecera);
+  caja.appendChild(cabecera);
+
+  var pasos = [
+    {
+      titulo: 'Validación registrada',
+      valor: FICHA.guardado.fechaValidacion,
+      detalle: 'Registro inicial',
+      completo: !!FICHA.guardado.fechaValidacion
+    },
+    {
+      titulo: 'Última actualización',
+      valor: FICHA.guardado.fechaModificacion,
+      detalle: FICHA.guardado.guardadoPor,
+      completo: !!FICHA.guardado.fechaModificacion
+    },
+    {
+      titulo: 'Envío a revisión',
+      valor: FICHA.guardado.fechaEnvio,
+      detalle: FICHA.guardado.enviadoPor,
+      completo: !!FICHA.guardado.fechaEnvio
+    },
+    {
+      titulo: 'Decisión del revisor',
+      valor: FICHA.guardado.fechaRevision,
+      detalle: FICHA.guardado.revisadoPor,
+      completo: !!FICHA.guardado.fechaRevision
+    }
   ];
 
-  marcas.forEach(function (par) {
-    var celda = crear('div', 'ficha-marca');
-    celda.appendChild(crear('p', null, par[0]));
-    celda.appendChild(crear('p', null, par[1] || '—'));
-    caja.appendChild(celda);
+  var linea = crear('div', 'ficha-trazabilidad');
+  pasos.forEach(function (paso, indice) {
+    var celda = crear('div', 'ficha-paso ' + (paso.completo ? 'completo' : 'pendiente'));
+    celda.appendChild(crear('span', 'ficha-paso-numero', paso.completo ? '✓' : String(indice + 1)));
+    var contenido = crear('div', 'ficha-paso-contenido');
+    contenido.appendChild(crear('p', 'ficha-paso-titulo', paso.titulo));
+    contenido.appendChild(crear('p', 'ficha-paso-valor', paso.valor || 'Pendiente'));
+    contenido.appendChild(crear('p', 'ficha-paso-detalle',
+      paso.detalle || (paso.completo ? 'Sin responsable registrado' : 'Aún no registrado')));
+    celda.appendChild(contenido);
+    linea.appendChild(celda);
   });
+  caja.appendChild(linea);
 
   caja.hidden = false;
 }

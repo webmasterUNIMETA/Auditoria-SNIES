@@ -107,6 +107,7 @@ es necesaria para el uso diario.
 | `prepararAuditoria` | Prepara `Validaciones`, `Usuarios` e `HistorialRevisiones` y comprueba Drive | Crea hojas/columnas si faltan |
 | `configurarUsuariosPrivados` | Carga los seis correos en la hoja privada `Usuarios` | Reemplaza la lista autorizada |
 | `agregarUsuarioPrivado` | Agrega o actualiza una cuenta sin alterar las demás | Actualiza `Usuarios` y su lectura de Drive |
+| `enviarCargadosExistentesARevision` | Envía registros ya cargados que aún están `POR_ENVIAR` | Actualiza estado, versión e historial |
 | `inspeccionarDrive` | Muestra el árbol de carpetas, dos niveles, con IDs y archivos | No |
 | `revisarCarpetas` | Informa qué carpetas no siguen el patrón `NÚMERO - NOMBRE` y qué contienen | No |
 | `crearCarpetasDocentes` | Crea de una vez la carpeta de cada docente de la hoja | Crea carpetas (reutiliza las que existan) |
