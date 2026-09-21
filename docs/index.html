@@ -368,6 +368,7 @@ main {
 
 /* El filtro activo se tine con el color de su propio estado */
 .indicador-total.activo      { background: var(--color-superficie-2); }
+.indicador-sin-cargar.activo { background: var(--color-superficie-2); }
 .indicador-pendientes.activo { background: var(--color-aviso-fondo); }
 .indicador-revision.activo   { background: var(--color-azul-suave); }
 .indicador-validados.activo  { background: var(--color-exito-fondo); }
@@ -376,6 +377,7 @@ main {
 .indicador.activo p:first-child { color: var(--color-texto); }
 
 .indicador-total       { border-top-color: var(--color-texto-medio); }
+.indicador-sin-cargar  { border-top-color: var(--color-borde-fuerte); }
 .indicador-pendientes  { border-top-color: var(--color-aviso); }
 .indicador-revision    { border-top-color: var(--color-azul); }
 .indicador-validados   { border-top-color: var(--color-exito); }
@@ -400,6 +402,7 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
+.indicador-sin-cargar p:last-child { color: var(--color-texto-medio); }
 .indicador-pendientes p:last-child { color: var(--color-aviso); }
 .indicador-revision p:last-child   { color: var(--color-azul); }
 .indicador-validados  p:last-child { color: var(--color-exito); }
@@ -442,6 +445,7 @@ main {
 .docente:hover { border-color: var(--color-borde-fuerte); }
 
 .docente-PENDIENTE            { border-left-color: var(--color-aviso); }
+.docente-PENDIENTE_CARGA      { border-left-color: var(--color-borde-fuerte); }
 .docente-VALIDADO             { border-left-color: var(--color-exito); }
 .docente-REQUIERE_CORRECCION  { border-left-color: var(--color-primario); }
 .docente-POR_ENVIAR           { border-left-color: var(--color-aviso); }
@@ -491,6 +495,12 @@ main {
   color: var(--color-aviso);
   background: var(--color-aviso-fondo);
   border-color: var(--color-aviso-borde);
+}
+
+.insignia-PENDIENTE_CARGA {
+  color: var(--color-texto-medio);
+  background: var(--color-superficie-2);
+  border-color: var(--color-borde-fuerte);
 }
 
 .insignia-VALIDADO {
@@ -1318,8 +1328,12 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <p>Total docentes</p>
         <p id="cifraTotal">&mdash;</p>
       </button>
+      <button type="button" class="indicador indicador-sin-cargar" data-filtro="PENDIENTE_CARGA" aria-pressed="false">
+        <p>Pendientes de cargar</p>
+        <p id="cifraPendientesCarga">&mdash;</p>
+      </button>
       <button type="button" class="indicador indicador-pendientes" data-filtro="POR_ENVIAR" aria-pressed="false">
-        <p>Por enviar</p>
+        <p>Enviar a revisión</p>
         <p id="cifraPorEnviar">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-revision" data-filtro="EN_REVISION" aria-pressed="false">
@@ -1534,6 +1548,7 @@ var ROL_TALENTO_HUMANO = 'TALENTO_HUMANO';
 var ROL_REVISOR = 'REVISOR';
 var ROL_CONSULTA = 'CONSULTA';
 
+var REV_PENDIENTE_CARGA = 'PENDIENTE_CARGA';
 var REV_POR_ENVIAR = 'POR_ENVIAR';
 var REV_EN_REVISION = 'EN_REVISION';
 var REV_DEVUELTO = 'DEVUELTO';
@@ -1548,6 +1563,7 @@ var NOMBRES_ESTADO = {
 };
 
 var NOMBRES_REVISION = {
+  PENDIENTE_CARGA: 'Pendiente de cargar',
   POR_ENVIAR: 'Por enviar',
   EN_REVISION: 'En revisión',
   DEVUELTO: 'Devuelto',
@@ -1562,7 +1578,8 @@ var NOMBRES_ROL = {
 
 /** Como se nombra cada grupo al contarlo: "Mostrando 12 pendientes". */
 var NOMBRES_GRUPO = {
-  POR_ENVIAR: 'por enviar',
+  PENDIENTE_CARGA: 'pendientes de cargar',
+  POR_ENVIAR: 'para enviar a revisión',
   EN_REVISION: 'en revisión',
   DEVUELTO: 'devueltos',
   APROBADO: 'aprobados'
@@ -1583,7 +1600,14 @@ var APP = {
   perfil: { correo: '', nombre: '', rol: '', roles: [] },
   requisitos: { actaObligatoria: true, diplomaObligatorio: false },
   docentes: [],
-  resumen: { total: 0, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 }
+  resumen: {
+    total: 0,
+    pendientesCarga: 0,
+    porEnviar: 0,
+    enRevision: 0,
+    devueltos: 0,
+    aprobados: 0
+  }
 };
 
 /**
@@ -2077,6 +2101,7 @@ function mostrarVista(cual) {
 function pintarIndicadores() {
   var r = APP.resumen;
   $('cifraTotal').textContent      = r.total;
+  $('cifraPendientesCarga').textContent = r.pendientesCarga || 0;
   $('cifraPorEnviar').textContent  = r.porEnviar;
   $('cifraEnRevision').textContent = r.enRevision;
   $('cifraDevueltos').textContent  = r.devueltos;
@@ -2091,7 +2116,13 @@ function pintarLista() {
   // Primero el estado y despues el texto, para poder decir "3 de 12
   // pendientes" en lugar de "3 de 50".
   var delEstado = APP.docentes.filter(function (d) {
-    return FILTRO === 'TODOS' || (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
+    if (FILTRO === 'TODOS') return true;
+    if (FILTRO === REV_PENDIENTE_CARGA) return d.tieneValidacion === false;
+    if (FILTRO === REV_POR_ENVIAR) {
+      return d.tieneValidacion !== false &&
+        (d.estadoRevision || REV_POR_ENVIAR) === REV_POR_ENVIAR;
+    }
+    return (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
   var visibles = delEstado.filter(function (d) {
@@ -2154,7 +2185,7 @@ function aplicarFiltro(estado) {
     : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
 }
 
-/** Sincroniza el aspecto de las cuatro cifras con el filtro vigente. */
+/** Sincroniza el aspecto de las cifras con el filtro vigente. */
 function marcarFiltro() {
   Array.prototype.forEach.call(
     $('tiraIndicadores').querySelectorAll('[data-filtro]'),
@@ -2167,8 +2198,9 @@ function marcarFiltro() {
 
 function tarjetaDocente(docente) {
   var estado = docente.estadoRevision || REV_POR_ENVIAR;
+  var estadoVisual = docente.tieneValidacion === false ? REV_PENDIENTE_CARGA : estado;
 
-  var fila = crear('article', 'docente docente-' + estado);
+  var fila = crear('article', 'docente docente-' + estadoVisual);
 
   var datos = crear('div', 'docente-datos');
   datos.appendChild(crear('p', 'docente-nombre', docente.nombreCompleto || '(sin nombre)'));
@@ -2177,7 +2209,7 @@ function tarjetaDocente(docente) {
   fila.appendChild(datos);
 
   var acciones = crear('div', 'docente-acciones');
-  acciones.appendChild(insignia(estado));
+  acciones.appendChild(insignia(estadoVisual));
 
   if (esConsulta()) {
     fila.appendChild(acciones);
@@ -3091,6 +3123,7 @@ function actualizarDocenteEnLista(documento, estado, estadoRevision) {
   for (var i = 0; i < APP.docentes.length; i++) {
     if (APP.docentes[i].documento === documento) {
       if (estado) APP.docentes[i].estado = estado;
+      if (estado) APP.docentes[i].tieneValidacion = true;
       if (estadoRevision) APP.docentes[i].estadoRevision = estadoRevision;
       return;
     }

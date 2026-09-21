@@ -356,6 +356,7 @@ main {
 
 /* El filtro activo se tine con el color de su propio estado */
 .indicador-total.activo      { background: var(--color-superficie-2); }
+.indicador-sin-cargar.activo { background: var(--color-superficie-2); }
 .indicador-pendientes.activo { background: var(--color-aviso-fondo); }
 .indicador-revision.activo   { background: var(--color-azul-suave); }
 .indicador-validados.activo  { background: var(--color-exito-fondo); }
@@ -364,6 +365,7 @@ main {
 .indicador.activo p:first-child { color: var(--color-texto); }
 
 .indicador-total       { border-top-color: var(--color-texto-medio); }
+.indicador-sin-cargar  { border-top-color: var(--color-borde-fuerte); }
 .indicador-pendientes  { border-top-color: var(--color-aviso); }
 .indicador-revision    { border-top-color: var(--color-azul); }
 .indicador-validados   { border-top-color: var(--color-exito); }
@@ -388,6 +390,7 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
+.indicador-sin-cargar p:last-child { color: var(--color-texto-medio); }
 .indicador-pendientes p:last-child { color: var(--color-aviso); }
 .indicador-revision p:last-child   { color: var(--color-azul); }
 .indicador-validados  p:last-child { color: var(--color-exito); }
@@ -430,6 +433,7 @@ main {
 .docente:hover { border-color: var(--color-borde-fuerte); }
 
 .docente-PENDIENTE            { border-left-color: var(--color-aviso); }
+.docente-PENDIENTE_CARGA      { border-left-color: var(--color-borde-fuerte); }
 .docente-VALIDADO             { border-left-color: var(--color-exito); }
 .docente-REQUIERE_CORRECCION  { border-left-color: var(--color-primario); }
 .docente-POR_ENVIAR           { border-left-color: var(--color-aviso); }
@@ -479,6 +483,12 @@ main {
   color: var(--color-aviso);
   background: var(--color-aviso-fondo);
   border-color: var(--color-aviso-borde);
+}
+
+.insignia-PENDIENTE_CARGA {
+  color: var(--color-texto-medio);
+  background: var(--color-superficie-2);
+  border-color: var(--color-borde-fuerte);
 }
 
 .insignia-VALIDADO {

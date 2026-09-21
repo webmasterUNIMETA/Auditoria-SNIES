@@ -73,6 +73,7 @@ const docentes = MUESTRA.map((f) => {
     tipoDocumento: tipo,
     nombreCompleto: [n1, n2, a1, a2].filter(Boolean).join(' '),
     estado,
+    tieneValidacion: estado !== 'PENDIENTE',
     estadoRevision: estado === 'VALIDADO'
       ? 'EN_REVISION'
       : estado === 'REQUIERE_CORRECCION' ? 'DEVUELTO' : 'POR_ENVIAR',
@@ -141,6 +142,24 @@ guardadas['DOC-EJ-003'] = {
       ? 'NO_CONFORME' : 'CONFORME']))
 };
 
+/* Ejemplo de documentos ya guardados, todavía pendientes de envío formal. */
+guardadas['DOC-EJ-004'] = {
+  ...guardadas['DOC-EJ-002'],
+  estadoRevision: 'POR_ENVIAR',
+  version: 1,
+  enviadoPor: '',
+  fechaEnvio: '',
+  revisadoPor: '',
+  fechaRevision: '',
+  decisionRevision: '',
+  observacionRevision: '',
+  revisionCriterios: {}
+};
+const docentePorEnviar = docentes.find((d) => d.documento === 'DOC-EJ-004');
+docentePorEnviar.estado = 'VALIDADO';
+docentePorEnviar.tieneValidacion = true;
+docentePorEnviar.estadoRevision = 'POR_ENVIAR';
+
 /* ------------------------------------------------------------------
    Servidor simulado
    ------------------------------------------------------------------ */
@@ -171,9 +190,17 @@ const simulador = `
   if (PERFIL.roles.indexOf(rolActivoSimulado) !== -1) PERFIL.rol = rolActivoSimulado;
 
   function resumen() {
-    var r = { total: DOCENTES.length, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 };
+    var r = {
+      total: DOCENTES.length,
+      pendientesCarga: 0,
+      porEnviar: 0,
+      enRevision: 0,
+      devueltos: 0,
+      aprobados: 0
+    };
     DOCENTES.forEach(function (d) {
-      if (d.estadoRevision === 'EN_REVISION') r.enRevision++;
+      if (d.tieneValidacion === false) r.pendientesCarga++;
+      else if (d.estadoRevision === 'EN_REVISION') r.enRevision++;
       else if (d.estadoRevision === 'DEVUELTO') r.devueltos++;
       else if (d.estadoRevision === 'APROBADO') r.aprobados++;
       else r.porEnviar++;
@@ -264,6 +291,7 @@ const simulador = `
       DOCENTES.forEach(function (d) {
         if (d.documento === payload.documento) {
           d.estado = estado;
+          d.tieneValidacion = true;
           d.estadoRevision = GUARDADAS[payload.documento].estadoRevision;
         }
       });

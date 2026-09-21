@@ -1020,13 +1020,15 @@ function retirarPdf_(carpeta, nombreDestino) {
 function resumirEstados_(lista) {
   var resumen = {
     total: lista.length,
+    pendientesCarga: 0,
     porEnviar: 0,
     enRevision: 0,
     devueltos: 0,
     aprobados: 0
   };
   lista.forEach(function (d) {
-    if (d.estadoRevision === REV_EN_REVISION) resumen.enRevision++;
+    if (d.tieneValidacion === false) resumen.pendientesCarga++;
+    else if (d.estadoRevision === REV_EN_REVISION) resumen.enRevision++;
     else if (d.estadoRevision === REV_DEVUELTO) resumen.devueltos++;
     else if (d.estadoRevision === REV_APROBADO) resumen.aprobados++;
     else resumen.porEnviar++;
@@ -1068,10 +1070,12 @@ function obtenerDocentes(identidad) {
     var indice = leerValidaciones_();
 
     var lista = docentes.map(function (d) {
+      var tieneValidacion = !!indice[d.clave];
       return {
         documento: d.documento,
         tipoDocumento: d.tipoDocumento,
         nombreCompleto: d.nombreCompleto,
+        tieneValidacion: tieneValidacion,
         // Consulta ve el avance, no el detalle academico de cada ficha.
         valores: identidad.rol === ROL_CONSULTA ? {} : d.valores,
         estado: estadoDesdeIndice_(indice, d.clave),
@@ -1594,7 +1598,10 @@ function escribirFila_(hoja, mapa, fila, valores, esNueva) {
 function resumenActual_() {
   var indice = leerValidaciones_();
   return resumirEstados_(leerDocentes_().map(function (d) {
-    return { estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave) };
+    return {
+      tieneValidacion: !!indice[d.clave],
+      estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave)
+    };
   }));
 }
 

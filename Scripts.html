@@ -29,6 +29,7 @@ var ROL_TALENTO_HUMANO = 'TALENTO_HUMANO';
 var ROL_REVISOR = 'REVISOR';
 var ROL_CONSULTA = 'CONSULTA';
 
+var REV_PENDIENTE_CARGA = 'PENDIENTE_CARGA';
 var REV_POR_ENVIAR = 'POR_ENVIAR';
 var REV_EN_REVISION = 'EN_REVISION';
 var REV_DEVUELTO = 'DEVUELTO';
@@ -43,6 +44,7 @@ var NOMBRES_ESTADO = {
 };
 
 var NOMBRES_REVISION = {
+  PENDIENTE_CARGA: 'Pendiente de cargar',
   POR_ENVIAR: 'Por enviar',
   EN_REVISION: 'En revisión',
   DEVUELTO: 'Devuelto',
@@ -57,7 +59,8 @@ var NOMBRES_ROL = {
 
 /** Como se nombra cada grupo al contarlo: "Mostrando 12 pendientes". */
 var NOMBRES_GRUPO = {
-  POR_ENVIAR: 'por enviar',
+  PENDIENTE_CARGA: 'pendientes de cargar',
+  POR_ENVIAR: 'para enviar a revisión',
   EN_REVISION: 'en revisión',
   DEVUELTO: 'devueltos',
   APROBADO: 'aprobados'
@@ -78,7 +81,14 @@ var APP = {
   perfil: { correo: '', nombre: '', rol: '', roles: [] },
   requisitos: { actaObligatoria: true, diplomaObligatorio: false },
   docentes: [],
-  resumen: { total: 0, porEnviar: 0, enRevision: 0, devueltos: 0, aprobados: 0 }
+  resumen: {
+    total: 0,
+    pendientesCarga: 0,
+    porEnviar: 0,
+    enRevision: 0,
+    devueltos: 0,
+    aprobados: 0
+  }
 };
 
 /**
@@ -572,6 +582,7 @@ function mostrarVista(cual) {
 function pintarIndicadores() {
   var r = APP.resumen;
   $('cifraTotal').textContent      = r.total;
+  $('cifraPendientesCarga').textContent = r.pendientesCarga || 0;
   $('cifraPorEnviar').textContent  = r.porEnviar;
   $('cifraEnRevision').textContent = r.enRevision;
   $('cifraDevueltos').textContent  = r.devueltos;
@@ -586,7 +597,13 @@ function pintarLista() {
   // Primero el estado y despues el texto, para poder decir "3 de 12
   // pendientes" en lugar de "3 de 50".
   var delEstado = APP.docentes.filter(function (d) {
-    return FILTRO === 'TODOS' || (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
+    if (FILTRO === 'TODOS') return true;
+    if (FILTRO === REV_PENDIENTE_CARGA) return d.tieneValidacion === false;
+    if (FILTRO === REV_POR_ENVIAR) {
+      return d.tieneValidacion !== false &&
+        (d.estadoRevision || REV_POR_ENVIAR) === REV_POR_ENVIAR;
+    }
+    return (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
   var visibles = delEstado.filter(function (d) {
@@ -649,7 +666,7 @@ function aplicarFiltro(estado) {
     : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
 }
 
-/** Sincroniza el aspecto de las cuatro cifras con el filtro vigente. */
+/** Sincroniza el aspecto de las cifras con el filtro vigente. */
 function marcarFiltro() {
   Array.prototype.forEach.call(
     $('tiraIndicadores').querySelectorAll('[data-filtro]'),
@@ -662,8 +679,9 @@ function marcarFiltro() {
 
 function tarjetaDocente(docente) {
   var estado = docente.estadoRevision || REV_POR_ENVIAR;
+  var estadoVisual = docente.tieneValidacion === false ? REV_PENDIENTE_CARGA : estado;
 
-  var fila = crear('article', 'docente docente-' + estado);
+  var fila = crear('article', 'docente docente-' + estadoVisual);
 
   var datos = crear('div', 'docente-datos');
   datos.appendChild(crear('p', 'docente-nombre', docente.nombreCompleto || '(sin nombre)'));
@@ -672,7 +690,7 @@ function tarjetaDocente(docente) {
   fila.appendChild(datos);
 
   var acciones = crear('div', 'docente-acciones');
-  acciones.appendChild(insignia(estado));
+  acciones.appendChild(insignia(estadoVisual));
 
   if (esConsulta()) {
     fila.appendChild(acciones);
@@ -1586,6 +1604,7 @@ function actualizarDocenteEnLista(documento, estado, estadoRevision) {
   for (var i = 0; i < APP.docentes.length; i++) {
     if (APP.docentes[i].documento === documento) {
       if (estado) APP.docentes[i].estado = estado;
+      if (estado) APP.docentes[i].tieneValidacion = true;
       if (estadoRevision) APP.docentes[i].estadoRevision = estadoRevision;
       return;
     }
