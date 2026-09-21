@@ -206,6 +206,13 @@
             <!-- Acceso directo a todos los soportes del docente en Drive -->
             <p class="carpeta-docente" id="carpetaDocente" hidden></p>
 
+            <p class="subtitulo">Observaciones</p>
+            <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
+            <textarea id="observaciones" maxlength="2000"
+                      placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
+          </fieldset>
+
+          <div class="espacio-revision" id="espacioRevision" hidden>
             <section class="previsualizacion" id="previsualizacion" hidden aria-labelledby="tituloPrevisualizacion">
               <p class="subtitulo" id="tituloPrevisualizacion">Previsualización de soportes</p>
               <div class="pestanas-documentos" role="tablist" aria-label="Documento para previsualizar">
@@ -216,27 +223,22 @@
               <p class="nota-pie">Si el visor no carga, use “Abrir en Drive”. El acceso depende de los permisos privados del archivo.</p>
             </section>
 
-            <p class="subtitulo">Observaciones</p>
-            <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
-            <textarea id="observaciones" maxlength="2000"
-                      placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
-          </fieldset>
-
-          <section class="panel-revisor" id="panelRevisor" hidden aria-labelledby="tituloPanelRevisor">
-            <p class="subtitulo" id="tituloPanelRevisor">Decisión del revisor</p>
-            <p class="descripcion-vista">Confirme cada dato comparándolo con el acta y el diploma cargados por Talento Humano.</p>
-            <fieldset id="camposRevisor">
-              <legend class="solo-lectores">Verificación independiente del revisor</legend>
-              <div class="criterios-revisor" id="criteriosRevisor"></div>
-              <label for="observacionRevisor">Observación del revisor</label>
-              <textarea id="observacionRevisor" maxlength="2000"
-                        placeholder="Obligatoria cuando el registro se devuelve a Talento Humano."></textarea>
-            </fieldset>
-            <div class="acciones-revisor" id="accionesRevisor">
-              <button type="button" class="btn-secundario" id="btnDevolver">Devolver a Talento Humano</button>
-              <button type="button" class="btn-primario" id="btnAprobar">Aprobar</button>
-            </div>
-          </section>
+            <section class="panel-revisor" id="panelRevisor" hidden aria-labelledby="tituloPanelRevisor">
+              <p class="subtitulo" id="tituloPanelRevisor">Decisión del revisor</p>
+              <p class="descripcion-vista">Confirme cada dato comparándolo con el acta y el diploma cargados por Talento Humano.</p>
+              <fieldset id="camposRevisor">
+                <legend class="solo-lectores">Verificación independiente del revisor</legend>
+                <div class="criterios-revisor" id="criteriosRevisor"></div>
+                <label for="observacionRevisor">Observación del revisor</label>
+                <textarea id="observacionRevisor" maxlength="2000"
+                          placeholder="Obligatoria cuando el registro se devuelve a Talento Humano."></textarea>
+              </fieldset>
+              <div class="acciones-revisor" id="accionesRevisor">
+                <button type="button" class="btn-secundario" id="btnDevolver">Devolver a Talento Humano</button>
+                <button type="button" class="btn-primario" id="btnAprobar">Aprobar</button>
+              </div>
+            </section>
+          </div>
 
           <div class="aviso" id="avisoGuardado" hidden role="status"></div>
 

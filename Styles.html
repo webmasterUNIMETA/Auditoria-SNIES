@@ -908,7 +908,14 @@ main {
 }
 
 /* Visor embebido para el acta y el diploma. Drive conserva el control de acceso. */
-.previsualizacion { margin-top: 24px; }
+.espacio-revision { margin-top: 28px; }
+.espacio-revision.dos-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(390px, .85fr);
+  gap: 20px;
+  align-items: start;
+}
+.previsualizacion { margin-top: 0; min-width: 0; }
 .pestanas-documentos { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
 .pestanas-documentos .activo {
   color: var(--color-superficie);
@@ -937,11 +944,39 @@ main {
 }
 
 .panel-revisor {
-  margin-top: 28px;
+  margin-top: 0;
   padding: 22px;
   border: 1px solid var(--color-borde);
   border-left: 3px solid var(--color-azul);
   background: var(--color-azul-suave);
+}
+.espacio-revision.dos-columnas .panel-revisor {
+  display: flex;
+  flex-direction: column;
+  height: 650px;
+  max-height: calc(100vh - 90px);
+  min-height: 520px;
+  position: sticky;
+  top: 18px;
+}
+.espacio-revision.dos-columnas .panel-revisor > .descripcion-vista { flex: none; }
+.espacio-revision.dos-columnas #camposRevisor {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+.espacio-revision.dos-columnas .criterio-revisor {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+.espacio-revision.dos-columnas .opciones-criterio {
+  justify-self: stretch;
+}
+.espacio-revision.dos-columnas .opcion-criterio {
+  flex: 1 1 0;
+  justify-content: center;
 }
 .criterios-revisor { margin-bottom: 20px; }
 .criterio-revisor {
@@ -962,6 +997,12 @@ main {
   gap: 10px;
   margin-top: 18px;
   flex-wrap: wrap;
+}
+.espacio-revision.dos-columnas .acciones-revisor {
+  flex: none;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-borde);
+  background: var(--color-azul-suave);
 }
 
 /* ============================================================
@@ -1239,6 +1280,22 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* ============================================================
    RESPONSIVO
    ============================================================ */
+
+@media (max-width: 1000px) {
+  .espacio-revision.dos-columnas { display: block; }
+  .espacio-revision.dos-columnas .panel-revisor {
+    display: block;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    margin-top: 28px;
+    position: static;
+  }
+  .espacio-revision.dos-columnas #camposRevisor {
+    overflow: visible;
+    padding-right: 0;
+  }
+}
 
 @media (max-width: 860px) {
   .ficha-trazabilidad { grid-template-columns: repeat(2, minmax(0, 1fr)); }

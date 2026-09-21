@@ -927,9 +927,20 @@ function pintarPrevisualizacion() {
   $('tabDiploma').hidden = !hayDiploma;
   if (panel.hidden) {
     vaciar($('visorDocumento'));
+    actualizarDisposicionRevision();
     return;
   }
   mostrarDocumento(hayActa ? 'acta' : 'diploma');
+  actualizarDisposicionRevision();
+}
+
+/** Coloca visor y decisión lado a lado solo cuando ambos están visibles. */
+function actualizarDisposicionRevision() {
+  var espacio = $('espacioRevision');
+  var hayVisor = !$('previsualizacion').hidden;
+  var hayPanel = !$('panelRevisor').hidden;
+  espacio.hidden = !hayVisor && !hayPanel;
+  espacio.classList.toggle('dos-columnas', hayVisor && hayPanel);
 }
 
 function mostrarDocumento(tipo) {
@@ -963,6 +974,7 @@ function pintarPanelRevisor() {
   if (!FICHA || !FICHA.guardado ||
       (esTalentoHumano() && !FICHA.guardado.decisionRevision)) {
     panel.hidden = true;
+    actualizarDisposicionRevision();
     return;
   }
 
@@ -1000,6 +1012,7 @@ function pintarPanelRevisor() {
   $('observacionRevisor').value = FICHA.guardado.observacionRevision || '';
   $('camposRevisor').disabled = !puedeDecidir;
   $('accionesRevisor').hidden = !puedeDecidir;
+  actualizarDisposicionRevision();
 }
 
 function botonRevision(clave, valor, simbolo, texto, marcado) {
