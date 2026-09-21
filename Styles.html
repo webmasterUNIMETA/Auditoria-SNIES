@@ -711,6 +711,7 @@ main {
 }
 
 .opcion-criterio {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -728,9 +729,12 @@ main {
 
 .opcion-criterio input {
   position: absolute;
-  width: 1px; height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   opacity: 0;
-  pointer-events: none;
+  cursor: pointer;
 }
 
 .opcion-criterio .marca { font-size: 13px; line-height: 1; }
