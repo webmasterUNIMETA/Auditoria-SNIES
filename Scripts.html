@@ -109,7 +109,14 @@ var NOMBRES_GRUPO_SINGULAR = {
   MEN_RADICADO: 'radicado ante el MEN'
 };
 
-/** Los siete eventos del historial, en lenguaje llano para el informe. */
+/**
+ * Los eventos del historial en lenguaje llano.
+ *
+ * La hoja HistorialRevisiones es una bitácora que nunca se borra, así que
+ * puede contener eventos que el código de hoy ya no emite (por ejemplo
+ * AJUSTE_A_SUBSANACION_MEN, de una versión anterior). Por eso existe
+ * nombreEvento(): un mapa fijo dejaría esas filas con el nombre técnico.
+ */
 var NOMBRES_EVENTO = {
   GUARDADO: 'Guardados',
   ENVIADO_A_REVISION: 'Enviados al revisor',
@@ -117,9 +124,26 @@ var NOMBRES_EVENTO = {
   APROBADO_CON_CORRECCION_REVISOR: 'Aprobados con corrección',
   DEVUELTO: 'Devueltos',
   SUBSANACION_MEN: 'Puestos en subsanación',
+  AJUSTE_A_SUBSANACION_MEN: 'Ajustes de subsanación',
   RADICADO_MEN: 'Radicados ante el MEN',
   MIGRADO_A_REVISION: 'Migrados a revisión'
 };
+
+/** Nombre legible de un evento, conocido o no. */
+function nombreEvento(clave) {
+  if (NOMBRES_EVENTO[clave]) return NOMBRES_EVENTO[clave];
+  // ALGO_QUE_NO_CONOZCO -> "Algo que no conozco"
+  var texto = String(clave || '').replace(/_/g, ' ').toLowerCase().trim();
+  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '—';
+}
+
+/** Nombre legible de un rol, incluido el seudo-rol de las migraciones. */
+function nombreRol(clave) {
+  if (NOMBRES_ROL[clave]) return NOMBRES_ROL[clave];
+  if (clave === 'ADMINISTRADOR') return 'Administrador';
+  var texto = String(clave || '').replace(/_/g, ' ').toLowerCase().trim();
+  return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : '—';
+}
 
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
 var FILTRO = 'TODOS';
@@ -2559,23 +2583,41 @@ function cargarInforme() {
   });
 }
 
-/** Construye una tabla del informe. filas es un array de arrays. */
-function tablaInforme(encabezados, filas) {
+/**
+ * Construye una tabla del informe dentro de un contenedor desplazable.
+ *
+ * `columnasLargas` son los índices de las columnas con texto libre
+ * (motivos, observaciones): solo esas parten en varias líneas. El resto
+ * va en una sola línea, porque si el navegador puede partir cualquier
+ * celda estrangula la columna más estrecha —"Talento Humano" acababa
+ * en seis líneas de tres letras.
+ */
+function tablaInforme(encabezados, filas, columnasLargas) {
+  var largas = columnasLargas || [];
+
   var tabla = crear('table', 'tabla-informe');
   var thead = crear('thead');
   var filaEnc = crear('tr');
-  encabezados.forEach(function (texto) { filaEnc.appendChild(crear('th', null, texto)); });
+  encabezados.forEach(function (texto, i) {
+    filaEnc.appendChild(crear('th', largas.indexOf(i) !== -1 ? 'celda-larga' : null, texto));
+  });
   thead.appendChild(filaEnc);
   tabla.appendChild(thead);
 
   var tbody = crear('tbody');
   filas.forEach(function (fila) {
     var tr = crear('tr');
-    fila.forEach(function (celda) { tr.appendChild(crear('td', null, celda === '' || celda == null ? '—' : String(celda))); });
+    fila.forEach(function (celda, i) {
+      tr.appendChild(crear('td', largas.indexOf(i) !== -1 ? 'celda-larga' : null,
+        celda === '' || celda == null ? '—' : String(celda)));
+    });
     tbody.appendChild(tr);
   });
   tabla.appendChild(tbody);
-  return tabla;
+
+  var caja = crear('div', 'tabla-desplazable');
+  caja.appendChild(tabla);
+  return caja;
 }
 
 /** Rótulo en versalita que estampa a qué momento corresponde un bloque. */
@@ -2688,7 +2730,7 @@ function pintarTablero(informe) {
   ['GUARDADO', 'ENVIADO_A_REVISION', 'APROBADO', 'APROBADO_CON_CORRECCION_REVISOR',
    'DEVUELTO', 'SUBSANACION_MEN', 'RADICADO_MEN'].forEach(function (evento) {
     var celda = crear('div', 'informe-embudo-celda');
-    celda.appendChild(crear('p', 'estampa', NOMBRES_EVENTO[evento] || evento));
+    celda.appendChild(crear('p', 'estampa', nombreEvento(evento)));
     celda.appendChild(crear('p', 'informe-cifra', String(porEvento[evento] || 0)));
     embudo.appendChild(celda);
   });
@@ -2715,11 +2757,9 @@ function pintarTablero(informe) {
       });
     });
     bloqueD.appendChild(tablaInforme(
-      ['Persona', 'Rol', 'Total'].concat(eventosUsados.map(function (e) {
-        return NOMBRES_EVENTO[e] || e;
-      })),
+      ['Persona', 'Rol', 'Total'].concat(eventosUsados.map(nombreEvento)),
       usuarios.map(function (u) {
-        return [u.correo, NOMBRES_ROL[u.rol] || u.rol, u.total].concat(
+        return [u.correo, nombreRol(u.rol), u.total].concat(
           eventosUsados.map(function (e) { return (u.eventos && u.eventos[e]) || 0; }));
       })));
   }
@@ -2741,8 +2781,8 @@ function pintarTablero(informe) {
       ['Fecha', 'Docente', 'Movimiento', 'Persona', 'Observación'],
       recientes.map(function (h) {
         return [h.fecha, h.docente || h.documento,
-          NOMBRES_EVENTO[h.evento] || h.evento, h.correo, h.observacion || ''];
-      })));
+          nombreEvento(h.evento), h.correo, h.observacion || ''];
+      }), [4]));
     if (historial.length > 150) {
       bloqueF.appendChild(crear('p', 'nota-pie',
         'Se muestran los 150 movimientos más recientes de ' + historial.length +
@@ -2790,6 +2830,7 @@ function pintarColas(registros, generado) {
       responsable: 'Nadie hasta la fecha indicada',
       filas: aprobados.filter(function (r) { return r.estadoMen === MEN_SUBSANACION; }),
       columnas: ['Documento', 'Docente', 'Se libera el', 'Motivo'],
+      largas: [3],
       celdas: function (r) {
         return [r.documento, r.docente, r.fechaDisponibleRadicacion || '', r.motivoSubsanacion || ''];
       }
@@ -2799,6 +2840,7 @@ function pintarColas(registros, generado) {
       responsable: 'Talento Humano',
       filas: registros.filter(function (r) { return r.estadoRevision === REV_DEVUELTO; }),
       columnas: ['Documento', 'Docente', 'Devuelto el', 'Motivo'],
+      largas: [3],
       celdas: function (r) {
         return [r.documento, r.docente, r.fechaRevision || '', r.observacionRevision || ''];
       }
@@ -2820,7 +2862,7 @@ function pintarColas(registros, generado) {
     cabecera.appendChild(crear('h3', null, g.titulo + ' (' + g.filas.length + ')'));
     cabecera.appendChild(crear('span', 'insignia insignia-responsable', g.responsable));
     bloque.appendChild(cabecera);
-    bloque.appendChild(tablaInforme(g.columnas, g.filas.map(g.celdas)));
+    bloque.appendChild(tablaInforme(g.columnas, g.filas.map(g.celdas), g.largas));
   });
 
   if (!algo) {

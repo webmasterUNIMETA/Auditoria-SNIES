@@ -1699,11 +1699,17 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   border-color: var(--color-azul-suave);
 }
 
+/* La tabla se desplaza dentro de su caja, no arrastra la página entera */
+.tabla-desplazable {
+  overflow-x: auto;
+  margin-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
 .tabla-informe {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  margin-bottom: 4px;
 }
 
 .tabla-informe th {
@@ -1715,7 +1721,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--color-texto-suave);
-  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .tabla-informe td {
@@ -1723,11 +1729,24 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   border-bottom: 1px solid var(--color-borde);
   color: var(--color-texto-medio);
   vertical-align: top;
+}
+
+/* Todo va en una línea salvo las columnas de texto libre. Si se permite
+   partir cualquier celda, el navegador estrangula la más estrecha: el rol
+   "Talento Humano" acababa en seis líneas de tres letras. */
+.tabla-informe th,
+.tabla-informe td { white-space: nowrap; }
+
+.tabla-informe th.celda-larga,
+.tabla-informe td.celda-larga {
+  white-space: normal;
+  min-width: 220px;
+  max-width: 420px;
   overflow-wrap: anywhere;
 }
 
 .tabla-informe tbody tr:last-child td { border-bottom: 0; }
-.tabla-informe td:first-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabla-informe td:first-child { font-variant-numeric: tabular-nums; }
 
 /* ============================================================
    IMPRESIÓN
@@ -1773,8 +1792,13 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .tarjeta, .informe-embudo, .tira-informe, .tabla-informe tr { break-inside: avoid; }
   thead { display: table-header-group; }
 
-  .tabla-informe { font-size: 9.5pt; }
-  .tabla-informe td, .tabla-informe th { padding: 5px 6px; }
+  .tabla-informe { font-size: 9pt; }
+  .tabla-informe td, .tabla-informe th { padding: 4px 5px; }
+
+  /* En papel no hay barra de desplazamiento: la tabla debe caber. */
+  .tabla-desplazable { overflow: visible; }
+  .tabla-informe th, .tabla-informe td { white-space: normal; overflow-wrap: anywhere; }
+  .tabla-informe th.celda-larga, .tabla-informe td.celda-larga { min-width: 0; max-width: none; }
 
   /* La insignia lleva borde también en pantalla, así que sigue legible
      aunque se imprima sin gráficos de fondo */
