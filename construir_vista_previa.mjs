@@ -173,6 +173,11 @@ guardadas['DOC-EJ-005'] = {
   decisionRevision: 'APROBADO',
   observacionRevision: '',
   revisionCriterios: Object.fromEntries(CRITERIOS.map((c) => [c.clave, 'CONFORME'])),
+  estadoMen: 'SUBSANACION',
+  motivoSubsanacion: 'Actualización del registro externo antes de radicar.',
+  fechaSubsanacion: '22/09/2026 08:30',
+  fechaDisponibleRadicacion: '23/09/2026',
+  subsanacionPor: 'revisor@ejemplo.edu.co',
   radicadoMen: false,
   radicadoPor: '',
   fechaRadicacionMen: ''
@@ -184,6 +189,7 @@ guardadas['DOC-EJ-006'] = {
   revisadoPor: 'revisor@ejemplo.edu.co',
   fechaRevision: '19/09/2026 10:15',
   decisionRevision: 'APROBADO',
+  estadoMen: 'RADICADO',
   radicadoMen: true,
   radicadoPor: 'revisor@ejemplo.edu.co',
   fechaRadicacionMen: '20/09/2026 09:30'
@@ -197,12 +203,17 @@ docenteAprobado.estado = 'REQUIERE_CORRECCION';
 docenteAprobado.tieneValidacion = true;
 docenteAprobado.estadoRevision = 'APROBADO';
 docenteAprobado.version = 3;
+docenteAprobado.estadoMen = 'SUBSANACION';
+docenteAprobado.motivoSubsanacion = guardadas['DOC-EJ-005'].motivoSubsanacion;
+docenteAprobado.fechaSubsanacion = guardadas['DOC-EJ-005'].fechaSubsanacion;
+docenteAprobado.fechaDisponibleRadicacion = guardadas['DOC-EJ-005'].fechaDisponibleRadicacion;
 docenteAprobado.radicadoMen = false;
 const docenteRadicado = docentes.find((d) => d.documento === 'DOC-EJ-006');
 docenteRadicado.estado = 'VALIDADO';
 docenteRadicado.tieneValidacion = true;
 docenteRadicado.estadoRevision = 'APROBADO';
 docenteRadicado.version = 4;
+docenteRadicado.estadoMen = 'RADICADO';
 docenteRadicado.radicadoMen = true;
 
 /* ------------------------------------------------------------------
@@ -241,13 +252,23 @@ const simulador = `
       porEnviar: 0,
       enRevision: 0,
       devueltos: 0,
-      aprobados: 0
+      aprobados: 0,
+      menPendientes: 0,
+      menSubsanacion: 0,
+      menListos: 0,
+      menRadicados: 0
     };
     DOCENTES.forEach(function (d) {
       if (d.tieneValidacion === false) r.pendientesCarga++;
       else if (d.estadoRevision === 'EN_REVISION') r.enRevision++;
       else if (d.estadoRevision === 'DEVUELTO') r.devueltos++;
-      else if (d.estadoRevision === 'APROBADO') r.aprobados++;
+      else if (d.estadoRevision === 'APROBADO') {
+        r.aprobados++;
+        if (d.radicadoMen || d.estadoMen === 'RADICADO') r.menRadicados++;
+        else if (d.estadoMen === 'SUBSANACION') r.menSubsanacion++;
+        else if (d.estadoMen === 'LISTO_RADICAR') r.menListos++;
+        else r.menPendientes++;
+      }
       else r.porEnviar++;
     });
     return r;
@@ -330,6 +351,14 @@ const simulador = `
         fechaRevision: previa ? previa.fechaRevision : '',
         decisionRevision: previa ? previa.decisionRevision : '',
         observacionRevision: previa ? previa.observacionRevision : '',
+        estadoMen: previa ? previa.estadoMen : 'PENDIENTE',
+        motivoSubsanacion: previa ? previa.motivoSubsanacion : '',
+        fechaSubsanacion: previa ? previa.fechaSubsanacion : '',
+        fechaDisponibleRadicacion: previa ? previa.fechaDisponibleRadicacion : '',
+        subsanacionPor: previa ? previa.subsanacionPor : '',
+        radicadoMen: previa ? previa.radicadoMen : false,
+        radicadoPor: previa ? previa.radicadoPor : '',
+        fechaRadicacionMen: previa ? previa.fechaRadicacionMen : '',
         revisionCriterios: previa ? previa.revisionCriterios : {},
         revisionCorrecciones: previa ? previa.revisionCorrecciones : {}
       };
@@ -383,15 +412,66 @@ const simulador = `
       v.decisionRevision = payload.decision;
       v.observacionRevision = payload.observacion;
       v.revisadoPor = PERFIL.correo;
+      v.estadoMen = payload.decision === 'APROBADO' ? 'PENDIENTE' : '';
       v.version++;
       DOCENTES.forEach(function (d) {
         if (d.documento === payload.documento) {
           d.estadoRevision = payload.decision;
           d.estado = estado;
           d.version = v.version;
+          d.estadoMen = v.estadoMen;
         }
       });
-      return { documento: payload.documento, estado: estado, estadoRevision: payload.decision, version: v.version, resumen: resumen() };
+      return { documento: payload.documento, estado: estado, estadoRevision: payload.decision, estadoMen: v.estadoMen, version: v.version, resumen: resumen() };
+    },
+
+    ponerEnSubsanacion: function (payload) {
+      var v = GUARDADAS[payload.documento];
+      if (!v || v.estadoRevision !== 'APROBADO' || v.radicadoMen) {
+        throw new Error('Solo se puede poner en subsanación un aprobado no radicado.');
+      }
+      v.estadoMen = 'SUBSANACION';
+      v.motivoSubsanacion = payload.motivo;
+      v.fechaSubsanacion = '22/09/2026 09:40';
+      v.fechaDisponibleRadicacion = payload.fechaDisponible.split('-').reverse().join('/');
+      v.subsanacionPor = PERFIL.correo;
+      v.version++;
+      var d = DOCENTES.find(function (item) { return item.documento === payload.documento; });
+      Object.assign(d, {
+        version: v.version,
+        estadoMen: v.estadoMen,
+        motivoSubsanacion: v.motivoSubsanacion,
+        fechaSubsanacion: v.fechaSubsanacion,
+        fechaDisponibleRadicacion: v.fechaDisponibleRadicacion,
+        subsanacionPor: v.subsanacionPor
+      });
+      return {
+        documento: payload.documento, version: v.version, estadoMen: v.estadoMen,
+        motivoSubsanacion: v.motivoSubsanacion, fechaSubsanacion: v.fechaSubsanacion,
+        fechaDisponibleRadicacion: v.fechaDisponibleRadicacion,
+        subsanacionPor: v.subsanacionPor, resumen: resumen()
+      };
+    },
+
+    obtenerInformeGestion: function (payload) {
+      return {
+        generado: '22/09/2026 09:45', desde: payload.desde, hasta: payload.hasta,
+        usuarios: [
+          { correo: 'talento.humano@ejemplo.edu.co', rol: 'TALENTO_HUMANO', total: 4,
+            eventos: { GUARDADO: 2, ENVIADO_A_REVISION: 2 } },
+          { correo: 'revisor@ejemplo.edu.co', rol: 'REVISOR', total: 3,
+            eventos: { APROBADO: 1, SUBSANACION_MEN: 1, RADICADO_MEN: 1 } }
+        ],
+        registros: DOCENTES.map(function (d) {
+          var v = GUARDADAS[d.documento] || {};
+          return Object.assign({ documento: d.documento, docente: d.nombreCompleto }, v);
+        }),
+        historial: [
+          { fecha: '22/09/2026 08:30', documento: 'DOC-EJ-005', docente: 'DOCENTE EJEMPLO CINCO',
+            evento: 'SUBSANACION_MEN', estadoAnterior: 'PENDIENTE', estadoNuevo: 'SUBSANACION',
+            correo: 'revisor@ejemplo.edu.co', rol: 'REVISOR', observacion: 'Actualización externa.' }
+        ]
+      };
     },
 
     confirmarRadicadoMen: function (payload) {
@@ -400,6 +480,7 @@ const simulador = `
         throw new Error('Solo se puede confirmar el radicado MEN de una revisión aprobada.');
       }
       v.radicadoMen = true;
+      v.estadoMen = 'RADICADO';
       v.radicadoPor = PERFIL.correo;
       v.fechaRadicacionMen = '21/09/2026 11:45';
       v.version++;
@@ -407,6 +488,7 @@ const simulador = `
         if (d.documento === payload.documento) {
           d.version = v.version;
           d.radicadoMen = true;
+          d.estadoMen = 'RADICADO';
           d.radicadoPor = v.radicadoPor;
           d.fechaRadicacionMen = v.fechaRadicacionMen;
         }
@@ -414,9 +496,11 @@ const simulador = `
       return {
         documento: payload.documento,
         version: v.version,
+        estadoMen: 'RADICADO',
         radicadoMen: true,
         radicadoPor: v.radicadoPor,
-        fechaRadicacionMen: v.fechaRadicacionMen
+        fechaRadicacionMen: v.fechaRadicacionMen,
+        resumen: resumen()
       };
     }
   };

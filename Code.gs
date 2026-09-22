@@ -41,6 +41,12 @@ var REV_EN_REVISION = 'EN_REVISION';
 var REV_DEVUELTO = 'DEVUELTO';
 var REV_APROBADO = 'APROBADO';
 
+/** Etapa operativa posterior a la aprobacion documental. */
+var MEN_PENDIENTE = 'PENDIENTE';
+var MEN_SUBSANACION = 'SUBSANACION';
+var MEN_LISTO = 'LISTO_RADICAR';
+var MEN_RADICADO = 'RADICADO';
+
 var REV_CONFORME = 'CONFORME';
 var REV_NO_CONFORME = 'NO_CONFORME';
 
@@ -111,6 +117,9 @@ function encabezadosValidaciones_() {
     'ENVIADO_POR', 'FECHA_ENVIO',
     'REVISADO_POR', 'FECHA_REVISION',
     'DECISION_REVISION', 'OBSERVACION_REVISION',
+    'ESTADO_MEN',
+    'MOTIVO_SUBSANACION', 'FECHA_SUBSANACION',
+    'FECHA_DISPONIBLE_RADICACION', 'SUBSANACION_POR',
     'RADICADO_MEN', 'RADICADO_POR', 'FECHA_RADICACION_MEN'
   ]).concat(CRITERIOS.map(function (c) {
     return 'REV_' + c.clave;
@@ -520,6 +529,39 @@ function normalizarFechaCorreccion_(valor, etiqueta) {
   return dos(dia) + '/' + dos(mes) + '/' + anio;
 }
 
+/** Convierte una fecha de hoja o control HTML en un Date comparable. */
+function fechaOperativa_(valor) {
+  if (valor instanceof Date && !isNaN(valor.getTime())) return valor;
+  var texto = String(valor || '').trim();
+  var partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
+  if (partes) {
+    return new Date(Number(partes[1]), Number(partes[2]) - 1, Number(partes[3]));
+  }
+  partes = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?$/.exec(texto);
+  if (!partes) return null;
+  return new Date(Number(partes[3]), Number(partes[2]) - 1, Number(partes[1]),
+    Number(partes[4] || 0), Number(partes[5] || 0));
+}
+
+/** Fecha de Colombia sin hora, usada para habilitar la radicacion. */
+function hoyColombia_() {
+  var partes = Utilities.formatDate(new Date(), zonaHoraria_(), 'yyyy-MM-dd').split('-');
+  return new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+}
+
+/** Estado MEN visible; una subsanacion vencida queda lista automaticamente. */
+function estadoMenEfectivo_(estado, disponible, radicado) {
+  if (radicado) return MEN_RADICADO;
+  var normalizado = String(estado || '').trim().toUpperCase();
+  if (normalizado === MEN_SUBSANACION) {
+    var fecha = fechaOperativa_(disponible);
+    if (fecha && fecha.getTime() <= hoyColombia_().getTime()) return MEN_LISTO;
+    return MEN_SUBSANACION;
+  }
+  if (normalizado === MEN_LISTO) return MEN_LISTO;
+  return MEN_PENDIENTE;
+}
+
 /* ============================================================
    CONFIGURACION
    ============================================================ */
@@ -742,6 +784,11 @@ function armarValidacion_(registro) {
   if (!isFinite(version) || version < 1) version = 1;
 
   var radicadoMen = texto_(leer('RADICADO_MEN')).toUpperCase();
+  var esRadicadoMen = radicadoMen === 'SI' || radicadoMen === 'SÍ' ||
+    radicadoMen === 'TRUE' || radicadoMen === '1';
+  var fechaDisponibleRadicacion = textoFechaHora_(leer('FECHA_DISPONIBLE_RADICACION'));
+  var estadoMen = estadoMenEfectivo_(
+    texto_(leer('ESTADO_MEN')), fechaDisponibleRadicacion, esRadicadoMen);
 
   return {
     criterios: criterios,
@@ -764,7 +811,12 @@ function armarValidacion_(registro) {
     fechaRevision: textoFechaHora_(leer('FECHA_REVISION')),
     decisionRevision: texto_(leer('DECISION_REVISION')).toUpperCase(),
     observacionRevision: texto_(leer('OBSERVACION_REVISION')),
-    radicadoMen: radicadoMen === 'SI' || radicadoMen === 'SÍ' || radicadoMen === 'TRUE' || radicadoMen === '1',
+    estadoMen: estadoMen,
+    motivoSubsanacion: texto_(leer('MOTIVO_SUBSANACION')),
+    fechaSubsanacion: textoFechaHora_(leer('FECHA_SUBSANACION')),
+    fechaDisponibleRadicacion: fechaDisponibleRadicacion,
+    subsanacionPor: texto_(leer('SUBSANACION_POR')),
+    radicadoMen: esRadicadoMen,
     radicadoPor: texto_(leer('RADICADO_POR')),
     fechaRadicacionMen: textoFechaHora_(leer('FECHA_RADICACION_MEN')),
     revisionCriterios: revisionCriterios,
@@ -805,6 +857,11 @@ function sinIdentificadores_(validacion) {
     fechaRevision: validacion.fechaRevision,
     decisionRevision: validacion.decisionRevision,
     observacionRevision: validacion.observacionRevision,
+    estadoMen: validacion.estadoMen,
+    motivoSubsanacion: validacion.motivoSubsanacion,
+    fechaSubsanacion: validacion.fechaSubsanacion,
+    fechaDisponibleRadicacion: validacion.fechaDisponibleRadicacion,
+    subsanacionPor: validacion.subsanacionPor,
     radicadoMen: validacion.radicadoMen,
     radicadoPor: validacion.radicadoPor,
     fechaRadicacionMen: validacion.fechaRadicacionMen,
@@ -1065,13 +1122,23 @@ function resumirEstados_(lista) {
     porEnviar: 0,
     enRevision: 0,
     devueltos: 0,
-    aprobados: 0
+    aprobados: 0,
+    menPendientes: 0,
+    menSubsanacion: 0,
+    menListos: 0,
+    menRadicados: 0
   };
   lista.forEach(function (d) {
     if (d.tieneValidacion === false) resumen.pendientesCarga++;
     else if (d.estadoRevision === REV_EN_REVISION) resumen.enRevision++;
     else if (d.estadoRevision === REV_DEVUELTO) resumen.devueltos++;
-    else if (d.estadoRevision === REV_APROBADO) resumen.aprobados++;
+    else if (d.estadoRevision === REV_APROBADO) {
+      resumen.aprobados++;
+      if (d.estadoMen === MEN_RADICADO || d.radicadoMen) resumen.menRadicados++;
+      else if (d.estadoMen === MEN_SUBSANACION) resumen.menSubsanacion++;
+      else if (d.estadoMen === MEN_LISTO) resumen.menListos++;
+      else resumen.menPendientes++;
+    }
     else resumen.porEnviar++;
   });
   return resumen;
@@ -1123,6 +1190,17 @@ function obtenerDocentes(identidad) {
         estado: validacion ? validacion.estado : ESTADO_PENDIENTE,
         estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
         version: validacion ? validacion.version : 0,
+        guardadoPor: validacion ? validacion.guardadoPor : '',
+        fechaModificacion: validacion ? validacion.fechaModificacion : '',
+        enviadoPor: validacion ? validacion.enviadoPor : '',
+        fechaEnvio: validacion ? validacion.fechaEnvio : '',
+        revisadoPor: validacion ? validacion.revisadoPor : '',
+        fechaRevision: validacion ? validacion.fechaRevision : '',
+        estadoMen: validacion ? validacion.estadoMen : MEN_PENDIENTE,
+        motivoSubsanacion: validacion ? validacion.motivoSubsanacion : '',
+        fechaSubsanacion: validacion ? validacion.fechaSubsanacion : '',
+        fechaDisponibleRadicacion: validacion ? validacion.fechaDisponibleRadicacion : '',
+        subsanacionPor: validacion ? validacion.subsanacionPor : '',
         radicadoMen: validacion ? validacion.radicadoMen : false,
         radicadoPor: validacion ? validacion.radicadoPor : '',
         fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : ''
@@ -1420,6 +1498,14 @@ function guardarValidacion(payload, identidad) {
         fechaRevision: previo ? previo.fechaRevision : '',
         decisionRevision: previo ? previo.decisionRevision : '',
         observacionRevision: previo ? previo.observacionRevision : '',
+        estadoMen: previo ? previo.estadoMen : MEN_PENDIENTE,
+        motivoSubsanacion: previo ? previo.motivoSubsanacion : '',
+        fechaSubsanacion: previo ? previo.fechaSubsanacion : '',
+        fechaDisponibleRadicacion: previo ? previo.fechaDisponibleRadicacion : '',
+        subsanacionPor: previo ? previo.subsanacionPor : '',
+        radicadoMen: previo ? previo.radicadoMen : false,
+        radicadoPor: previo ? previo.radicadoPor : '',
+        fechaRadicacionMen: previo ? previo.fechaRadicacionMen : '',
         revisionCriterios: previo ? previo.revisionCriterios : {},
         revisionCorrecciones: previo ? previo.revisionCorrecciones : {}
       }),
@@ -1466,6 +1552,97 @@ function registrarHistorial_(documento, version, identidad, evento, anterior, nu
     identidad.rol,
     textoEntrante_(observacion, 2000)
   ]);
+}
+
+/** Datos consolidados para el informe operativo descargable. */
+function obtenerInformeGestion(payload, identidad) {
+  exigirRol_(identidad, [ROL_REVISOR]);
+  var desde = fechaOperativa_(payload && payload.desde);
+  var hasta = fechaOperativa_(payload && payload.hasta);
+  if (hasta) hasta.setHours(23, 59, 59, 999);
+  if (desde && hasta && desde.getTime() > hasta.getTime()) {
+    throw new Error('La fecha inicial del informe no puede ser posterior a la fecha final.');
+  }
+
+  var docentes = leerDocentes_();
+  var indice = leerValidaciones_();
+  var nombres = {};
+  var registros = docentes.map(function (docente) {
+    nombres[docente.clave] = docente.nombreCompleto;
+    var validacion = indice[docente.clave] ? armarValidacion_(indice[docente.clave]) : null;
+    return {
+      documento: docente.documento,
+      docente: docente.nombreCompleto,
+      estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
+      estadoMen: validacion && validacion.estadoRevision === REV_APROBADO
+        ? validacion.estadoMen : '',
+      guardadoPor: validacion ? validacion.guardadoPor : '',
+      fechaModificacion: validacion ? validacion.fechaModificacion : '',
+      enviadoPor: validacion ? validacion.enviadoPor : '',
+      fechaEnvio: validacion ? validacion.fechaEnvio : '',
+      revisadoPor: validacion ? validacion.revisadoPor : '',
+      fechaRevision: validacion ? validacion.fechaRevision : '',
+      subsanacionPor: validacion ? validacion.subsanacionPor : '',
+      fechaSubsanacion: validacion ? validacion.fechaSubsanacion : '',
+      fechaDisponibleRadicacion: validacion ? validacion.fechaDisponibleRadicacion : '',
+      motivoSubsanacion: validacion ? validacion.motivoSubsanacion : '',
+      radicadoPor: validacion ? validacion.radicadoPor : '',
+      fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : ''
+    };
+  });
+
+  var hoja = hojaHistorial_();
+  var eventos = [];
+  var porUsuario = {};
+  if (hoja.getLastRow() >= 2) {
+    var datos = hoja.getRange(1, 1, hoja.getLastRow(), hoja.getLastColumn()).getValues();
+    var mapa = mapaEncabezados_(datos[0]);
+    for (var i = 1; i < datos.length; i++) {
+      var fechaTexto = textoFechaHora_(datos[i][mapa.FECHA - 1]);
+      var fecha = fechaOperativa_(fechaTexto);
+      if (desde && (!fecha || fecha.getTime() < desde.getTime())) continue;
+      if (hasta && (!fecha || fecha.getTime() > hasta.getTime())) continue;
+      var documento = normalizarDocumento_(datos[i][mapa.NUM_DOCUMENTO - 1]);
+      var correo = texto_(datos[i][mapa.CORREO - 1]).toLowerCase();
+      var evento = texto_(datos[i][mapa.EVENTO - 1]).toUpperCase();
+      var fila = {
+        fecha: fechaTexto,
+        documento: documento,
+        docente: nombres[claveDocumento_(documento)] || '',
+        evento: evento,
+        estadoAnterior: texto_(datos[i][mapa.ESTADO_ANTERIOR - 1]),
+        estadoNuevo: texto_(datos[i][mapa.ESTADO_NUEVO - 1]),
+        correo: correo,
+        rol: texto_(datos[i][mapa.ROL - 1]),
+        observacion: texto_(datos[i][mapa.OBSERVACION - 1])
+      };
+      eventos.push(fila);
+      var claveUsuario = correo + '|' + fila.rol;
+      if (!porUsuario[claveUsuario]) {
+        porUsuario[claveUsuario] = { correo: correo, rol: fila.rol, total: 0, eventos: {} };
+      }
+      porUsuario[claveUsuario].total++;
+      porUsuario[claveUsuario].eventos[evento] =
+        (porUsuario[claveUsuario].eventos[evento] || 0) + 1;
+    }
+  }
+
+  return {
+    generado: formatearFechaHora_(new Date()),
+    desde: payload && payload.desde ? String(payload.desde) : '',
+    hasta: payload && payload.hasta ? String(payload.hasta) : '',
+    resumen: resumirEstados_(registros.map(function (r) {
+      return {
+        tieneValidacion: !!r.fechaModificacion,
+        estadoRevision: r.estadoRevision,
+        estadoMen: r.estadoMen,
+        radicadoMen: r.estadoMen === MEN_RADICADO
+      };
+    })),
+    usuarios: Object.keys(porUsuario).map(function (clave) { return porUsuario[clave]; }),
+    registros: registros,
+    historial: eventos
+  };
 }
 
 function exigirVersion_(payload, validacion) {
@@ -1625,6 +1802,11 @@ function decidirRevision(payload, identidad) {
       FECHA_REVISION: ahora,
       DECISION_REVISION: decision,
       OBSERVACION_REVISION: observacion,
+      ESTADO_MEN: decision === REV_APROBADO ? MEN_PENDIENTE : '',
+      MOTIVO_SUBSANACION: '',
+      FECHA_SUBSANACION: '',
+      FECHA_DISPONIBLE_RADICACION: '',
+      SUBSANACION_POR: '',
       RADICADO_MEN: '',
       RADICADO_POR: '',
       FECHA_RADICACION_MEN: ''
@@ -1658,7 +1840,73 @@ function decidirRevision(payload, identidad) {
       documento: docente.documento,
       estado: detalleCorrecciones.length ? ESTADO_CORRECCION : validacion.estado,
       estadoRevision: decision,
+      estadoMen: decision === REV_APROBADO ? MEN_PENDIENTE : '',
       version: nuevaVersion,
+      resumen: resumenActual_()
+    };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/** Deja un aprobado esperando la subsanacion operativa antes de radicarlo. */
+function ponerEnSubsanacion(payload, identidad) {
+  exigirRol_(identidad, [ROL_REVISOR]);
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo en unos segundos.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(payload && payload.documento);
+    var motivo = textoEntrante_(payload && payload.motivo, 1000);
+    if (!motivo) throw new Error('Explique el motivo de la subsanación.');
+    var fechaDisponible = normalizarFechaCorreccion_(
+      payload && payload.fechaDisponible, 'fecha disponible para radicación');
+    var fechaElegida = fechaOperativa_(fechaDisponible);
+    var minimo = hoyColombia_();
+    minimo.setDate(minimo.getDate() + 1);
+    if (!fechaElegida || fechaElegida.getTime() < minimo.getTime()) {
+      throw new Error('La fecha disponible debe ser, como mínimo, el día siguiente.');
+    }
+
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El docente indicado no figura en la hoja Docentes.');
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('No existe una validación para este docente.');
+    var validacion = armarValidacion_(registro);
+    exigirVersion_(payload, validacion);
+    if (validacion.estadoRevision !== REV_APROBADO || validacion.radicadoMen) {
+      throw new Error('Solo se puede poner en subsanación una revisión aprobada y aún no radicada.');
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var ahora = formatearFechaHora_(new Date());
+    var nuevaVersion = validacion.version + 1;
+    escribirFila_(hoja, mapa, registro.fila, {
+      ESTADO_MEN: MEN_SUBSANACION,
+      MOTIVO_SUBSANACION: motivo,
+      FECHA_SUBSANACION: ahora,
+      FECHA_DISPONIBLE_RADICACION: fechaDisponible,
+      SUBSANACION_POR: identidad.correo,
+      VERSION: nuevaVersion
+    }, false);
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'SUBSANACION_MEN',
+      validacion.estadoMen, MEN_SUBSANACION,
+      motivo + ' Disponible para radicar: ' + fechaDisponible + '.');
+    SpreadsheetApp.flush();
+
+    return {
+      documento: docente.documento,
+      version: nuevaVersion,
+      estadoMen: MEN_SUBSANACION,
+      motivoSubsanacion: motivo,
+      fechaSubsanacion: ahora,
+      fechaDisponibleRadicacion: fechaDisponible,
+      subsanacionPor: identidad.correo,
       resumen: resumenActual_()
     };
   } finally {
@@ -1688,10 +1936,15 @@ function confirmarRadicadoMen(payload, identidad) {
     if (validacion.estadoRevision !== REV_APROBADO) {
       throw new Error('Solo se puede confirmar el radicado MEN de una revisión aprobada.');
     }
+    if (validacion.estadoMen === MEN_SUBSANACION) {
+      throw new Error('La solicitud sigue en subsanación. Estará disponible para radicar el ' +
+        (validacion.fechaDisponibleRadicacion || 'día programado') + '.');
+    }
     if (validacion.radicadoMen) {
       return {
         documento: docente.documento,
         version: validacion.version,
+        estadoMen: MEN_RADICADO,
         radicadoMen: true,
         radicadoPor: validacion.radicadoPor,
         fechaRadicacionMen: validacion.fechaRadicacionMen
@@ -1703,6 +1956,7 @@ function confirmarRadicadoMen(payload, identidad) {
     var ahora = formatearFechaHora_(new Date());
     var nuevaVersion = validacion.version + 1;
     escribirFila_(hoja, mapa, registro.fila, {
+      ESTADO_MEN: MEN_RADICADO,
       RADICADO_MEN: 'SI',
       RADICADO_POR: identidad.correo,
       FECHA_RADICACION_MEN: ahora,
@@ -1715,9 +1969,11 @@ function confirmarRadicadoMen(payload, identidad) {
     return {
       documento: docente.documento,
       version: nuevaVersion,
+      estadoMen: MEN_RADICADO,
       radicadoMen: true,
       radicadoPor: identidad.correo,
-      fechaRadicacionMen: ahora
+      fechaRadicacionMen: ahora,
+      resumen: resumenActual_()
     };
   } finally {
     candado.releaseLock();
@@ -1753,9 +2009,12 @@ function escribirFila_(hoja, mapa, fila, valores, esNueva) {
 function resumenActual_() {
   var indice = leerValidaciones_();
   return resumirEstados_(leerDocentes_().map(function (d) {
+    var validacion = indice[d.clave] ? armarValidacion_(indice[d.clave]) : null;
     return {
-      tieneValidacion: !!indice[d.clave],
-      estadoRevision: estadoRevisionDesdeIndice_(indice, d.clave)
+      tieneValidacion: !!validacion,
+      estadoRevision: validacion ? validacion.estadoRevision : REV_POR_ENVIAR,
+      estadoMen: validacion ? validacion.estadoMen : MEN_PENDIENTE,
+      radicadoMen: validacion ? validacion.radicadoMen : false
     };
   }));
 }

@@ -102,6 +102,22 @@
         <p>Aprobados</p>
         <p id="cifraAprobados">&mdash;</p>
       </button>
+      <button type="button" class="indicador indicador-men-pendiente" data-filtro="MEN_PENDIENTE" aria-pressed="false" hidden>
+        <p>Pendientes MEN</p>
+        <p id="cifraMenPendientes">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-men-subsanacion" data-filtro="MEN_SUBSANACION" aria-pressed="false" hidden>
+        <p>En subsanación</p>
+        <p id="cifraMenSubsanacion">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-men-listo" data-filtro="MEN_LISTO" aria-pressed="false" hidden>
+        <p>Listos para radicar</p>
+        <p id="cifraMenListos">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-men-radicado" data-filtro="MEN_RADICADO" aria-pressed="false" hidden>
+        <p>Radicados MEN</p>
+        <p id="cifraMenRadicados">&mdash;</p>
+      </button>
     </div>
 
     <div class="tarjeta tarjeta-neutra">
@@ -118,6 +134,16 @@
       </div>
 
       <p class="conteo-resultados" id="conteoResultados"></p>
+
+      <section class="panel-informe" id="panelInforme" hidden aria-labelledby="tituloInforme">
+        <div>
+          <h3 id="tituloInforme">Informe de gestión</h3>
+          <p>Descargue el estado actual y las actividades realizadas por cada usuario.</p>
+        </div>
+        <label>Desde <input type="date" id="informeDesde"></label>
+        <label>Hasta <input type="date" id="informeHasta"></label>
+        <button type="button" class="btn-secundario" id="btnDescargarInforme">Descargar CSV</button>
+      </section>
 
       <div class="filtro-men" id="filtroRadicadoMen" hidden>
         <span class="filtro-men-etiqueta">Mostrar aprobados:</span>
@@ -264,7 +290,8 @@
               </button>
             </div>
             <div class="navegacion-derecha">
-              <button type="submit" class="btn-primario" id="btnGuardar">Guardar revisión</button>
+              <button type="submit" class="btn-secundario" id="btnGuardar">Guardar borrador</button>
+              <button type="button" class="btn-primario" id="btnGuardarEnviar">Guardar y enviar a revisión</button>
               <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar a revisión</button>
             </div>
           </div>
@@ -275,6 +302,23 @@
   </section>
 
 </main>
+
+<dialog class="dialogo" id="dialogoSubsanacion" aria-labelledby="tituloSubsanacion">
+  <form method="dialog" id="formSubsanacion">
+    <h2 id="tituloSubsanacion">Poner en subsanación MEN</h2>
+    <p id="docenteSubsanacion" class="descripcion-vista"></p>
+    <label for="motivoSubsanacion">Motivo de la subsanación</label>
+    <textarea id="motivoSubsanacion" maxlength="1000" required
+              placeholder="Explique qué debe subsanarse antes de la radicación."></textarea>
+    <label for="fechaDisponibleSubsanacion">Disponible para radicar desde</label>
+    <input type="date" id="fechaDisponibleSubsanacion" required>
+    <div class="aviso aviso-error" id="errorSubsanacion" hidden role="alert"></div>
+    <div class="dialogo-acciones">
+      <button type="button" class="btn-secundario" id="btnCancelarSubsanacion">Cancelar</button>
+      <button type="submit" class="btn-primario">Confirmar subsanación</button>
+    </div>
+  </form>
+</dialog>
 
 <!-- Capa de carga a pantalla completa, solo para el arranque y el guardado -->
 <div class="capa-carga" id="capaCarga" aria-hidden="true">

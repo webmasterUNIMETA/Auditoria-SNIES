@@ -37,6 +37,11 @@ var REV_APROBADO = 'APROBADO';
 var REV_CONFORME = 'CONFORME';
 var REV_NO_CONFORME = 'NO_CONFORME';
 
+var MEN_PENDIENTE = 'PENDIENTE';
+var MEN_SUBSANACION = 'SUBSANACION';
+var MEN_LISTO = 'LISTO_RADICAR';
+var MEN_RADICADO = 'RADICADO';
+
 var NOMBRES_ESTADO = {
   PENDIENTE: 'Pendiente',
   VALIDADO: 'Validado',
@@ -51,6 +56,13 @@ var NOMBRES_REVISION = {
   APROBADO: 'Aprobado'
 };
 
+var NOMBRES_MEN = {
+  PENDIENTE: 'Pendiente MEN',
+  SUBSANACION: 'En subsanación',
+  LISTO_RADICAR: 'Listo para radicar',
+  RADICADO: 'Radicado MEN'
+};
+
 var NOMBRES_ROL = {
   TALENTO_HUMANO: 'Talento Humano',
   REVISOR: 'Revisor',
@@ -63,7 +75,11 @@ var NOMBRES_GRUPO = {
   POR_ENVIAR: 'para enviar a revisión',
   EN_REVISION: 'en revisión',
   DEVUELTO: 'devueltos',
-  APROBADO: 'aprobados'
+  APROBADO: 'aprobados',
+  MEN_PENDIENTE: 'pendientes de radicación MEN',
+  MEN_SUBSANACION: 'en subsanación MEN',
+  MEN_LISTO: 'listos para radicar',
+  MEN_RADICADO: 'radicados ante el MEN'
 };
 
 var NOMBRES_GRUPO_SINGULAR = {
@@ -71,7 +87,11 @@ var NOMBRES_GRUPO_SINGULAR = {
   POR_ENVIAR: 'para enviar a revisión',
   EN_REVISION: 'en revisión',
   DEVUELTO: 'devuelto',
-  APROBADO: 'aprobado'
+  APROBADO: 'aprobado',
+  MEN_PENDIENTE: 'pendiente de radicación MEN',
+  MEN_SUBSANACION: 'en subsanación MEN',
+  MEN_LISTO: 'listo para radicar',
+  MEN_RADICADO: 'radicado ante el MEN'
 };
 
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
@@ -96,9 +116,15 @@ var APP = {
     porEnviar: 0,
     enRevision: 0,
     devueltos: 0,
-    aprobados: 0
+    aprobados: 0,
+    menPendientes: 0,
+    menSubsanacion: 0,
+    menListos: 0,
+    menRadicados: 0
   }
 };
+
+var DOCUMENTO_SUBSANACION = '';
 
 /**
  * Ficha abierta en este momento.
@@ -146,6 +172,22 @@ function fechaParaControl(valor) {
   return partes ? partes[3] + '-' + partes[2] + '-' + partes[1] : '';
 }
 
+function fechaIsoLocal(fecha) {
+  var dos = function (n) { return n < 10 ? '0' + n : String(n); };
+  return fecha.getFullYear() + '-' + dos(fecha.getMonth() + 1) + '-' + dos(fecha.getDate());
+}
+
+function mananaIso() {
+  var fecha = new Date();
+  fecha.setDate(fecha.getDate() + 1);
+  return fechaIsoLocal(fecha);
+}
+
+function estadoMenDe(docente) {
+  if (docente && docente.radicadoMen) return MEN_RADICADO;
+  return docente && docente.estadoMen ? docente.estadoMen : MEN_PENDIENTE;
+}
+
 function anunciar(texto) { $('anuncio').textContent = texto; }
 
 function mostrarAviso(nodo, tipo, texto) {
@@ -153,9 +195,9 @@ function mostrarAviso(nodo, tipo, texto) {
   nodo.className = 'aviso aviso-' + tipo;
   nodo.textContent = texto;
   nodo.hidden = false;
-  nodo._temporizadorAviso = tipo === 'exito' ? setTimeout(function () {
+  nodo._temporizadorAviso = (tipo === 'exito' || tipo === 'aviso') ? setTimeout(function () {
     ocultarAviso(nodo);
-  }, 6000) : null;
+  }, tipo === 'aviso' ? 9000 : 6000) : null;
 }
 
 function ocultarAviso(nodo) {
@@ -455,6 +497,7 @@ function cargarDocentes() {
         'Esta cuenta no puede abrir fichas, modificar, enviar, aprobar ni devolver registros.';
     }
 
+    configurarTableroRol();
     aplicarRequisitos();
     pintarIndicadores();
     marcarFiltro();
@@ -478,6 +521,28 @@ function cargarDocentes() {
     mostrarAviso($('avisoGeneral'), 'error',
       'No fue posible cargar la lista de docentes: ' + mensaje);
   });
+}
+
+function configurarTableroRol() {
+  var mostrarMen = esRevisor() || esConsulta();
+  ['MEN_PENDIENTE', 'MEN_SUBSANACION', 'MEN_LISTO', 'MEN_RADICADO'].forEach(function (filtro) {
+    var boton = $('tiraIndicadores').querySelector('[data-filtro="' + filtro + '"]');
+    if (boton) boton.hidden = !mostrarMen;
+  });
+
+  // El revisor trabaja con la cola de revisión y la etapa MEN. Los estados
+  // de captura siguen disponibles en "Total", pero no ocupan su tablero.
+  ['PENDIENTE_CARGA', 'POR_ENVIAR'].forEach(function (filtro) {
+    var boton = $('tiraIndicadores').querySelector('[data-filtro="' + filtro + '"]');
+    if (boton) boton.hidden = esRevisor();
+  });
+  $('panelInforme').hidden = !esRevisor();
+
+  if (mostrarMen && !$('informeHasta').value) {
+    var hoy = new Date();
+    $('informeHasta').value = fechaIsoLocal(hoy);
+    $('informeDesde').value = fechaIsoLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+  }
 }
 
 /** Marca el acta y el diploma como obligatorios u opcionales. */
@@ -543,6 +608,14 @@ function conectarEventos() {
   $('listaDocentes').addEventListener('click', function (evento) {
     var boton = evento.target.closest('button[data-documento]');
     if (!boton) return;
+    if (boton.getAttribute('data-accion') === 'enviar-revision') {
+      enviarRevisionDesdeLista(boton);
+      return;
+    }
+    if (boton.getAttribute('data-accion') === 'subsanar-men') {
+      abrirDialogoSubsanacion(boton.getAttribute('data-documento'));
+      return;
+    }
     if (boton.getAttribute('data-accion') === 'radicar-men') {
       confirmarRadicadoMenDesdeLista(boton);
       return;
@@ -554,6 +627,10 @@ function conectarEventos() {
   $('btnEditar').addEventListener('click', entrarEnEdicion);
   $('btnCancelarEdicion').addEventListener('click', cancelarEdicion);
   $('btnEnviarRevision').addEventListener('click', enviarRevision);
+  $('btnGuardarEnviar').addEventListener('click', function () { guardarRevision(true); });
+  $('btnDescargarInforme').addEventListener('click', descargarInformeGestion);
+  $('btnCancelarSubsanacion').addEventListener('click', cerrarDialogoSubsanacion);
+  $('formSubsanacion').addEventListener('submit', confirmarSubsanacion);
   $('btnAprobar').addEventListener('click', function () { decidirRevision(REV_APROBADO); });
   $('btnDevolver').addEventListener('click', function () { decidirRevision(REV_DEVUELTO); });
   $('tabActa').addEventListener('click', function () { mostrarDocumento('acta'); });
@@ -561,7 +638,7 @@ function conectarEventos() {
 
   $('formRevision').addEventListener('submit', function (evento) {
     evento.preventDefault();
-    guardarRevision();
+    guardarRevision(false);
   });
 
   $('listaCriterios').addEventListener('change', function (evento) {
@@ -615,6 +692,10 @@ function pintarIndicadores() {
   $('cifraEnRevision').textContent = r.enRevision;
   $('cifraDevueltos').textContent  = r.devueltos;
   $('cifraAprobados').textContent  = r.aprobados;
+  $('cifraMenPendientes').textContent = r.menPendientes || 0;
+  $('cifraMenSubsanacion').textContent = r.menSubsanacion || 0;
+  $('cifraMenListos').textContent = r.menListos || 0;
+  $('cifraMenRadicados').textContent = r.menRadicados || 0;
 }
 
 function pintarLista() {
@@ -631,12 +712,24 @@ function pintarLista() {
       return d.tieneValidacion !== false &&
         (d.estadoRevision || REV_POR_ENVIAR) === REV_POR_ENVIAR;
     }
+    if (FILTRO === 'MEN_PENDIENTE') {
+      return d.estadoRevision === REV_APROBADO && estadoMenDe(d) === MEN_PENDIENTE;
+    }
+    if (FILTRO === 'MEN_SUBSANACION') {
+      return d.estadoRevision === REV_APROBADO && estadoMenDe(d) === MEN_SUBSANACION;
+    }
+    if (FILTRO === 'MEN_LISTO') {
+      return d.estadoRevision === REV_APROBADO && estadoMenDe(d) === MEN_LISTO;
+    }
+    if (FILTRO === 'MEN_RADICADO') {
+      return d.estadoRevision === REV_APROBADO && estadoMenDe(d) === MEN_RADICADO;
+    }
     return (d.estadoRevision || REV_POR_ENVIAR) === FILTRO;
   });
 
   var aprobadosPendientes = delEstado.filter(function (d) { return !d.radicadoMen; }).length;
   var aprobadosRadicados = delEstado.filter(function (d) { return !!d.radicadoMen; }).length;
-  $('filtroRadicadoMen').hidden = FILTRO !== REV_APROBADO;
+  $('filtroRadicadoMen').hidden = FILTRO !== REV_APROBADO || esRevisor();
   if (FILTRO === REV_APROBADO) {
     $('conteoMenPendientes').textContent = aprobadosPendientes;
     $('conteoMenRadicados').textContent = aprobadosRadicados;
@@ -650,6 +743,34 @@ function pintarLista() {
     delEstado.sort(function (a, b) {
       var porRadicado = Number(!!a.radicadoMen) - Number(!!b.radicadoMen);
       return porRadicado || String(a.nombreCompleto || '').localeCompare(
+        String(b.nombreCompleto || ''), 'es');
+    });
+  }
+
+  if (FILTRO === 'TODOS') {
+    delEstado.sort(function (a, b) {
+      var prioridad = function (d) {
+        var revision = d.tieneValidacion === false ? REV_PENDIENTE_CARGA : d.estadoRevision;
+        if (esRevisor()) {
+          if (revision === REV_EN_REVISION) return 0;
+          if (revision === REV_APROBADO && estadoMenDe(d) === MEN_LISTO) return 1;
+          if (revision === REV_APROBADO && estadoMenDe(d) === MEN_PENDIENTE) return 2;
+          if (revision === REV_APROBADO && estadoMenDe(d) === MEN_SUBSANACION) return 3;
+          if (revision === REV_DEVUELTO) return 4;
+          if (revision === REV_APROBADO) return 6;
+          return 5;
+        }
+        if (esTalentoHumano()) {
+          if (revision === REV_DEVUELTO) return 0;
+          if (revision === REV_POR_ENVIAR) return 1;
+          if (revision === REV_PENDIENTE_CARGA) return 2;
+          if (revision === REV_EN_REVISION) return 3;
+          return 4;
+        }
+        return 0;
+      };
+      var diferencia = prioridad(a) - prioridad(b);
+      return diferencia || String(a.nombreCompleto || '').localeCompare(
         String(b.nombreCompleto || ''), 'es');
     });
   }
@@ -747,16 +868,37 @@ function tarjetaDocente(docente) {
   datos.appendChild(crear('p', 'docente-nombre', docente.nombreCompleto || '(sin nombre)'));
   datos.appendChild(crear('p', 'docente-documento',
     (docente.tipoDocumento || 'CC') + ' ' + docente.documento));
+  var referenciaFecha = estado === REV_EN_REVISION ? docente.fechaEnvio
+    : estado === REV_DEVUELTO || estado === REV_APROBADO ? docente.fechaRevision
+      : docente.fechaModificacion;
+  if (referenciaFecha) {
+    datos.appendChild(crear('p', 'docente-meta-operativa', 'En este estado desde: ' + referenciaFecha));
+  }
   fila.appendChild(datos);
 
   var acciones = crear('div', 'docente-acciones');
-  if (docente.estado === ESTADO_CORRECCION) {
+  if (docente.estado === ESTADO_CORRECCION && estado !== REV_APROBADO) {
     var correccion = crear('span', 'insignia insignia-REQUIERE_CORRECCION',
       'Requiere corrección');
     correccion.title = 'Talento Humano registró uno o más datos diferentes a lo reportado en SNIES.';
     acciones.appendChild(correccion);
+  } else if (docente.estado === ESTADO_CORRECCION && estado === REV_APROBADO) {
+    acciones.appendChild(crear('span', 'insignia insignia-ajuste', 'Con ajuste del revisor'));
   }
   acciones.appendChild(insignia(estadoVisual));
+
+  if (estado === REV_APROBADO) {
+    var men = estadoMenDe(docente);
+    var claseMen = men === MEN_RADICADO ? 'insignia-radicado-men'
+      : men === MEN_SUBSANACION ? 'insignia-men-subsanacion'
+        : men === MEN_LISTO ? 'insignia-men-listo' : 'insignia-men-pendiente';
+    var textoMen = NOMBRES_MEN[men] || NOMBRES_MEN.PENDIENTE;
+    if (men === MEN_SUBSANACION && docente.fechaDisponibleRadicacion) {
+      textoMen += ' · disponible desde ' + docente.fechaDisponibleRadicacion;
+    }
+    if (men === MEN_RADICADO) textoMen += ' ✓';
+    acciones.appendChild(crear('span', 'insignia ' + claseMen, textoMen));
+  }
 
   if (esConsulta()) {
     fila.appendChild(acciones);
@@ -765,6 +907,7 @@ function tarjetaDocente(docente) {
 
   var tieneValidacion = (docente.estado || ESTADO_PENDIENTE) !== ESTADO_PENDIENTE;
   var textoBoton = esTalentoHumano() && !tieneValidacion ? 'Validar' : 'Ver detalle';
+  if (esTalentoHumano() && estado === REV_DEVUELTO) textoBoton = 'Corregir';
   if (esRevisor() && estado === REV_EN_REVISION) textoBoton = 'Revisar';
   var boton = crear('button',
     'btn-compacto ' + ((esTalentoHumano() && !tieneValidacion) ||
@@ -776,16 +919,31 @@ function tarjetaDocente(docente) {
     textoBoton + ' de ' + docente.nombreCompleto);
   acciones.appendChild(boton);
 
+  if (esTalentoHumano() && tieneValidacion && estado === REV_POR_ENVIAR) {
+    var enviar = crear('button', 'btn-compacto btn-primario', 'Enviar a revisión');
+    enviar.type = 'button';
+    enviar.setAttribute('data-documento', docente.documento);
+    enviar.setAttribute('data-version', String(docente.version || 0));
+    enviar.setAttribute('data-accion', 'enviar-revision');
+    acciones.appendChild(enviar);
+  }
+
   if (esRevisor() && estado === REV_APROBADO) {
-    if (docente.radicadoMen) {
-      acciones.appendChild(crear('span', 'insignia insignia-radicado-men', 'RADICADO MEN ✓'));
-    } else {
-      var radicar = crear('button', 'btn-compacto btn-radicado-men', 'RADICADO MEN');
+    var estadoMen = estadoMenDe(docente);
+    if (estadoMen === MEN_PENDIENTE) {
+      var subsanar = crear('button', 'btn-compacto btn-secundario', 'Poner en subsanación');
+      subsanar.type = 'button';
+      subsanar.setAttribute('data-documento', docente.documento);
+      subsanar.setAttribute('data-accion', 'subsanar-men');
+      acciones.appendChild(subsanar);
+    }
+    if (estadoMen === MEN_PENDIENTE || estadoMen === MEN_LISTO) {
+      var radicar = crear('button', 'btn-compacto btn-radicado-men', 'Marcar como radicado');
       radicar.type = 'button';
       radicar.setAttribute('data-documento', docente.documento);
       radicar.setAttribute('data-version', String(docente.version || 0));
       radicar.setAttribute('data-accion', 'radicar-men');
-      radicar.setAttribute('aria-label', 'Confirmar radicado MEN de ' + docente.nombreCompleto);
+      radicar.setAttribute('aria-label', 'Marcar como radicado MEN a ' + docente.nombreCompleto);
       acciones.appendChild(radicar);
     }
   }
@@ -870,8 +1028,18 @@ function pintarFicha() {
   marca.textContent = NOMBRES_REVISION[estadoRevision] || NOMBRES_REVISION.POR_ENVIAR;
 
   var marcaDato = $('fichaInsigniaDato');
-  marcaDato.className = 'insignia insignia-' + estadoDato;
-  marcaDato.textContent = NOMBRES_ESTADO[estadoDato] || NOMBRES_ESTADO.PENDIENTE;
+  if (estadoRevision === REV_APROBADO) {
+    var estadoMenFicha = FICHA.guardado.estadoMen ||
+      (FICHA.guardado.radicadoMen ? MEN_RADICADO : MEN_PENDIENTE);
+    marcaDato.className = 'insignia ' + (estadoMenFicha === MEN_RADICADO
+      ? 'insignia-radicado-men'
+      : estadoMenFicha === MEN_SUBSANACION ? 'insignia-men-subsanacion'
+        : estadoMenFicha === MEN_LISTO ? 'insignia-men-listo' : 'insignia-men-pendiente');
+    marcaDato.textContent = NOMBRES_MEN[estadoMenFicha] || NOMBRES_MEN.PENDIENTE;
+  } else {
+    marcaDato.className = 'insignia insignia-' + estadoDato;
+    marcaDato.textContent = NOMBRES_ESTADO[estadoDato] || NOMBRES_ESTADO.PENDIENTE;
+  }
 
   $('btnEditar').hidden = !(FICHA.modo === 'consulta' && FICHA.guardado && puedeEditarValidacion());
 
@@ -930,9 +1098,12 @@ function pintarFicha() {
   $('navegacionFicha').hidden = !formularioEditable && !puedeEnviar;
   $('btnCancelarEdicion').hidden = FICHA.modo !== 'edicion';
   $('btnGuardar').hidden = !formularioEditable;
+  $('btnGuardarEnviar').hidden = !formularioEditable;
   $('btnEnviarRevision').hidden = !puedeEnviar;
-  $('btnGuardar').textContent = FICHA.modo === 'edicion' ? 'Guardar cambios' : 'Guardar revisión';
+  $('btnGuardar').textContent = 'Guardar borrador';
+  $('btnGuardarEnviar').textContent = 'Guardar y enviar a revisión';
   $('btnGuardar').disabled = false;
+  $('btnGuardarEnviar').disabled = false;
 
   ocultarAviso($('avisoGuardado'));
 }
@@ -985,6 +1156,15 @@ function pintarMarcas() {
       completo: !!FICHA.guardado.radicadoMen
     }
   ];
+
+  if (FICHA.guardado.fechaSubsanacion) {
+    pasos.splice(pasos.length - 1, 0, {
+      titulo: FICHA.guardado.estadoMen === MEN_LISTO ? 'Subsanación cumplida' : 'Subsanación MEN',
+      valor: FICHA.guardado.fechaSubsanacion,
+      detalle: 'Disponible: ' + (FICHA.guardado.fechaDisponibleRadicacion || 'sin fecha'),
+      completo: FICHA.guardado.estadoMen === MEN_LISTO || FICHA.guardado.radicadoMen
+    });
+  }
 
   var linea = crear('div', 'ficha-trazabilidad');
   pasos.forEach(function (paso, indice) {
@@ -1633,7 +1813,7 @@ function etiquetaDe(clave) {
   return clave;
 }
 
-function guardarRevision() {
+function guardarRevision(enviarDespues) {
   if (!FICHA || FICHA.guardando || !esTalentoHumano() || !puedeEditarValidacion()) return;
 
   var datos = recolectar();
@@ -1655,10 +1835,13 @@ function guardarRevision() {
   ocultarAviso(aviso);
 
   var boton = $('btnGuardar');
+  var botonGuardarEnviar = $('btnGuardarEnviar');
   var textoOriginal = boton.textContent;
+  var textoOriginalEnviar = botonGuardarEnviar.textContent;
   FICHA.guardando = true;
   boton.disabled = true;
-  boton.textContent = 'Guardando...';
+  botonGuardarEnviar.disabled = true;
+  (enviarDespues ? botonGuardarEnviar : boton).textContent = 'Guardando...';
   $('btnCancelarEdicion').disabled = true;
 
   var subeArchivos = !!(datos.acta || datos.diploma);
@@ -1667,14 +1850,14 @@ function guardarRevision() {
   var terminar = function () {
     FICHA.guardando = false;
     boton.disabled = false;
+    botonGuardarEnviar.disabled = false;
     boton.textContent = textoOriginal;
+    botonGuardarEnviar.textContent = textoOriginalEnviar;
     $('btnCancelarEdicion').disabled = false;
     ocultarCapa();
   };
 
   servidor('guardarValidacion', datos, function (respuesta) {
-    terminar();
-
     if (respuesta && respuesta.resumen) {
       APP.resumen = respuesta.resumen;
       pintarIndicadores();
@@ -1684,13 +1867,37 @@ function guardarRevision() {
       respuesta.validacion.estadoRevision, respuesta.validacion.version);
     var nombreDocente = FICHA.docente.nombreCompleto || FICHA.documento;
 
-    // El servidor ya confirmo el guardado: se actualiza el listado y se
-    // regresa de inmediato, sin obligar a pulsar "Volver al listado".
+    if (enviarDespues) {
+      FICHA.guardado = respuesta.validacion;
+      mostrarCapa('Enviando al revisor...');
+      servidor('enviarARevision', {
+        documento: respuesta.documento,
+        version: respuesta.validacion.version
+      }, function (envio) {
+        terminar();
+        if (envio && envio.resumen) APP.resumen = envio.resumen;
+        actualizarDocenteEnLista(envio.documento, respuesta.estado,
+          envio.estadoRevision, envio.version);
+        volverAlListado();
+        pintarIndicadores();
+        mostrarAviso($('avisoGeneral'), 'exito',
+          '✓ ' + nombreDocente + ' fue guardado y enviado al revisor.');
+      }, function (mensajeEnvio) {
+        terminar();
+        FICHA.modo = 'consulta';
+        pintarFicha();
+        mostrarAviso($('avisoGuardado'), 'error',
+          'El borrador quedó guardado, pero no fue posible enviarlo: ' + mensajeEnvio);
+      });
+      return;
+    }
+
+    terminar();
+
     volverAlListado();
-    mostrarAviso($('avisoGeneral'), 'exito',
-      '✓ Revisión de ' + nombreDocente + ' guardada correctamente.');
-    anunciar('Revisión guardada. Estado: ' +
-      (NOMBRES_ESTADO[respuesta.estado] || respuesta.estado) + '.');
+    mostrarAviso($('avisoGeneral'), 'aviso',
+      'Borrador de ' + nombreDocente + ' guardado. Aún debe enviarlo a revisión.');
+    anunciar('Borrador guardado. Falta enviarlo a revisión.');
 
   }, function (mensaje) {
     terminar();
@@ -1725,6 +1932,33 @@ function enviarRevision() {
     boton.disabled = false;
     ocultarCapa();
     mostrarAviso($('avisoGuardado'), 'error', 'No fue posible enviar la revisión: ' + mensaje);
+  });
+}
+
+function enviarRevisionDesdeLista(boton) {
+  if (!esTalentoHumano() || !boton || boton.disabled) return;
+  var documento = boton.getAttribute('data-documento');
+  var docente = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
+  boton.disabled = true;
+  boton.textContent = 'Enviando...';
+  mostrarCapa('Enviando al revisor...');
+  servidor('enviarARevision', {
+    documento: documento,
+    version: Number(boton.getAttribute('data-version'))
+  }, function (respuesta) {
+    ocultarCapa();
+    if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
+    actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
+    pintarIndicadores();
+    pintarLista();
+    mostrarAviso($('avisoGeneral'), 'exito', '✓ ' +
+      (docente && docente.nombreCompleto ? docente.nombreCompleto : documento) +
+      ' fue enviado al revisor.');
+  }, function (mensaje) {
+    ocultarCapa();
+    boton.disabled = false;
+    boton.textContent = 'Enviar a revisión';
+    mostrarAviso($('avisoGeneral'), 'error', 'No fue posible enviar la revisión: ' + mensaje);
   });
 }
 
@@ -1789,11 +2023,13 @@ function decidirRevision(decision) {
     if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
     actualizarDocenteEnLista(respuesta.documento, respuesta.estado,
       respuesta.estadoRevision, respuesta.version);
+    var actualizado = APP.docentes.filter(function (d) { return d.documento === respuesta.documento; })[0];
+    if (actualizado && respuesta.estadoMen) actualizado.estadoMen = respuesta.estadoMen;
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
     volverAlListado();
     pintarIndicadores();
     mostrarAviso($('avisoGeneral'), 'exito', decision === REV_APROBADO
-      ? '✓ Revisión de ' + nombre + ' aprobada.'
+      ? '✓ Revisión de ' + nombre + ' aprobada. Ahora está pendiente de radicación ante el MEN.'
       : '↩ Revisión de ' + nombre + ' devuelta a Talento Humano.');
   }, function (mensaje) {
     FICHA.guardando = false;
@@ -1804,19 +2040,150 @@ function decidirRevision(decision) {
   });
 }
 
+function abrirDialogoSubsanacion(documento) {
+  if (!esRevisor()) return;
+  var docente = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
+  if (!docente) return;
+  DOCUMENTO_SUBSANACION = documento;
+  $('docenteSubsanacion').textContent = docente.nombreCompleto + ' · ' + documento;
+  $('motivoSubsanacion').value = '';
+  $('fechaDisponibleSubsanacion').value = mananaIso();
+  $('fechaDisponibleSubsanacion').min = mananaIso();
+  ocultarAviso($('errorSubsanacion'));
+  $('dialogoSubsanacion').showModal();
+  $('motivoSubsanacion').focus();
+}
+
+function cerrarDialogoSubsanacion() {
+  DOCUMENTO_SUBSANACION = '';
+  if ($('dialogoSubsanacion').open) $('dialogoSubsanacion').close();
+}
+
+function confirmarSubsanacion(evento) {
+  evento.preventDefault();
+  var documento = DOCUMENTO_SUBSANACION;
+  var motivo = $('motivoSubsanacion').value.trim();
+  var fecha = $('fechaDisponibleSubsanacion').value;
+  var docente = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
+  if (!documento || !docente) return;
+  if (!motivo || !fecha) {
+    mostrarAviso($('errorSubsanacion'), 'error', 'Indique el motivo y la fecha disponible.');
+    return;
+  }
+  mostrarCapa('Registrando subsanación...');
+  servidor('ponerEnSubsanacion', {
+    documento: documento,
+    version: docente.version,
+    motivo: motivo,
+    fechaDisponible: fecha
+  }, function (respuesta) {
+    ocultarCapa();
+    cerrarDialogoSubsanacion();
+    docente.version = respuesta.version;
+    docente.estadoMen = respuesta.estadoMen;
+    docente.motivoSubsanacion = respuesta.motivoSubsanacion;
+    docente.fechaSubsanacion = respuesta.fechaSubsanacion;
+    docente.fechaDisponibleRadicacion = respuesta.fechaDisponibleRadicacion;
+    docente.subsanacionPor = respuesta.subsanacionPor;
+    if (respuesta.resumen) APP.resumen = respuesta.resumen;
+    pintarIndicadores();
+    pintarLista();
+    mostrarAviso($('avisoGeneral'), 'exito',
+      '✓ ' + docente.nombreCompleto + ' quedó en subsanación hasta el ' +
+      respuesta.fechaDisponibleRadicacion + '.');
+  }, function (mensaje) {
+    ocultarCapa();
+    mostrarAviso($('errorSubsanacion'), 'error', mensaje);
+  });
+}
+
+function escaparCsv(valor) {
+  var texto = String(valor == null ? '' : valor);
+  return '"' + texto.replace(/"/g, '""') + '"';
+}
+
+function descargarCsv(nombre, filas) {
+  var contenido = '\ufeff' + filas.map(function (fila) {
+    return fila.map(escaparCsv).join(';');
+  }).join('\r\n');
+  var enlace = document.createElement('a');
+  enlace.href = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8' }));
+  enlace.download = nombre;
+  document.body.appendChild(enlace);
+  enlace.click();
+  setTimeout(function () {
+    URL.revokeObjectURL(enlace.href);
+    enlace.remove();
+  }, 0);
+}
+
+function descargarInformeGestion() {
+  if (!esRevisor()) return;
+  var boton = $('btnDescargarInforme');
+  boton.disabled = true;
+  boton.textContent = 'Generando...';
+  servidor('obtenerInformeGestion', {
+    desde: $('informeDesde').value,
+    hasta: $('informeHasta').value
+  }, function (informe) {
+    boton.disabled = false;
+    boton.textContent = 'Descargar CSV';
+    var filas = [
+      ['INFORME DE GESTIÓN', APP.auditoria],
+      ['Generado', informe.generado],
+      ['Periodo', (informe.desde || 'inicio') + ' a ' + (informe.hasta || 'hoy')],
+      [],
+      ['RESUMEN POR USUARIO'],
+      ['Correo', 'Rol', 'Total acciones', 'Detalle de eventos']
+    ];
+    (informe.usuarios || []).forEach(function (u) {
+      var detalle = Object.keys(u.eventos || {}).sort().map(function (evento) {
+        return evento + ': ' + u.eventos[evento];
+      }).join(' | ');
+      filas.push([u.correo, u.rol, u.total, detalle]);
+    });
+    filas.push([], ['ESTADO ACTUAL'], [
+      'Documento', 'Docente', 'Estado revisión', 'Estado MEN',
+      'Guardado por', 'Última modificación', 'Enviado por', 'Fecha envío',
+      'Revisado por', 'Fecha revisión', 'Subsanación por', 'Fecha subsanación',
+      'Disponible para radicar', 'Motivo subsanación', 'Radicado por', 'Fecha radicación MEN'
+    ]);
+    (informe.registros || []).forEach(function (r) {
+      filas.push([r.documento, r.docente, r.estadoRevision, r.estadoMen,
+        r.guardadoPor, r.fechaModificacion, r.enviadoPor, r.fechaEnvio,
+        r.revisadoPor, r.fechaRevision, r.subsanacionPor, r.fechaSubsanacion,
+        r.fechaDisponibleRadicacion, r.motivoSubsanacion, r.radicadoPor, r.fechaRadicacionMen]);
+    });
+    filas.push([], ['HISTORIAL DEL PERIODO'], [
+      'Fecha', 'Documento', 'Docente', 'Evento', 'Estado anterior',
+      'Estado nuevo', 'Correo', 'Rol', 'Observación'
+    ]);
+    (informe.historial || []).forEach(function (h) {
+      filas.push([h.fecha, h.documento, h.docente, h.evento, h.estadoAnterior,
+        h.estadoNuevo, h.correo, h.rol, h.observacion]);
+    });
+    descargarCsv('informe-auditoria-snies-' + ($('informeHasta').value || fechaIsoLocal(new Date())) + '.csv', filas);
+    mostrarAviso($('avisoGeneral'), 'exito', '✓ Informe de gestión descargado.');
+  }, function (mensaje) {
+    boton.disabled = false;
+    boton.textContent = 'Descargar CSV';
+    mostrarAviso($('avisoGeneral'), 'error', 'No fue posible generar el informe: ' + mensaje);
+  });
+}
+
 /** Confirmación en dos pasos para evitar registrar el radicado por accidente. */
 function confirmarRadicadoMenDesdeLista(boton) {
   if (!esRevisor() || !boton || boton.disabled) return;
 
   if (boton.getAttribute('data-confirmando') !== 'si') {
     boton.setAttribute('data-confirmando', 'si');
-    boton.textContent = 'CONFIRMAR RADICADO MEN';
+    boton.textContent = 'CONFIRMAR RADICACIÓN';
     boton.classList.add('confirmando');
     anunciar('Pulse nuevamente para confirmar el radicado MEN.');
     setTimeout(function () {
       if (boton.isConnected && !boton.disabled) {
         boton.removeAttribute('data-confirmando');
-        boton.textContent = 'RADICADO MEN';
+        boton.textContent = 'Marcar como radicado';
         boton.classList.remove('confirmando');
       }
     }, 8000);
@@ -1836,10 +2203,13 @@ function confirmarRadicadoMenDesdeLista(boton) {
     ocultarCapa();
     if (docente) {
       docente.version = respuesta.version;
+      docente.estadoMen = respuesta.estadoMen || MEN_RADICADO;
       docente.radicadoMen = true;
       docente.radicadoPor = respuesta.radicadoPor;
       docente.fechaRadicacionMen = respuesta.fechaRadicacionMen;
     }
+    if (respuesta.resumen) APP.resumen = respuesta.resumen;
+    pintarIndicadores();
     pintarLista();
     mostrarAviso($('avisoGeneral'), 'exito',
       '✓ Radicado MEN de ' + (docente && docente.nombreCompleto ? docente.nombreCompleto : documento) + ' confirmado.');
@@ -1848,7 +2218,7 @@ function confirmarRadicadoMenDesdeLista(boton) {
     ocultarCapa();
     boton.disabled = false;
     boton.removeAttribute('data-confirmando');
-    boton.textContent = 'RADICADO MEN';
+    boton.textContent = 'Marcar como radicado';
     boton.classList.remove('confirmando');
     mostrarAviso($('avisoGeneral'), 'error', 'No fue posible registrar el radicado MEN: ' + mensaje);
   });

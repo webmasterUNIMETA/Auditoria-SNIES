@@ -44,6 +44,8 @@ var ACCIONES_API = {
   guardarValidacion:     function (argumento, identidad) { return guardarValidacion(argumento, identidad); },
   enviarARevision:       function (argumento, identidad) { return enviarARevision(argumento, identidad); },
   decidirRevision:       function (argumento, identidad) { return decidirRevision(argumento, identidad); },
+  ponerEnSubsanacion:    function (argumento, identidad) { return ponerEnSubsanacion(argumento, identidad); },
+  obtenerInformeGestion: function (argumento, identidad) { return obtenerInformeGestion(argumento, identidad); },
   confirmarRadicadoMen:  function (argumento, identidad) { return confirmarRadicadoMen(argumento, identidad); }
 };
 

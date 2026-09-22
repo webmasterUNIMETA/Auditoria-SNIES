@@ -395,6 +395,18 @@ main {
 .indicador-revision p:last-child   { color: var(--color-azul); }
 .indicador-validados  p:last-child { color: var(--color-exito); }
 .indicador-correccion p:last-child { color: var(--color-error); }
+.indicador-men-pendiente { border-top-color: var(--color-aviso); }
+.indicador-men-subsanacion { border-top-color: var(--color-primario); }
+.indicador-men-listo { border-top-color: var(--color-azul); }
+.indicador-men-radicado { border-top-color: var(--color-exito); }
+.indicador-men-pendiente p:last-child { color: var(--color-aviso); }
+.indicador-men-subsanacion p:last-child { color: var(--color-error); }
+.indicador-men-listo p:last-child { color: var(--color-azul); }
+.indicador-men-radicado p:last-child { color: var(--color-exito); }
+.indicador-men-pendiente.activo { background: var(--color-aviso-fondo); }
+.indicador-men-subsanacion.activo { background: var(--color-error-fondo); }
+.indicador-men-listo.activo { background: var(--color-azul-suave); }
+.indicador-men-radicado.activo { background: var(--color-exito-fondo); }
 
 /* ============================================================
    BUSCADOR
@@ -409,6 +421,21 @@ main {
   font-size: 12.5px;
   color: var(--color-texto-suave);
 }
+
+.panel-informe {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-borde);
+}
+.panel-informe > div { flex: 1 1 320px; }
+.panel-informe h3 { margin: 0 0 4px; font-size: 15px; }
+.panel-informe p { margin: 0; color: var(--color-texto-suave); font-size: 12.5px; }
+.panel-informe label { margin: 0; min-width: 145px; }
+.panel-informe input { margin-top: 6px; }
 
 /* ============================================================
    LISTADO DE DOCENTES
@@ -564,6 +591,32 @@ main {
   color: var(--color-exito);
   background: var(--color-exito-fondo);
   border-color: var(--color-exito-borde);
+}
+
+.insignia-men-pendiente {
+  color: var(--color-aviso);
+  background: var(--color-aviso-fondo);
+  border-color: var(--color-aviso-borde);
+}
+.insignia-men-subsanacion {
+  color: var(--color-error);
+  background: var(--color-error-fondo);
+  border-color: var(--color-error-borde);
+}
+.insignia-men-listo {
+  color: var(--color-azul);
+  background: var(--color-azul-suave);
+  border-color: #C9D1EA;
+}
+.insignia-ajuste {
+  color: var(--color-texto-medio);
+  background: var(--color-superficie-2);
+  border-color: var(--color-borde-fuerte);
+}
+.docente-meta-operativa {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--color-texto-suave);
 }
 
 /* ============================================================
@@ -1124,6 +1177,27 @@ input[type="search"]::-webkit-search-cancel-button { cursor: pointer; }
 
 textarea { resize: vertical; min-height: 110px; line-height: 1.55; }
 
+.dialogo {
+  width: min(560px, calc(100% - 32px));
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-top: 4px solid var(--color-primario);
+  border-radius: var(--radio);
+  padding: 24px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22);
+}
+.dialogo::backdrop { background: rgba(0, 0, 0, .48); }
+.dialogo h2 { margin: 0 0 8px; font-size: 22px; }
+.dialogo label { margin-top: 16px; }
+.dialogo-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
 input:hover:not(:disabled),
 select:hover:not(:disabled),
 textarea:hover:not(:disabled) { border-color: var(--color-texto); }
@@ -1256,6 +1330,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .aviso-alerta  { background: var(--color-aviso-fondo); border-color: var(--color-aviso); color: var(--color-aviso); }
 .aviso-error   { background: var(--color-error-fondo); border-color: var(--color-error); color: var(--color-error); }
 .aviso-exito   { background: var(--color-exito-fondo); border-color: var(--color-exito); color: var(--color-exito); }
+.aviso-aviso   { background: var(--color-aviso-fondo); border-color: var(--color-aviso); color: #6B4A00; }
 
 /* Cinta de modo edicion sobre la ficha */
 .cinta-modo {
