@@ -786,7 +786,9 @@ function armarValidacion_(registro) {
   var radicadoMen = texto_(leer('RADICADO_MEN')).toUpperCase();
   var esRadicadoMen = radicadoMen === 'SI' || radicadoMen === 'SÍ' ||
     radicadoMen === 'TRUE' || radicadoMen === '1';
-  var fechaDisponibleRadicacion = textoFechaHora_(leer('FECHA_DISPONIBLE_RADICACION'));
+  // Es una fecha objetivo, no una marca de tiempo. Sheets puede convertirla
+  // en Date; texto_ conserva únicamente dd/mm/aaaa y evita mostrar una hora.
+  var fechaDisponibleRadicacion = texto_(leer('FECHA_DISPONIBLE_RADICACION'));
   var estadoMen = estadoMenEfectivo_(
     texto_(leer('ESTADO_MEN')), fechaDisponibleRadicacion, esRadicadoMen);
 
