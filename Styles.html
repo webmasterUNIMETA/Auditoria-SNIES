@@ -438,6 +438,146 @@ main {
 .panel-informe input { margin-top: 6px; }
 
 /* ============================================================
+   PANEL DE ETAPA
+
+   Dónde está el expediente, qué significa y qué toca hacer. Va arriba
+   del todo en la ficha. El tono da el color del filete izquierdo:
+
+     accion   -> le toca a quien mira (rojo institucional)
+     atencion -> hay algo que corregir (rojo suave)
+     espera   -> no hay nada que hacer todavía (azul)
+     cerrado  -> el trámite terminó (verde)
+   ============================================================ */
+
+.panel-etapa {
+  margin: 0 0 18px;
+  padding: 18px 20px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-left: 3px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+}
+
+.panel-etapa h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--color-texto);
+}
+
+.panel-etapa p {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-texto-medio);
+  max-width: 78ch;
+  text-wrap: pretty;
+}
+
+.panel-etapa p:last-child { margin-bottom: 0; }
+
+.panel-etapa-accion   { border-left-color: var(--color-primario); }
+.panel-etapa-atencion { border-left-color: var(--color-primario); background: var(--color-error-fondo); }
+.panel-etapa-espera   { border-left-color: var(--color-azul);   background: var(--color-azul-suave); }
+.panel-etapa-cerrado  { border-left-color: var(--color-exito);  background: var(--color-exito-fondo); }
+
+.panel-etapa-accion h3   { color: var(--color-error); }
+.panel-etapa-atencion h3 { color: var(--color-error); }
+.panel-etapa-cerrado h3  { color: var(--color-exito); }
+
+/* La cita recoge el texto que escribió una persona: motivo de devolución
+   o de subsanación. Se distingue del texto del sistema. */
+.panel-etapa-cita {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.panel-etapa-cita p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-texto);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.panel-etapa-cita footer {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+.panel-etapa-lista {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--color-texto-medio);
+}
+
+.panel-etapa-lista li { margin-bottom: 3px; }
+.panel-etapa-lista li:first-child { list-style: none; margin-left: -20px; font-weight: 600; }
+
+/* Rótulo que desambigua una insignia cuyo significado cambia */
+.par-insignias {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: 12px;
+  vertical-align: top;
+}
+
+.micro-rotulo {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+/* Nota en una tarjeta que no ofrece acción, en lugar de un botón muerto */
+.nota-accion {
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Botón de cerrar dentro de un aviso persistente */
+.aviso-cerrar { margin-left: 10px; color: inherit; }
+
+/* Los tres pasos del trámite, en el listado de Talento Humano */
+.guia-flujo {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  background: var(--color-azul-suave);
+  border-left: 3px solid var(--color-azul);
+  border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.guia-flujo-titulo {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.guia-flujo ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-texto-medio);
+}
+
+/* ============================================================
    LISTADO DE DOCENTES
    ============================================================ */
 
@@ -493,44 +633,6 @@ main {
   flex-wrap: wrap;
 }
 
-.filtro-men {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-borde);
-  flex-wrap: wrap;
-}
-.filtro-men[hidden] { display: none; }
-.filtro-men-etiqueta { font-size: 13px; font-weight: 700; color: var(--color-texto-medio); }
-.filtro-men-opciones { display: flex; gap: 7px; flex-wrap: wrap; }
-.filtro-men-opciones button {
-  padding: 7px 10px;
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto-medio);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.filtro-men-opciones button:hover { border-color: var(--color-exito); }
-.filtro-men-opciones button.activo {
-  color: var(--color-exito);
-  background: var(--color-exito-fondo);
-  border-color: var(--color-exito-borde);
-}
-.filtro-men-opciones button span {
-  display: inline-block;
-  min-width: 18px;
-  margin-left: 4px;
-  padding: 1px 5px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .75);
-  text-align: center;
-}
 
 /* Insignia de estado */
 .insignia {
@@ -713,11 +815,6 @@ main {
 
 .btn-radicado-men:hover { background: #185a36; }
 
-.btn-radicado-men.confirmando {
-  color: #7c2d12;
-  background: #ffedd5;
-  border-color: #fb923c;
-}
 
 .ficha-paso {
   display: grid;
@@ -1485,5 +1582,214 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .indicador:last-child { border-bottom: 0; }
   .ficha-acciones-cabecera { width: 100%; }
   .ficha-acciones-cabecera button { width: 100%; }
+}
+
+/* ============================================================
+   TABLERO DE GESTIÓN
+   ============================================================ */
+
+.acciones-tablero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.acciones-tablero .btn-volver { margin-bottom: 0; }
+
+/* Rótulo en versalita que estampa a qué momento corresponde un bloque.
+   Es la pieza que impide confundir "estado a hoy" con "movimientos del
+   periodo": cada bloque dice el suyo. */
+.estampa {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+.informe-membrete {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  margin-top: 18px;
+}
+
+.informe-membrete > div {
+  flex: 1 1 200px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--color-borde);
+  min-width: 0;
+}
+
+.informe-membrete > div:last-child { border-right: 0; }
+.informe-membrete .estampa { margin-bottom: 4px; }
+.informe-membrete p:last-child {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* La tira del informe no es interactiva: son cifras, no filtros. */
+.tira-informe .indicador { cursor: default; background: var(--color-superficie); }
+.tira-informe .indicador:hover { background: var(--color-superficie); }
+
+.informe-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.informe-controles { margin-bottom: 14px; }
+.informe-controles label { margin: 0; font-size: 12px; }
+.informe-controles input { margin-top: 4px; }
+
+.informe-embudo {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.informe-embudo-celda {
+  flex: 1 1 130px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--color-borde);
+  min-width: 0;
+}
+
+.informe-embudo-celda:last-child { border-right: 0; }
+.informe-embudo-celda .estampa { margin-bottom: 4px; }
+
+.informe-cifra {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.informe-cola-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0 10px;
+}
+
+.informe-cola-titulo h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.insignia-responsable {
+  color: var(--color-azul);
+  background: var(--color-azul-suave);
+  border-color: var(--color-azul-suave);
+}
+
+.tabla-informe {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tabla-informe th {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 2px solid var(--color-borde-fuerte);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+}
+
+.tabla-informe td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto-medio);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tabla-informe tbody tr:last-child td { border-bottom: 0; }
+.tabla-informe td:first-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============================================================
+   IMPRESIÓN
+
+   El informe se entrega en papel o en PDF del navegador. Las otras dos
+   vistas ya están en display:none, así que solo hay que quitar los
+   controles y asegurar que el color sobreviva.
+   ============================================================ */
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  body { background: #FFF; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+
+  /* Controles y elementos de pantalla que no significan nada en papel */
+  .sesion,
+  .saltar-al-contenido,
+  .solo-lectores,
+  .capa-carga,
+  .puerta,
+  .acciones-tablero,
+  .informe-controles,
+  .solo-pantalla,
+  .panel-informe,
+  .buscador,
+  dialog { display: none !important; }
+
+  /* El encabezado con el logo hace de membrete institucional */
+  .encabezado-interno { padding: 0 0 10px; }
+  .logo { height: 42px; }
+  .franja { height: 3px; }
+
+  /* Sin esto, Chrome imprime las insignias y los remates en blanco */
+  .indicador, .insignia, .franja, .tarjeta, .panel-etapa, .informe-embudo-celda {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .tarjeta { border-width: 1px; box-shadow: none; }
+
+  /* Que nada se parta por la mitad entre dos páginas */
+  .tarjeta, .informe-embudo, .tira-informe, .tabla-informe tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+
+  .tabla-informe { font-size: 9.5pt; }
+  .tabla-informe td, .tabla-informe th { padding: 5px 6px; }
+
+  /* La insignia lleva borde también en pantalla, así que sigue legible
+     aunque se imprima sin gráficos de fondo */
+  .insignia { border-width: 1px; }
+
+  .pie-impreso { display: block !important; }
+}
+
+/* Pie que solo existe en el papel */
+.pie-impreso {
+  display: none;
+  margin: 18px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-borde);
+  font-size: 9pt;
+  color: var(--color-texto-suave);
 }
 </style>

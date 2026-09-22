@@ -226,10 +226,59 @@ del estado del flujo. Mientras un registro está `EN_REVISION` o `APROBADO`,
 Talento Humano no puede editarlo. Cada guardado exige la versión vigente para
 evitar sobrescrituras entre usuarios concurrentes.
 
-Al abrir el indicador **Aprobados**, el listado muestra inicialmente los que
-aún no tienen confirmación de Radicado MEN. El selector permite alternar entre
-pendientes, radicados y todos; en la vista completa los pendientes aparecen
-primero.
+Al abrir el indicador **Aprobados** el listado muestra todos, con los que aún
+no están radicados primero. Las cuatro cifras de la etapa MEN —*Por radicar*,
+*En subsanación*, *Listos para radicar* y *Radicados ante el MEN*— son las que
+filtran con precisión; el antiguo selector de pendientes/radicados se retiró
+por redundante.
+
+## Etapa MEN: de aprobado a radicado
+
+Aprobar **no** cierra el trámite. Después viene la radicación ante el
+Ministerio, que ocurre **fuera de esta aplicación** y solo puede marcarla el
+Revisor.
+
+```
+APROBADO ──┬─► Por radicar ante el MEN ──► [radica en la plataforma del MEN]
+           │                                        │
+           │                                        ▼
+           │                              Radicado ante el MEN  (fin)
+           │
+           └─► En subsanación ──(al llegar la fecha)──► Listo para radicar
+```
+
+- **Poner en subsanación** exige un motivo y una fecha **posterior a hoy**.
+  Mientras tanto el sistema rechaza la radicación.
+- Al llegar esa fecha, el expediente pasa **solo** a *Listo para radicar*. No
+  hay que hacer nada: el cambio se calcula al leer, no se escribe en la hoja,
+  así que la columna `ESTADO_MEN` seguirá diciendo `SUBSANACION`.
+- **Marcar como radicado** no radica nada por sí solo: deja constancia de que
+  el trámite externo ya se hizo.
+
+## Informe de gestión
+
+Disponible para el rol **Revisor**, en el listado: *Ver informe* abre una
+pantalla imprimible y *Descargar CSV* entrega el detalle completo.
+
+El tablero tiene seis bloques. Conviene entender la diferencia entre dos de
+ellos, porque el rango de fechas **no** afecta a todo por igual:
+
+| Bloque | Qué muestra | ¿Le afecta el periodo? |
+|---|---|---|
+| Estado de la auditoría | Las diez cifras del flujo | **No.** Siempre es la foto de hoy |
+| Movimientos del periodo | Cuántos guardados, envíos, aprobaciones… | Sí |
+| Actividad por persona | Qué hizo cada usuario | Sí |
+| Cola que exige acción | Qué espera acción y de quién | **No.** Foto de hoy |
+| Detalle de movimientos | Bitácora, hasta 150 filas | Sí |
+
+Por eso los selectores de fecha viven **dentro** del bloque de movimientos:
+quien los mueve ve cambiar ese bloque y ve que las cifras de estado no se
+inmutan. El informe **no reconstruye** el estado que los registros tenían en
+una fecha pasada; para eso habría que recorrer el historial hacia atrás.
+
+Para imprimir, el botón *Imprimir* usa el diálogo del navegador. Si las
+insignias salen sin color, active «Gráficos de fondo» en las opciones de
+impresión — aunque llevan borde para seguir siendo legibles sin él.
 
 ### Trazabilidad hoja ↔ Drive
 

@@ -66,7 +66,13 @@ const MUESTRA = [
    '11/03/2020', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
   ['CC', 'DOC-EJ-006', 'DOCENTE', 'EJEMPLO', 'SEIS', '',
    'MAESTRÍA', 'TÍTULO DE MAESTRÍA DE EJEMPLO',
-   '08/07/2022', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
+   '08/07/2022', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
+  ['CC', 'DOC-EJ-007', 'DOCENTE', 'EJEMPLO', 'SIETE', '',
+   'MAESTRÍA', 'TÍTULO DE MAESTRÍA DE EJEMPLO',
+   '19/11/2021', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
+  ['CC', 'DOC-EJ-008', 'DOCENTE', 'EJEMPLO', 'OCHO', '',
+   'Doctorado', 'TÍTULO DE DOCTORADO DE EJEMPLO',
+   '03/05/2023', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
 ];
 
 const docentes = MUESTRA.map((f) => {
@@ -194,6 +200,33 @@ guardadas['DOC-EJ-006'] = {
   radicadoPor: 'revisor@ejemplo.edu.co',
   fechaRadicacionMen: '20/09/2026 09:30'
 };
+/* Aprobado y pendiente de radicar: el caso normal del revisor. */
+guardadas['DOC-EJ-007'] = {
+  ...guardadas['DOC-EJ-002'],
+  estadoRevision: 'APROBADO',
+  version: 3,
+  revisadoPor: 'revisor@ejemplo.edu.co',
+  fechaRevision: '21/09/2026 11:05',
+  decisionRevision: 'APROBADO',
+  observacionRevision: '',
+  revisionCriterios: Object.fromEntries(CRITERIOS.map((c) => [c.clave, 'CONFORME'])),
+  estadoMen: 'PENDIENTE',
+  motivoSubsanacion: '', fechaSubsanacion: '', fechaDisponibleRadicacion: '',
+  subsanacionPor: '', radicadoMen: false, radicadoPor: '', fechaRadicacionMen: ''
+};
+
+/* Subsanacion ya vencida: el servidor lo promueve solo a LISTO_RADICAR. */
+guardadas['DOC-EJ-008'] = {
+  ...guardadas['DOC-EJ-007'],
+  version: 4,
+  fechaRevision: '17/09/2026 09:40',
+  estadoMen: 'LISTO_RADICAR',
+  motivoSubsanacion: 'Se esperaba la actualización del registro del docente.',
+  fechaSubsanacion: '18/09/2026 10:00',
+  fechaDisponibleRadicacion: '20/09/2026',
+  subsanacionPor: 'revisor@ejemplo.edu.co'
+};
+
 const docentePorEnviar = docentes.find((d) => d.documento === 'DOC-EJ-004');
 docentePorEnviar.estado = 'VALIDADO';
 docentePorEnviar.tieneValidacion = true;
@@ -215,6 +248,23 @@ docenteRadicado.estadoRevision = 'APROBADO';
 docenteRadicado.version = 4;
 docenteRadicado.estadoMen = 'RADICADO';
 docenteRadicado.radicadoMen = true;
+
+/* Los dos casos que faltaban para el tablero y la cola de radicación. */
+['DOC-EJ-007', 'DOC-EJ-008'].forEach((documento) => {
+  const d = docentes.find((x) => x.documento === documento);
+  const g = guardadas[documento];
+  Object.assign(d, {
+    estado: 'VALIDADO',
+    tieneValidacion: true,
+    estadoRevision: 'APROBADO',
+    version: g.version,
+    estadoMen: g.estadoMen,
+    motivoSubsanacion: g.motivoSubsanacion,
+    fechaSubsanacion: g.fechaSubsanacion,
+    fechaDisponibleRadicacion: g.fechaDisponibleRadicacion,
+    radicadoMen: false
+  });
+});
 
 /* ------------------------------------------------------------------
    Servidor simulado
@@ -454,23 +504,75 @@ const simulador = `
     },
 
     obtenerInformeGestion: function (payload) {
+      // El historial abarca dos meses para poder comprobar que el rango de
+      // fechas mueve los bloques C, D y F pero NO el bloque B (estado a hoy).
+      var TH = 'talento.humano@ejemplo.edu.co';
+      var TH2 = 'auxiliar.talento@ejemplo.edu.co';
+      var REV = 'revisor@ejemplo.edu.co';
+
+      var historial = [
+        ['05/08/2026 09:12', 'DOC-EJ-002', 'GUARDADO', '', 'POR_ENVIAR', TH, 'TALENTO_HUMANO', ''],
+        ['05/08/2026 09:40', 'DOC-EJ-002', 'ENVIADO_A_REVISION', 'POR_ENVIAR', 'EN_REVISION', TH, 'TALENTO_HUMANO', ''],
+        ['07/08/2026 14:03', 'DOC-EJ-003', 'GUARDADO', '', 'POR_ENVIAR', TH2, 'TALENTO_HUMANO', ''],
+        ['07/08/2026 14:25', 'DOC-EJ-003', 'ENVIADO_A_REVISION', 'POR_ENVIAR', 'EN_REVISION', TH2, 'TALENTO_HUMANO', ''],
+        ['12/08/2026 10:18', 'DOC-EJ-003', 'DEVUELTO', 'EN_REVISION', 'DEVUELTO', REV, 'REVISOR', 'Verificar nivel de estudio y fecha de grado.'],
+        ['14/08/2026 08:55', 'DOC-EJ-004', 'GUARDADO', '', 'POR_ENVIAR', TH, 'TALENTO_HUMANO', ''],
+        ['02/09/2026 11:30', 'DOC-EJ-005', 'ENVIADO_A_REVISION', 'POR_ENVIAR', 'EN_REVISION', TH2, 'TALENTO_HUMANO', ''],
+        ['08/09/2026 16:44', 'DOC-EJ-005', 'APROBADO', 'EN_REVISION', 'APROBADO', REV, 'REVISOR', ''],
+        ['12/09/2026 09:14', 'DOC-EJ-006', 'GUARDADO', '', 'POR_ENVIAR', TH, 'TALENTO_HUMANO', ''],
+        ['15/09/2026 10:02', 'DOC-EJ-006', 'APROBADO_CON_CORRECCION_REVISOR', 'EN_REVISION', 'APROBADO', REV, 'REVISOR', 'Se ajustó el título según el acta.'],
+        ['17/09/2026 09:40', 'DOC-EJ-008', 'APROBADO', 'EN_REVISION', 'APROBADO', REV, 'REVISOR', ''],
+        ['18/09/2026 10:00', 'DOC-EJ-008', 'SUBSANACION_MEN', 'PENDIENTE', 'SUBSANACION', REV, 'REVISOR', 'Se esperaba la actualización del registro del docente.'],
+        ['20/09/2026 09:30', 'DOC-EJ-006', 'RADICADO_MEN', 'PENDIENTE', 'RADICADO', REV, 'REVISOR', ''],
+        ['21/09/2026 11:05', 'DOC-EJ-007', 'APROBADO', 'EN_REVISION', 'APROBADO', REV, 'REVISOR', ''],
+        ['22/09/2026 08:30', 'DOC-EJ-005', 'SUBSANACION_MEN', 'PENDIENTE', 'SUBSANACION', REV, 'REVISOR', 'Actualización del registro externo antes de radicar.']
+      ].map(function (f) {
+        var d = DOCENTES.filter(function (x) { return x.documento === f[1]; })[0];
+        return {
+          fecha: f[0], documento: f[1], docente: d ? d.nombreCompleto : f[1],
+          evento: f[2], estadoAnterior: f[3], estadoNuevo: f[4],
+          correo: f[5], rol: f[6], observacion: f[7]
+        };
+      });
+
+      // El filtro por fechas es el mismo que aplica el servidor: solo al
+      // historial y al agregado por usuario, nunca al estado de hoy.
+      var dia = function (texto) {
+        var p = String(texto || '').slice(0, 10).split('/');
+        return p.length === 3 ? new Date(+p[2], +p[1] - 1, +p[0]) : null;
+      };
+      var desde = payload && payload.desde ? new Date(payload.desde + 'T00:00:00') : null;
+      var hasta = payload && payload.hasta ? new Date(payload.hasta + 'T23:59:59') : null;
+
+      var enRango = historial.filter(function (h) {
+        var f = dia(h.fecha);
+        if (!f) return true;
+        if (desde && f < desde) return false;
+        if (hasta && f > hasta) return false;
+        return true;
+      });
+
+      var porUsuario = {};
+      enRango.forEach(function (h) {
+        var clave = h.correo + '|' + h.rol;
+        if (!porUsuario[clave]) {
+          porUsuario[clave] = { correo: h.correo, rol: h.rol, total: 0, eventos: {} };
+        }
+        porUsuario[clave].total++;
+        porUsuario[clave].eventos[h.evento] = (porUsuario[clave].eventos[h.evento] || 0) + 1;
+      });
+
       return {
-        generado: '22/09/2026 09:45', desde: payload.desde, hasta: payload.hasta,
-        usuarios: [
-          { correo: 'talento.humano@ejemplo.edu.co', rol: 'TALENTO_HUMANO', total: 4,
-            eventos: { GUARDADO: 2, ENVIADO_A_REVISION: 2 } },
-          { correo: 'revisor@ejemplo.edu.co', rol: 'REVISOR', total: 3,
-            eventos: { APROBADO: 1, SUBSANACION_MEN: 1, RADICADO_MEN: 1 } }
-        ],
+        generado: '22/09/2026 09:45',
+        desde: payload ? payload.desde : '',
+        hasta: payload ? payload.hasta : '',
+        resumen: resumen(),
+        usuarios: Object.keys(porUsuario).map(function (k) { return porUsuario[k]; }),
         registros: DOCENTES.map(function (d) {
           var v = GUARDADAS[d.documento] || {};
           return Object.assign({ documento: d.documento, docente: d.nombreCompleto }, v);
         }),
-        historial: [
-          { fecha: '22/09/2026 08:30', documento: 'DOC-EJ-005', docente: 'DOCENTE EJEMPLO CINCO',
-            evento: 'SUBSANACION_MEN', estadoAnterior: 'PENDIENTE', estadoNuevo: 'SUBSANACION',
-            correo: 'revisor@ejemplo.edu.co', rol: 'REVISOR', observacion: 'Actualización externa.' }
-        ]
+        historial: enRango
       };
     },
 
@@ -548,8 +650,11 @@ for (const marcador of ['<!--LOGO-->', '<!--ESTILOS-->', '<!--SCRIPTS-->']) {
   }
 }
 
+// La clase solo-pantalla la esconde el bloque @media print de Styles.html:
+// al probar la impresion del tablero, este banner no debe salir en el papel.
 const aviso = `
-<div style="max-width:1140px;margin:0 auto;padding:10px 24px;font:13px/1.5 system-ui;
+<div class="solo-pantalla"
+     style="max-width:1140px;margin:0 auto;padding:10px 24px;font:13px/1.5 system-ui;
             color:#8A6100;background:#FFF6E0;border-bottom:1px solid #F0DCA8;">
   <strong>Vista previa.</strong> Datos de muestra y servidor simulado: nada se guarda
   en la hoja de cálculo ni en Drive.

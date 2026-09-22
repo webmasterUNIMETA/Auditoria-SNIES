@@ -83,11 +83,11 @@
         <p id="cifraTotal">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-sin-cargar" data-filtro="PENDIENTE_CARGA" aria-pressed="false">
-        <p>Pendientes de cargar</p>
+        <p>Sin cargar</p>
         <p id="cifraPendientesCarga">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-pendientes" data-filtro="POR_ENVIAR" aria-pressed="false">
-        <p>Enviar a revisión</p>
+        <p>Borradores sin enviar</p>
         <p id="cifraPorEnviar">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-revision" data-filtro="EN_REVISION" aria-pressed="false">
@@ -103,7 +103,7 @@
         <p id="cifraAprobados">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-pendiente" data-filtro="MEN_PENDIENTE" aria-pressed="false" hidden>
-        <p>Pendientes MEN</p>
+        <p>Por radicar (MEN)</p>
         <p id="cifraMenPendientes">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-subsanacion" data-filtro="MEN_SUBSANACION" aria-pressed="false" hidden>
@@ -115,7 +115,7 @@
         <p id="cifraMenListos">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-radicado" data-filtro="MEN_RADICADO" aria-pressed="false" hidden>
-        <p>Radicados MEN</p>
+        <p>Radicados ante el MEN</p>
         <p id="cifraMenRadicados">&mdash;</p>
       </button>
     </div>
@@ -133,6 +133,18 @@
                placeholder="Buscar por nombre o número de documento...">
       </div>
 
+      <!-- Los tres pasos del trámite. Es lo que faltaba para que Talento
+           Humano supiera dónde acaba su parte y quién radica ante el MEN. -->
+      <div class="guia-flujo" id="guiaFlujo" role="note" hidden>
+        <p class="guia-flujo-titulo">Cómo avanza cada docente</p>
+        <ol>
+          <li><strong>Usted</strong> compara los datos, carga el acta y envía al revisor.</li>
+          <li><strong>El revisor</strong> aprueba o le devuelve el expediente para corregir.</li>
+          <li><strong>El revisor</strong> lo radica ante el MEN, en la plataforma del
+              Ministerio, fuera de esta aplicación.</li>
+        </ol>
+      </div>
+
       <p class="conteo-resultados" id="conteoResultados"></p>
 
       <section class="panel-informe" id="panelInforme" hidden aria-labelledby="tituloInforme">
@@ -142,23 +154,10 @@
         </div>
         <label>Desde <input type="date" id="informeDesde"></label>
         <label>Hasta <input type="date" id="informeHasta"></label>
+        <button type="button" class="btn-primario" id="btnAbrirTablero">Ver informe</button>
         <button type="button" class="btn-secundario" id="btnDescargarInforme">Descargar CSV</button>
       </section>
 
-      <div class="filtro-men" id="filtroRadicadoMen" hidden>
-        <span class="filtro-men-etiqueta">Mostrar aprobados:</span>
-        <div class="filtro-men-opciones" role="group" aria-label="Filtrar aprobados por radicación MEN">
-          <button type="button" data-filtro-men="PENDIENTES" aria-pressed="true">
-            Pendientes MEN <span id="conteoMenPendientes">0</span>
-          </button>
-          <button type="button" data-filtro-men="RADICADOS" aria-pressed="false">
-            Radicados MEN <span id="conteoMenRadicados">0</span>
-          </button>
-          <button type="button" data-filtro-men="TODOS" aria-pressed="false">
-            Todos <span id="conteoMenTodos">0</span>
-          </button>
-        </div>
-      </div>
     </div>
 
     <div class="cargando-bloque" id="listaCargando">
@@ -183,7 +182,7 @@
 
     <div class="cargando-bloque" id="fichaCargando" hidden>
       <span class="girador" aria-hidden="true"></span>
-      <p>Cargando revisión...</p>
+      <p>Abriendo ficha del docente...</p>
     </div>
 
     <div class="aviso aviso-error" id="fichaError" hidden role="alert"></div>
@@ -195,14 +194,25 @@
         <span id="cintaModoTexto"></span>
       </div>
 
+      <!-- Panel de etapa: en qué punto está el expediente, qué significa y
+           qué toca hacer. Va ARRIBA a propósito: el motivo de una devolución
+           o de una subsanación es lo primero que hay que leer, no lo último. -->
+      <section class="panel-etapa" id="panelEtapa" hidden aria-labelledby="panelEtapaTitulo"></section>
+
       <div class="tarjeta">
 
         <div class="ficha-cabecera">
           <div class="ficha-identidad">
             <h2 id="fichaNombre"></h2>
             <p class="ficha-documento" id="fichaDocumento"></p>
-            <span class="insignia" id="fichaInsignia"></span>
-            <span class="insignia" id="fichaInsigniaDato"></span>
+            <span class="par-insignias">
+              <span class="micro-rotulo">Etapa</span>
+              <span class="insignia" id="fichaInsignia"></span>
+            </span>
+            <span class="par-insignias">
+              <span class="micro-rotulo" id="rotuloInsigniaDato">Datos</span>
+              <span class="insignia" id="fichaInsigniaDato"></span>
+            </span>
           </div>
           <div class="ficha-acciones-cabecera">
             <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
@@ -290,15 +300,41 @@
               </button>
             </div>
             <div class="navegacion-derecha">
-              <button type="submit" class="btn-secundario" id="btnGuardar">Guardar borrador</button>
+              <!-- type="button" a propósito: si fuera submit, pulsar Enter en
+                   un campo de corrección guardaría a media captura. -->
+              <button type="button" class="btn-secundario" id="btnGuardar">Guardar y seguir editando</button>
               <button type="button" class="btn-primario" id="btnGuardarEnviar">Guardar y enviar a revisión</button>
-              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar a revisión</button>
+              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar al revisor</button>
             </div>
           </div>
 
         </form>
       </div>
     </div>
+  </section>
+
+  <!-- ==========================================================
+       VISTA 3 - INFORME DE GESTIÓN
+
+       Tercera vista hermana de las otras dos. Al imprimir, las demás
+       quedan en display:none por sí solas, así que el papel sale limpio.
+       ========================================================== -->
+  <section class="vista" id="vistaTablero" aria-labelledby="tableroTitulo">
+
+    <div class="acciones-tablero">
+      <button type="button" class="btn-texto btn-volver" id="btnVolverTablero">&larr; Volver al listado</button>
+      <button type="button" class="btn-secundario btn-compacto" id="btnImprimirTablero">Imprimir</button>
+    </div>
+
+    <div class="cargando-bloque" id="tableroCargando" hidden>
+      <span class="girador" aria-hidden="true"></span>
+      <p>Preparando el informe...</p>
+    </div>
+
+    <div class="aviso aviso-error" id="tableroError" hidden role="alert"></div>
+
+    <div id="tableroContenido" hidden></div>
+
   </section>
 
 </main>
@@ -318,6 +354,17 @@
       <button type="submit" class="btn-primario">Confirmar subsanación</button>
     </div>
   </form>
+</dialog>
+
+<!-- Confirmación genérica: salir con cambios, enviar al revisor, radicar.
+     Un solo mecanismo para todas las acciones que conviene pensar dos veces. -->
+<dialog class="dialogo" id="dialogoConfirmar" aria-labelledby="tituloConfirmar">
+  <h2 id="tituloConfirmar"></h2>
+  <p class="descripcion-vista" id="cuerpoConfirmar"></p>
+  <div class="dialogo-acciones">
+    <button type="button" class="btn-secundario" id="btnCancelarConfirmar">Cancelar</button>
+    <button type="button" class="btn-primario" id="btnAceptarConfirmar">Confirmar</button>
+  </div>
 </dialog>
 
 <!-- Capa de carga a pantalla completa, solo para el arranque y el guardado -->

@@ -450,6 +450,146 @@ main {
 .panel-informe input { margin-top: 6px; }
 
 /* ============================================================
+   PANEL DE ETAPA
+
+   Dónde está el expediente, qué significa y qué toca hacer. Va arriba
+   del todo en la ficha. El tono da el color del filete izquierdo:
+
+     accion   -> le toca a quien mira (rojo institucional)
+     atencion -> hay algo que corregir (rojo suave)
+     espera   -> no hay nada que hacer todavía (azul)
+     cerrado  -> el trámite terminó (verde)
+   ============================================================ */
+
+.panel-etapa {
+  margin: 0 0 18px;
+  padding: 18px 20px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-left: 3px solid var(--color-borde-fuerte);
+  border-radius: var(--radio);
+}
+
+.panel-etapa h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--color-texto);
+}
+
+.panel-etapa p {
+  margin: 0 0 8px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-texto-medio);
+  max-width: 78ch;
+  text-wrap: pretty;
+}
+
+.panel-etapa p:last-child { margin-bottom: 0; }
+
+.panel-etapa-accion   { border-left-color: var(--color-primario); }
+.panel-etapa-atencion { border-left-color: var(--color-primario); background: var(--color-error-fondo); }
+.panel-etapa-espera   { border-left-color: var(--color-azul);   background: var(--color-azul-suave); }
+.panel-etapa-cerrado  { border-left-color: var(--color-exito);  background: var(--color-exito-fondo); }
+
+.panel-etapa-accion h3   { color: var(--color-error); }
+.panel-etapa-atencion h3 { color: var(--color-error); }
+.panel-etapa-cerrado h3  { color: var(--color-exito); }
+
+/* La cita recoge el texto que escribió una persona: motivo de devolución
+   o de subsanación. Se distingue del texto del sistema. */
+.panel-etapa-cita {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+}
+
+.panel-etapa-cita p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-texto);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.panel-etapa-cita footer {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+.panel-etapa-lista {
+  margin: 12px 0 0;
+  padding-left: 20px;
+  font-size: 13.5px;
+  color: var(--color-texto-medio);
+}
+
+.panel-etapa-lista li { margin-bottom: 3px; }
+.panel-etapa-lista li:first-child { list-style: none; margin-left: -20px; font-weight: 600; }
+
+/* Rótulo que desambigua una insignia cuyo significado cambia */
+.par-insignias {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: 12px;
+  vertical-align: top;
+}
+
+.micro-rotulo {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+/* Nota en una tarjeta que no ofrece acción, en lugar de un botón muerto */
+.nota-accion {
+  font-size: 12.5px;
+  color: var(--color-texto-suave);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Botón de cerrar dentro de un aviso persistente */
+.aviso-cerrar { margin-left: 10px; color: inherit; }
+
+/* Los tres pasos del trámite, en el listado de Talento Humano */
+.guia-flujo {
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  background: var(--color-azul-suave);
+  border-left: 3px solid var(--color-azul);
+  border-radius: 0 var(--radio) var(--radio) 0;
+}
+
+.guia-flujo-titulo {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.guia-flujo ol {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-texto-medio);
+}
+
+/* ============================================================
    LISTADO DE DOCENTES
    ============================================================ */
 
@@ -505,44 +645,6 @@ main {
   flex-wrap: wrap;
 }
 
-.filtro-men {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--color-borde);
-  flex-wrap: wrap;
-}
-.filtro-men[hidden] { display: none; }
-.filtro-men-etiqueta { font-size: 13px; font-weight: 700; color: var(--color-texto-medio); }
-.filtro-men-opciones { display: flex; gap: 7px; flex-wrap: wrap; }
-.filtro-men-opciones button {
-  padding: 7px 10px;
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio);
-  background: var(--color-superficie);
-  color: var(--color-texto-medio);
-  font: inherit;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.filtro-men-opciones button:hover { border-color: var(--color-exito); }
-.filtro-men-opciones button.activo {
-  color: var(--color-exito);
-  background: var(--color-exito-fondo);
-  border-color: var(--color-exito-borde);
-}
-.filtro-men-opciones button span {
-  display: inline-block;
-  min-width: 18px;
-  margin-left: 4px;
-  padding: 1px 5px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .75);
-  text-align: center;
-}
 
 /* Insignia de estado */
 .insignia {
@@ -725,11 +827,6 @@ main {
 
 .btn-radicado-men:hover { background: #185a36; }
 
-.btn-radicado-men.confirmando {
-  color: #7c2d12;
-  background: #ffedd5;
-  border-color: #fb923c;
-}
 
 .ficha-paso {
   display: grid;
@@ -1498,6 +1595,215 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   .ficha-acciones-cabecera { width: 100%; }
   .ficha-acciones-cabecera button { width: 100%; }
 }
+
+/* ============================================================
+   TABLERO DE GESTIÓN
+   ============================================================ */
+
+.acciones-tablero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.acciones-tablero .btn-volver { margin-bottom: 0; }
+
+/* Rótulo en versalita que estampa a qué momento corresponde un bloque.
+   Es la pieza que impide confundir "estado a hoy" con "movimientos del
+   periodo": cada bloque dice el suyo. */
+.estampa {
+  margin: 0 0 14px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-texto-tenue);
+}
+
+.informe-membrete {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  margin-top: 18px;
+}
+
+.informe-membrete > div {
+  flex: 1 1 200px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--color-borde);
+  min-width: 0;
+}
+
+.informe-membrete > div:last-child { border-right: 0; }
+.informe-membrete .estampa { margin-bottom: 4px; }
+.informe-membrete p:last-child {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* La tira del informe no es interactiva: son cifras, no filtros. */
+.tira-informe .indicador { cursor: default; background: var(--color-superficie); }
+.tira-informe .indicador:hover { background: var(--color-superficie); }
+
+.informe-cabecera {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.informe-controles { margin-bottom: 14px; }
+.informe-controles label { margin: 0; font-size: 12px; }
+.informe-controles input { margin-top: 4px; }
+
+.informe-embudo {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio);
+  overflow: hidden;
+}
+
+.informe-embudo-celda {
+  flex: 1 1 130px;
+  padding: 14px 16px;
+  border-right: 1px solid var(--color-borde);
+  min-width: 0;
+}
+
+.informe-embudo-celda:last-child { border-right: 0; }
+.informe-embudo-celda .estampa { margin-bottom: 4px; }
+
+.informe-cifra {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  color: var(--color-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+.informe-cola-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 24px 0 10px;
+}
+
+.informe-cola-titulo h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+}
+
+.insignia-responsable {
+  color: var(--color-azul);
+  background: var(--color-azul-suave);
+  border-color: var(--color-azul-suave);
+}
+
+.tabla-informe {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tabla-informe th {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 2px solid var(--color-borde-fuerte);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+}
+
+.tabla-informe td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto-medio);
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.tabla-informe tbody tr:last-child td { border-bottom: 0; }
+.tabla-informe td:first-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ============================================================
+   IMPRESIÓN
+
+   El informe se entrega en papel o en PDF del navegador. Las otras dos
+   vistas ya están en display:none, así que solo hay que quitar los
+   controles y asegurar que el color sobreviva.
+   ============================================================ */
+
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  body { background: #FFF; font-size: 11pt; }
+  main { max-width: none; padding: 0; }
+
+  /* Controles y elementos de pantalla que no significan nada en papel */
+  .sesion,
+  .saltar-al-contenido,
+  .solo-lectores,
+  .capa-carga,
+  .puerta,
+  .acciones-tablero,
+  .informe-controles,
+  .solo-pantalla,
+  .panel-informe,
+  .buscador,
+  dialog { display: none !important; }
+
+  /* El encabezado con el logo hace de membrete institucional */
+  .encabezado-interno { padding: 0 0 10px; }
+  .logo { height: 42px; }
+  .franja { height: 3px; }
+
+  /* Sin esto, Chrome imprime las insignias y los remates en blanco */
+  .indicador, .insignia, .franja, .tarjeta, .panel-etapa, .informe-embudo-celda {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .tarjeta { border-width: 1px; box-shadow: none; }
+
+  /* Que nada se parta por la mitad entre dos páginas */
+  .tarjeta, .informe-embudo, .tira-informe, .tabla-informe tr { break-inside: avoid; }
+  thead { display: table-header-group; }
+
+  .tabla-informe { font-size: 9.5pt; }
+  .tabla-informe td, .tabla-informe th { padding: 5px 6px; }
+
+  /* La insignia lleva borde también en pantalla, así que sigue legible
+     aunque se imprima sin gráficos de fondo */
+  .insignia { border-width: 1px; }
+
+  .pie-impreso { display: block !important; }
+}
+
+/* Pie que solo existe en el papel */
+.pie-impreso {
+  display: none;
+  margin: 18px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-borde);
+  font-size: 9pt;
+  color: var(--color-texto-suave);
+}
 </style>
 
 </head>
@@ -1600,11 +1906,11 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <p id="cifraTotal">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-sin-cargar" data-filtro="PENDIENTE_CARGA" aria-pressed="false">
-        <p>Pendientes de cargar</p>
+        <p>Sin cargar</p>
         <p id="cifraPendientesCarga">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-pendientes" data-filtro="POR_ENVIAR" aria-pressed="false">
-        <p>Enviar a revisión</p>
+        <p>Borradores sin enviar</p>
         <p id="cifraPorEnviar">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-revision" data-filtro="EN_REVISION" aria-pressed="false">
@@ -1620,7 +1926,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <p id="cifraAprobados">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-pendiente" data-filtro="MEN_PENDIENTE" aria-pressed="false" hidden>
-        <p>Pendientes MEN</p>
+        <p>Por radicar (MEN)</p>
         <p id="cifraMenPendientes">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-subsanacion" data-filtro="MEN_SUBSANACION" aria-pressed="false" hidden>
@@ -1632,7 +1938,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <p id="cifraMenListos">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-radicado" data-filtro="MEN_RADICADO" aria-pressed="false" hidden>
-        <p>Radicados MEN</p>
+        <p>Radicados ante el MEN</p>
         <p id="cifraMenRadicados">&mdash;</p>
       </button>
     </div>
@@ -1650,6 +1956,18 @@ button:disabled { opacity: .5; cursor: not-allowed; }
                placeholder="Buscar por nombre o número de documento...">
       </div>
 
+      <!-- Los tres pasos del trámite. Es lo que faltaba para que Talento
+           Humano supiera dónde acaba su parte y quién radica ante el MEN. -->
+      <div class="guia-flujo" id="guiaFlujo" role="note" hidden>
+        <p class="guia-flujo-titulo">Cómo avanza cada docente</p>
+        <ol>
+          <li><strong>Usted</strong> compara los datos, carga el acta y envía al revisor.</li>
+          <li><strong>El revisor</strong> aprueba o le devuelve el expediente para corregir.</li>
+          <li><strong>El revisor</strong> lo radica ante el MEN, en la plataforma del
+              Ministerio, fuera de esta aplicación.</li>
+        </ol>
+      </div>
+
       <p class="conteo-resultados" id="conteoResultados"></p>
 
       <section class="panel-informe" id="panelInforme" hidden aria-labelledby="tituloInforme">
@@ -1659,23 +1977,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         </div>
         <label>Desde <input type="date" id="informeDesde"></label>
         <label>Hasta <input type="date" id="informeHasta"></label>
+        <button type="button" class="btn-primario" id="btnAbrirTablero">Ver informe</button>
         <button type="button" class="btn-secundario" id="btnDescargarInforme">Descargar CSV</button>
       </section>
 
-      <div class="filtro-men" id="filtroRadicadoMen" hidden>
-        <span class="filtro-men-etiqueta">Mostrar aprobados:</span>
-        <div class="filtro-men-opciones" role="group" aria-label="Filtrar aprobados por radicación MEN">
-          <button type="button" data-filtro-men="PENDIENTES" aria-pressed="true">
-            Pendientes MEN <span id="conteoMenPendientes">0</span>
-          </button>
-          <button type="button" data-filtro-men="RADICADOS" aria-pressed="false">
-            Radicados MEN <span id="conteoMenRadicados">0</span>
-          </button>
-          <button type="button" data-filtro-men="TODOS" aria-pressed="false">
-            Todos <span id="conteoMenTodos">0</span>
-          </button>
-        </div>
-      </div>
     </div>
 
     <div class="cargando-bloque" id="listaCargando">
@@ -1700,7 +2005,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 
     <div class="cargando-bloque" id="fichaCargando" hidden>
       <span class="girador" aria-hidden="true"></span>
-      <p>Cargando revisión...</p>
+      <p>Abriendo ficha del docente...</p>
     </div>
 
     <div class="aviso aviso-error" id="fichaError" hidden role="alert"></div>
@@ -1712,14 +2017,25 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <span id="cintaModoTexto"></span>
       </div>
 
+      <!-- Panel de etapa: en qué punto está el expediente, qué significa y
+           qué toca hacer. Va ARRIBA a propósito: el motivo de una devolución
+           o de una subsanación es lo primero que hay que leer, no lo último. -->
+      <section class="panel-etapa" id="panelEtapa" hidden aria-labelledby="panelEtapaTitulo"></section>
+
       <div class="tarjeta">
 
         <div class="ficha-cabecera">
           <div class="ficha-identidad">
             <h2 id="fichaNombre"></h2>
             <p class="ficha-documento" id="fichaDocumento"></p>
-            <span class="insignia" id="fichaInsignia"></span>
-            <span class="insignia" id="fichaInsigniaDato"></span>
+            <span class="par-insignias">
+              <span class="micro-rotulo">Etapa</span>
+              <span class="insignia" id="fichaInsignia"></span>
+            </span>
+            <span class="par-insignias">
+              <span class="micro-rotulo" id="rotuloInsigniaDato">Datos</span>
+              <span class="insignia" id="fichaInsigniaDato"></span>
+            </span>
           </div>
           <div class="ficha-acciones-cabecera">
             <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
@@ -1807,15 +2123,41 @@ button:disabled { opacity: .5; cursor: not-allowed; }
               </button>
             </div>
             <div class="navegacion-derecha">
-              <button type="submit" class="btn-secundario" id="btnGuardar">Guardar borrador</button>
+              <!-- type="button" a propósito: si fuera submit, pulsar Enter en
+                   un campo de corrección guardaría a media captura. -->
+              <button type="button" class="btn-secundario" id="btnGuardar">Guardar y seguir editando</button>
               <button type="button" class="btn-primario" id="btnGuardarEnviar">Guardar y enviar a revisión</button>
-              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar a revisión</button>
+              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar al revisor</button>
             </div>
           </div>
 
         </form>
       </div>
     </div>
+  </section>
+
+  <!-- ==========================================================
+       VISTA 3 - INFORME DE GESTIÓN
+
+       Tercera vista hermana de las otras dos. Al imprimir, las demás
+       quedan en display:none por sí solas, así que el papel sale limpio.
+       ========================================================== -->
+  <section class="vista" id="vistaTablero" aria-labelledby="tableroTitulo">
+
+    <div class="acciones-tablero">
+      <button type="button" class="btn-texto btn-volver" id="btnVolverTablero">&larr; Volver al listado</button>
+      <button type="button" class="btn-secundario btn-compacto" id="btnImprimirTablero">Imprimir</button>
+    </div>
+
+    <div class="cargando-bloque" id="tableroCargando" hidden>
+      <span class="girador" aria-hidden="true"></span>
+      <p>Preparando el informe...</p>
+    </div>
+
+    <div class="aviso aviso-error" id="tableroError" hidden role="alert"></div>
+
+    <div id="tableroContenido" hidden></div>
+
   </section>
 
 </main>
@@ -1835,6 +2177,17 @@ button:disabled { opacity: .5; cursor: not-allowed; }
       <button type="submit" class="btn-primario">Confirmar subsanación</button>
     </div>
   </form>
+</dialog>
+
+<!-- Confirmación genérica: salir con cambios, enviar al revisor, radicar.
+     Un solo mecanismo para todas las acciones que conviene pensar dos veces. -->
+<dialog class="dialogo" id="dialogoConfirmar" aria-labelledby="tituloConfirmar">
+  <h2 id="tituloConfirmar"></h2>
+  <p class="descripcion-vista" id="cuerpoConfirmar"></p>
+  <div class="dialogo-acciones">
+    <button type="button" class="btn-secundario" id="btnCancelarConfirmar">Cancelar</button>
+    <button type="button" class="btn-primario" id="btnAceptarConfirmar">Confirmar</button>
+  </div>
 </dialog>
 
 <!-- Capa de carga a pantalla completa, solo para el arranque y el guardado -->
@@ -1893,25 +2246,40 @@ var MEN_SUBSANACION = 'SUBSANACION';
 var MEN_LISTO = 'LISTO_RADICAR';
 var MEN_RADICADO = 'RADICADO';
 
+/* ------------------------------------------------------------
+   VOCABULARIO
+
+   Una palabra, un significado. Reglas de reserva:
+
+     "Revisión"  -> solo la etapa del revisor
+     "Validación"-> solo el trabajo de Talento Humano
+     "Pendiente" -> nunca se usa sola: siempre "pendiente DE algo"
+     "Radicar"   -> siempre con su complemento "ante el MEN"
+
+   La cadena que aprende el usuario es:
+     Sin cargar -> Borrador sin enviar -> En revisión ->
+     (Devuelto para corregir | Aprobado) -> Por radicar -> Radicado
+   ------------------------------------------------------------ */
+
 var NOMBRES_ESTADO = {
-  PENDIENTE: 'Pendiente',
+  PENDIENTE: 'Sin validar',
   VALIDADO: 'Validado',
-  REQUIERE_CORRECCION: 'Requiere corrección'
+  REQUIERE_CORRECCION: 'Dato distinto a SNIES'
 };
 
 var NOMBRES_REVISION = {
-  PENDIENTE_CARGA: 'Pendiente de cargar',
-  POR_ENVIAR: 'Por enviar',
+  PENDIENTE_CARGA: 'Sin cargar',
+  POR_ENVIAR: 'Borrador sin enviar',
   EN_REVISION: 'En revisión',
-  DEVUELTO: 'Devuelto',
-  APROBADO: 'Aprobado'
+  DEVUELTO: 'Devuelto para corregir',
+  APROBADO: 'Aprobado · falta radicar'
 };
 
 var NOMBRES_MEN = {
-  PENDIENTE: 'Pendiente MEN',
-  SUBSANACION: 'En subsanación',
+  PENDIENTE: 'Por radicar ante el MEN',
+  SUBSANACION: 'En subsanación (espera fecha)',
   LISTO_RADICAR: 'Listo para radicar',
-  RADICADO: 'Radicado MEN'
+  RADICADO: 'Radicado ante el MEN'
 };
 
 var NOMBRES_ROL = {
@@ -1922,32 +2290,43 @@ var NOMBRES_ROL = {
 
 /** Como se nombra cada grupo al contarlo: "Mostrando 12 pendientes". */
 var NOMBRES_GRUPO = {
-  PENDIENTE_CARGA: 'pendientes de cargar',
-  POR_ENVIAR: 'para enviar a revisión',
+  PENDIENTE_CARGA: 'sin cargar',
+  POR_ENVIAR: 'en borrador, sin enviar',
   EN_REVISION: 'en revisión',
-  DEVUELTO: 'devueltos',
+  DEVUELTO: 'devueltos para corregir',
   APROBADO: 'aprobados',
-  MEN_PENDIENTE: 'pendientes de radicación MEN',
-  MEN_SUBSANACION: 'en subsanación MEN',
+  MEN_PENDIENTE: 'por radicar ante el MEN',
+  MEN_SUBSANACION: 'en subsanación',
   MEN_LISTO: 'listos para radicar',
   MEN_RADICADO: 'radicados ante el MEN'
 };
 
 var NOMBRES_GRUPO_SINGULAR = {
-  PENDIENTE_CARGA: 'pendiente de cargar',
-  POR_ENVIAR: 'para enviar a revisión',
+  PENDIENTE_CARGA: 'sin cargar',
+  POR_ENVIAR: 'en borrador, sin enviar',
   EN_REVISION: 'en revisión',
-  DEVUELTO: 'devuelto',
+  DEVUELTO: 'devuelto para corregir',
   APROBADO: 'aprobado',
-  MEN_PENDIENTE: 'pendiente de radicación MEN',
-  MEN_SUBSANACION: 'en subsanación MEN',
+  MEN_PENDIENTE: 'por radicar ante el MEN',
+  MEN_SUBSANACION: 'en subsanación',
   MEN_LISTO: 'listo para radicar',
   MEN_RADICADO: 'radicado ante el MEN'
 };
 
+/** Los siete eventos del historial, en lenguaje llano para el informe. */
+var NOMBRES_EVENTO = {
+  GUARDADO: 'Guardados',
+  ENVIADO_A_REVISION: 'Enviados al revisor',
+  APROBADO: 'Aprobados',
+  APROBADO_CON_CORRECCION_REVISOR: 'Aprobados con corrección',
+  DEVUELTO: 'Devueltos',
+  SUBSANACION_MEN: 'Puestos en subsanación',
+  RADICADO_MEN: 'Radicados ante el MEN',
+  MIGRADO_A_REVISION: 'Migrados a revisión'
+};
+
 /** Estado por el que se filtra el listado. 'TODOS' no filtra nada. */
 var FILTRO = 'TODOS';
-var FILTRO_MEN = 'PENDIENTES';
 
 var MAX_BYTES_PDF = 10 * 1024 * 1024;
 
@@ -2041,14 +2420,81 @@ function estadoMenDe(docente) {
 
 function anunciar(texto) { $('anuncio').textContent = texto; }
 
-function mostrarAviso(nodo, tipo, texto) {
+/**
+ * Muestra un aviso dentro de la interfaz.
+ *
+ * Con `persistente` en true el aviso no se desvanece y gana un botón para
+ * cerrarlo. Los mensajes que explican QUE FALTA HACER son siempre
+ * persistentes: desaparecer solos era la causa de que la gente no supiera
+ * cuál era su siguiente paso.
+ */
+function mostrarAviso(nodo, tipo, texto, persistente) {
   if (nodo._temporizadorAviso) clearTimeout(nodo._temporizadorAviso);
   nodo.className = 'aviso aviso-' + tipo;
-  nodo.textContent = texto;
+  vaciar(nodo);
+  nodo.appendChild(document.createTextNode(texto));
   nodo.hidden = false;
-  nodo._temporizadorAviso = (tipo === 'exito' || tipo === 'aviso') ? setTimeout(function () {
-    ocultarAviso(nodo);
-  }, tipo === 'aviso' ? 9000 : 6000) : null;
+
+  if (persistente || tipo === 'error' || tipo === 'aviso') {
+    nodo._temporizadorAviso = null;
+    if (persistente || tipo === 'aviso') {
+      var cerrar = crear('button', 'btn-mini aviso-cerrar', 'Cerrar');
+      cerrar.type = 'button';
+      cerrar.setAttribute('aria-label', 'Cerrar este mensaje');
+      cerrar.addEventListener('click', function () { ocultarAviso(nodo); });
+      nodo.appendChild(cerrar);
+    }
+    return;
+  }
+
+  nodo._temporizadorAviso = setTimeout(function () { ocultarAviso(nodo); }, 12000);
+}
+
+/* ------------------------------------------------------------
+   CONFIRMACION
+
+   Un solo diálogo para todo lo que conviene pensar dos veces. Sustituye
+   al doble clic con caducidad silenciosa que tenía la radicación, y
+   añade la confirmación que le faltaba a "Enviar al revisor" — que es
+   la acción de verdad irreversible, porque bloquea el expediente.
+   ------------------------------------------------------------ */
+
+function confirmar(opciones) {
+  var dialogo = $('dialogoConfirmar');
+  var aceptar = $('btnAceptarConfirmar');
+  var cancelar = $('btnCancelarConfirmar');
+
+  $('tituloConfirmar').textContent = opciones.titulo;
+  $('cuerpoConfirmar').textContent = opciones.cuerpo;
+  aceptar.textContent = opciones.textoConfirmar || 'Confirmar';
+  cancelar.textContent = opciones.textoCancelar || 'Cancelar';
+  aceptar.className = opciones.peligro ? 'btn-primario' : 'btn-primario';
+
+  var cerrar = function () {
+    aceptar.removeEventListener('click', alAceptar);
+    cancelar.removeEventListener('click', alCancelar);
+    dialogo.removeEventListener('cancel', alCancelar);
+    if (dialogo.open) dialogo.close();
+  };
+
+  function alAceptar() {
+    cerrar();
+    if (opciones.alConfirmar) opciones.alConfirmar();
+  }
+
+  function alCancelar(evento) {
+    if (evento) evento.preventDefault();
+    cerrar();
+    if (opciones.alCancelar) opciones.alCancelar();
+  }
+
+  aceptar.addEventListener('click', alAceptar);
+  cancelar.addEventListener('click', alCancelar);
+  dialogo.addEventListener('cancel', alCancelar);   // tecla Escape
+
+  if (typeof dialogo.showModal === 'function') dialogo.showModal();
+  else dialogo.setAttribute('open', 'open');
+  aceptar.focus();
 }
 
 function ocultarAviso(nodo) {
@@ -2375,21 +2821,23 @@ function cargarDocentes() {
 }
 
 function configurarTableroRol() {
-  var mostrarMen = esRevisor() || esConsulta();
-  ['MEN_PENDIENTE', 'MEN_SUBSANACION', 'MEN_LISTO', 'MEN_RADICADO'].forEach(function (filtro) {
-    var boton = $('tiraIndicadores').querySelector('[data-filtro="' + filtro + '"]');
-    if (boton) boton.hidden = !mostrarMen;
-  });
+  // Las diez cifras se muestran a los tres roles. Antes al revisor se le
+  // ocultaban "Sin cargar" y "Borradores sin enviar" — justo al único rol
+  // que rinde el informe de gestión — y Talento Humano no veía cuántos de
+  // sus aprobados seguían sin radicar.
+  Array.prototype.forEach.call(
+    $('tiraIndicadores').querySelectorAll('[data-filtro]'),
+    function (boton) { boton.hidden = false; });
 
-  // El revisor trabaja con la cola de revisión y la etapa MEN. Los estados
-  // de captura siguen disponibles en "Total", pero no ocupan su tablero.
-  ['PENDIENTE_CARGA', 'POR_ENVIAR'].forEach(function (filtro) {
-    var boton = $('tiraIndicadores').querySelector('[data-filtro="' + filtro + '"]');
-    if (boton) boton.hidden = esRevisor();
-  });
+  // El subfiltro de aprobados sobra: las cuatro cifras MEN son más precisas
+  // y no se contradicen con ellas.
   $('panelInforme').hidden = !esRevisor();
 
-  if (mostrarMen && !$('informeHasta').value) {
+  // Los tres pasos del trámite, para que Talento Humano sepa dónde termina
+  // su parte y quién radica.
+  $('guiaFlujo').hidden = !esTalentoHumano();
+
+  if (!$('informeHasta').value) {
     var hoy = new Date();
     $('informeHasta').value = fechaIsoLocal(hoy);
     $('informeDesde').value = fechaIsoLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
@@ -2423,21 +2871,29 @@ function aplicarRequisitos() {
 
 function conectarEventos() {
   $('btnSalir').addEventListener('click', function () {
-    FICHA = null;
-    mostrarVista('lista');
-    cerrarSesion('');
+    protegerCambios(function () {
+      FICHA = null;
+      mostrarVista('lista');
+      cerrarSesion('');
+    });
   });
 
   $('selectorRol').addEventListener('change', function () {
-    var nuevoRol = this.value;
+    var selector = this;
+    var nuevoRol = selector.value;
     var permitidos = APP.perfil.roles || [];
     if (permitidos.indexOf(nuevoRol) === -1 || nuevoRol === SESION.rol) return;
 
-    SESION.rol = nuevoRol;
-    FICHA = null;
-    FILTRO = 'TODOS';
-    mostrarVista('lista');
-    cargarDocentes();
+    protegerCambios(function () {
+      SESION.rol = nuevoRol;
+      FICHA = null;
+      FILTRO = 'TODOS';
+      mostrarVista('lista');
+      cargarDocentes();
+    }, function () {
+      // Si decide seguir editando, el desplegable vuelve a su rol real.
+      selector.value = SESION.rol;
+    });
   });
 
   $('buscador').addEventListener('input', pintarLista);
@@ -2447,13 +2903,6 @@ function conectarEventos() {
     if (boton) aplicarFiltro(boton.getAttribute('data-filtro'));
   });
 
-  $('filtroRadicadoMen').addEventListener('click', function (evento) {
-    var boton = evento.target.closest('[data-filtro-men]');
-    if (!boton) return;
-    FILTRO_MEN = boton.getAttribute('data-filtro-men');
-    marcarFiltroMen();
-    pintarLista();
-  });
 
   // Delegacion: los botones del listado se crean y destruyen al filtrar.
   $('listaDocentes').addEventListener('click', function (evento) {
@@ -2474,12 +2923,16 @@ function conectarEventos() {
     abrirFicha(boton.getAttribute('data-documento'));
   });
 
-  $('btnVolver').addEventListener('click', volverAlListado);
+  $('btnVolver').addEventListener('click', function () { volverAlListado(); });
+  $('btnGuardar').addEventListener('click', function () { guardarRevision(false); });
   $('btnEditar').addEventListener('click', entrarEnEdicion);
   $('btnCancelarEdicion').addEventListener('click', cancelarEdicion);
   $('btnEnviarRevision').addEventListener('click', enviarRevision);
   $('btnGuardarEnviar').addEventListener('click', function () { guardarRevision(true); });
   $('btnDescargarInforme').addEventListener('click', descargarInformeGestion);
+  $('btnAbrirTablero').addEventListener('click', abrirTablero);
+  $('btnVolverTablero').addEventListener('click', function () { mostrarVista('lista'); });
+  $('btnImprimirTablero').addEventListener('click', function () { window.print(); });
   $('btnCancelarSubsanacion').addEventListener('click', cerrarDialogoSubsanacion);
   $('formSubsanacion').addEventListener('submit', confirmarSubsanacion);
   $('btnAprobar').addEventListener('click', function () { decidirRevision(REV_APROBADO); });
@@ -2487,9 +2940,18 @@ function conectarEventos() {
   $('tabActa').addEventListener('click', function () { mostrarDocumento('acta'); });
   $('tabDiploma').addEventListener('click', function () { mostrarDocumento('diploma'); });
 
+  // El formulario no envía nada por sí mismo: guardar es siempre un clic
+  // deliberado en su botón. Así Enter dentro de un campo de corrección no
+  // interrumpe la captura.
   $('formRevision').addEventListener('submit', function (evento) {
     evento.preventDefault();
-    guardarRevision(false);
+  });
+
+  // Última red: cerrar la pestaña con trabajo sin guardar.
+  window.addEventListener('beforeunload', function (evento) {
+    if (!hayCambiosPendientes()) return;
+    evento.preventDefault();
+    evento.returnValue = '';
   });
 
   $('listaCriterios').addEventListener('change', function (evento) {
@@ -2528,6 +2990,7 @@ function conectarEventos() {
 function mostrarVista(cual) {
   $('vistaLista').classList.toggle('activa', cual === 'lista');
   $('vistaFicha').classList.toggle('activa', cual === 'ficha');
+  $('vistaTablero').classList.toggle('activa', cual === 'tablero');
   window.scrollTo(0, 0);
 }
 
@@ -2580,17 +3043,8 @@ function pintarLista() {
 
   var aprobadosPendientes = delEstado.filter(function (d) { return !d.radicadoMen; }).length;
   var aprobadosRadicados = delEstado.filter(function (d) { return !!d.radicadoMen; }).length;
-  $('filtroRadicadoMen').hidden = FILTRO !== REV_APROBADO || esRevisor();
   if (FILTRO === REV_APROBADO) {
-    $('conteoMenPendientes').textContent = aprobadosPendientes;
-    $('conteoMenRadicados').textContent = aprobadosRadicados;
-    $('conteoMenTodos').textContent = delEstado.length;
-    marcarFiltroMen();
-    if (FILTRO_MEN === 'PENDIENTES') {
-      delEstado = delEstado.filter(function (d) { return !d.radicadoMen; });
-    } else if (FILTRO_MEN === 'RADICADOS') {
-      delEstado = delEstado.filter(function (d) { return !!d.radicadoMen; });
-    }
+    // Los pendientes de radicar primero: es lo que exige acción.
     delEstado.sort(function (a, b) {
       var porRadicado = Number(!!a.radicadoMen) - Number(!!b.radicadoMen);
       return porRadicado || String(a.nombreCompleto || '').localeCompare(
@@ -2680,7 +3134,6 @@ function pintarConteo(visibles, delEstado, texto) {
 function aplicarFiltro(estado) {
   // Volver a pulsar la misma cifra quita el filtro.
   FILTRO = (FILTRO === estado) ? 'TODOS' : estado;
-  if (FILTRO === REV_APROBADO) FILTRO_MEN = 'PENDIENTES';
   marcarFiltro();
   pintarLista();
   anunciar(FILTRO === 'TODOS'
@@ -2688,15 +3141,6 @@ function aplicarFiltro(estado) {
     : 'Filtrando por ' + NOMBRES_GRUPO[FILTRO] + '.');
 }
 
-function marcarFiltroMen() {
-  Array.prototype.forEach.call(
-    $('filtroRadicadoMen').querySelectorAll('[data-filtro-men]'),
-    function (boton) {
-      var activo = boton.getAttribute('data-filtro-men') === FILTRO_MEN;
-      boton.classList.toggle('activo', activo);
-      boton.setAttribute('aria-pressed', activo ? 'true' : 'false');
-    });
-}
 
 /** Sincroniza el aspecto de las cifras con el filtro vigente. */
 function marcarFiltro() {
@@ -2752,13 +3196,16 @@ function tarjetaDocente(docente) {
   }
 
   if (esConsulta()) {
+    // Sin botón a propósito: el servidor no permite a esta cuenta abrir
+    // fichas. Decirlo es más honesto que un botón que fallaría.
+    acciones.appendChild(crear('span', 'nota-accion', 'Solo consulta'));
     fila.appendChild(acciones);
     return fila;
   }
 
   var tieneValidacion = (docente.estado || ESTADO_PENDIENTE) !== ESTADO_PENDIENTE;
   var textoBoton = esTalentoHumano() && !tieneValidacion ? 'Validar' : 'Ver detalle';
-  if (esTalentoHumano() && estado === REV_DEVUELTO) textoBoton = 'Corregir';
+  if (esTalentoHumano() && estado === REV_DEVUELTO) textoBoton = 'Corregir y reenviar';
   if (esRevisor() && estado === REV_EN_REVISION) textoBoton = 'Revisar';
   var boton = crear('button',
     'btn-compacto ' + ((esTalentoHumano() && !tieneValidacion) ||
@@ -2771,7 +3218,7 @@ function tarjetaDocente(docente) {
   acciones.appendChild(boton);
 
   if (esTalentoHumano() && tieneValidacion && estado === REV_POR_ENVIAR) {
-    var enviar = crear('button', 'btn-compacto btn-primario', 'Enviar a revisión');
+    var enviar = crear('button', 'btn-compacto btn-primario', 'Enviar al revisor');
     enviar.type = 'button';
     enviar.setAttribute('data-documento', docente.documento);
     enviar.setAttribute('data-version', String(docente.version || 0));
@@ -2787,6 +3234,14 @@ function tarjetaDocente(docente) {
       subsanar.setAttribute('data-documento', docente.documento);
       subsanar.setAttribute('data-accion', 'subsanar-men');
       acciones.appendChild(subsanar);
+    }
+    if (estadoMen === MEN_SUBSANACION) {
+      // No hay botón porque el servidor rechazaría la radicación hasta que
+      // venza la fecha. Lo que faltaba era decirlo.
+      acciones.appendChild(crear('span', 'nota-accion',
+        docente.fechaDisponibleRadicacion
+          ? 'Se libera solo el ' + docente.fechaDisponibleRadicacion
+          : 'Esperando la fecha de subsanación'));
     }
     if (estadoMen === MEN_PENDIENTE || estadoMen === MEN_LISTO) {
       var radicar = crear('button', 'btn-compacto btn-radicado-men', 'Marcar como radicado');
@@ -2813,13 +3268,22 @@ function insignia(estado) {
    ------------------------------------------------------------ */
 
 function abrirFicha(documento) {
+  // El nombre ya está en el listado: se usa para que la pantalla de carga
+  // diga a quién se está abriendo, en lugar de anunciar una "revisión" que
+  // en el caso de un docente sin validar todavía no existe.
+  var enLista = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
+  var textoCarga = enLista && enLista.nombreCompleto
+    ? 'Abriendo la ficha de ' + enLista.nombreCompleto + '...'
+    : 'Abriendo ficha del docente...';
+
   mostrarVista('ficha');
 
+  $('fichaCargando').querySelector('p').textContent = textoCarga;
   $('fichaCargando').hidden = false;
   $('fichaContenido').hidden = true;
   ocultarAviso($('fichaError'));
   ocultarAviso($('avisoGuardado'));
-  anunciar('Cargando revisión...');
+  anunciar(textoCarga);
 
   servidor('obtenerValidacion', documento, function (datos) {
     $('fichaCargando').hidden = true;
@@ -2844,17 +3308,262 @@ function abrirFicha(documento) {
     pintarFicha();
     anunciar('Ficha de ' + FICHA.docente.nombreCompleto + ' cargada.');
   }, function (mensaje) {
-    // Pase lo que pase, la ficha no se queda en "Cargando revisión...".
+    // Pase lo que pase, la ficha no se queda en "Abriendo...".
     $('fichaCargando').hidden = true;
     $('fichaContenido').hidden = true;
-    mostrarAviso($('fichaError'), 'error', 'No fue posible cargar la revisión: ' + mensaje);
+    mostrarAviso($('fichaError'), 'error', 'No fue posible abrir la ficha: ' + mensaje);
   });
 }
 
-function volverAlListado() {
-  FICHA = null;
-  pintarLista();
-  mostrarVista('lista');
+/**
+ * Vuelve al listado. Con `forzar` en true no pregunta nada: lo usan los
+ * callbacks de exito, donde el trabajo ya esta a salvo en el servidor.
+ */
+function volverAlListado(forzar) {
+  var salir = function () {
+    FICHA = null;
+    pintarLista();
+    mostrarVista('lista');
+  };
+  if (forzar === true) salir();
+  else protegerCambios(salir);
+}
+
+/* ------------------------------------------------------------
+   PROTECCION DEL TRABAJO SIN GUARDAR
+
+   Una ficha a medio llenar son diez criterios y puede que un PDF ya
+   elegido. Antes se perdia en silencio al volver al listado, al cerrar
+   sesion o al cambiar de rol.
+   ------------------------------------------------------------ */
+
+/** true si la ficha abierta tiene algo que el servidor todavia no sabe. */
+function hayCambiosPendientes() {
+  if (!FICHA || FICHA.modo === 'consulta') return false;
+  if (FICHA.archivos && (FICHA.archivos.acta || FICHA.archivos.diploma)) return true;
+  if (FICHA.quitarDiploma) return true;
+
+  // Sin formulario en pantalla no hay nada que comparar.
+  if (!$('listaCriterios').querySelector('.criterio')) return false;
+
+  var actual = recolectar();
+  var guardado = FICHA.guardado;
+
+  if (!guardado) {
+    // Ficha nueva: basta con que haya tocado un criterio o las observaciones.
+    if (actual.observaciones) return true;
+    return Object.keys(actual.criterios).some(function (clave) {
+      return actual.criterios[clave].valor || actual.criterios[clave].correccion;
+    });
+  }
+
+  if ((actual.observaciones || '') !== (guardado.observaciones || '')) return true;
+
+  return Object.keys(actual.criterios).some(function (clave) {
+    var previo = (guardado.criterios && guardado.criterios[clave]) || {};
+    return actual.criterios[clave].valor !== (previo.valor || '') ||
+           actual.criterios[clave].correccion !== (previo.correccion || '');
+  });
+}
+
+/**
+ * Ejecuta `accion`, pero si hay trabajo sin guardar pregunta primero.
+ * `alCancelar` permite deshacer el gesto que disparo la salida (por
+ * ejemplo devolver el selector de rol a su valor anterior).
+ */
+function protegerCambios(accion, alCancelar) {
+  if (!hayCambiosPendientes()) {
+    accion();
+    return;
+  }
+
+  var nombre = FICHA && FICHA.docente ? FICHA.docente.nombreCompleto : 'este docente';
+  confirmar({
+    titulo: 'Hay cambios sin guardar',
+    cuerpo: 'La ficha de ' + nombre + ' tiene cambios que todavía no se han ' +
+            'guardado. Si sale ahora se perderán.',
+    textoConfirmar: 'Descartar y salir',
+    textoCancelar: 'Seguir editando',
+    peligro: true,
+    alConfirmar: accion,
+    alCancelar: alCancelar
+  });
+}
+
+/* ------------------------------------------------------------
+   PANEL DE ETAPA
+
+   Responde tres preguntas en el mismo sitio y siempre arriba:
+   dónde está el expediente, qué significa eso, y qué toca hacer.
+
+   Antes, el motivo de una devolución vivía en un textarea deshabilitado
+   al final de la ficha, después del visor de PDF, y el motivo de una
+   subsanación no se mostraba en ninguna parte de la aplicación.
+   ------------------------------------------------------------ */
+
+function pintarPanelEtapa(estadoRevision) {
+  var panel = $('panelEtapa');
+  vaciar(panel);
+
+  var v = FICHA.guardado;
+  var estadoMen = v && estadoRevision === REV_APROBADO
+    ? (v.estadoMen || (v.radicadoMen ? MEN_RADICADO : MEN_PENDIENTE))
+    : '';
+
+  var etapa = describirEtapa_(estadoRevision, estadoMen, v);
+  if (!etapa) {
+    panel.hidden = true;
+    return;
+  }
+
+  panel.className = 'panel-etapa panel-etapa-' + etapa.tono;
+
+  var titulo = crear('h3', null, etapa.titulo);
+  titulo.id = 'panelEtapaTitulo';
+  panel.appendChild(titulo);
+
+  etapa.parrafos.forEach(function (texto) {
+    if (texto) panel.appendChild(crear('p', null, texto));
+  });
+
+  if (etapa.cita) {
+    var cita = crear('blockquote', 'panel-etapa-cita');
+    cita.appendChild(crear('p', null, etapa.cita));
+    if (etapa.citaPie) cita.appendChild(crear('footer', null, etapa.citaPie));
+    panel.appendChild(cita);
+  }
+
+  if (etapa.lista && etapa.lista.length) {
+    var ul = crear('ul', 'panel-etapa-lista');
+    etapa.lista.forEach(function (item) { ul.appendChild(crear('li', null, item)); });
+    panel.appendChild(ul);
+  }
+
+  panel.hidden = false;
+}
+
+/** Devuelve { tono, titulo, parrafos[], cita, citaPie, lista[] } o null. */
+function describirEtapa_(estadoRevision, estadoMen, v) {
+  var quien = esTalentoHumano() ? 'th' : esRevisor() ? 'rev' : 'consulta';
+
+  /* --- Etapa MEN: aplica a cualquiera que mire un aprobado --- */
+  if (estadoMen === MEN_SUBSANACION) {
+    return {
+      tono: 'espera',
+      titulo: 'En subsanación · no hay que hacer nada todavía',
+      parrafos: [
+        v.fechaDisponibleRadicacion
+          ? 'Este expediente pasará automáticamente a «Listo para radicar» el ' +
+            v.fechaDisponibleRadicacion + '. Hasta entonces el sistema no permite radicarlo.'
+          : 'Este expediente está en subsanación y todavía no se puede radicar.'
+      ],
+      cita: v.motivoSubsanacion || '',
+      citaPie: v.subsanacionPor
+        ? 'Motivo registrado por ' + v.subsanacionPor +
+          (v.fechaSubsanacion ? ' el ' + v.fechaSubsanacion : '')
+        : ''
+    };
+  }
+
+  if (estadoMen === MEN_LISTO) {
+    return {
+      tono: 'accion',
+      titulo: 'Listo para radicar ante el MEN',
+      parrafos: [
+        quien === 'rev'
+          ? 'La fecha de subsanación ya venció. Radique el expediente en la plataforma ' +
+            'del Ministerio y después vuelva aquí y márquelo como radicado.'
+          : 'La fecha de subsanación ya venció. El revisor puede radicarlo ante el MEN.'
+      ],
+      cita: v.motivoSubsanacion || '',
+      citaPie: v.motivoSubsanacion ? 'Motivo de la subsanación que acaba de vencer' : ''
+    };
+  }
+
+  if (estadoMen === MEN_RADICADO) {
+    return {
+      tono: 'cerrado',
+      titulo: 'Radicado ante el MEN',
+      parrafos: ['El trámite de este docente está cerrado.' +
+        (v.radicadoPor ? ' Lo radicó ' + v.radicadoPor : '') +
+        (v.fechaRadicacionMen ? ' el ' + v.fechaRadicacionMen + '.' : '.')]
+    };
+  }
+
+  if (estadoMen === MEN_PENDIENTE) {
+    return {
+      tono: 'accion',
+      titulo: quien === 'rev'
+        ? 'Aprobado · falta radicarlo ante el MEN'
+        : 'Aprobado · Talento Humano ya terminó con este docente',
+      parrafos: [
+        quien === 'rev'
+          ? 'Radíquelo en la plataforma del Ministerio y después vuelva aquí y márquelo ' +
+            'como radicado. Si todavía no puede radicarlo, póngalo en subsanación con la ' +
+            'fecha en que sí podrá.'
+          : 'La radicación ante el MEN la realiza el revisor, en la plataforma del ' +
+            'Ministerio, fuera de esta aplicación. Usted no tiene que hacer nada más ' +
+            'con este docente.'
+      ]
+    };
+  }
+
+  /* --- Etapa de revisión interna --- */
+  if (estadoRevision === REV_DEVUELTO) {
+    var noConformes = [];
+    if (v && v.revisionCriterios) {
+      APP.criterios.forEach(function (c) {
+        if (v.revisionCriterios[c.clave] === 'NO_CONFORME') noConformes.push(c.etiqueta);
+      });
+    }
+    return {
+      tono: 'atencion',
+      titulo: quien === 'th'
+        ? 'Devuelto para corregir · le toca a usted'
+        : 'Devuelto a Talento Humano',
+      parrafos: [
+        quien === 'th'
+          ? 'El revisor encontró diferencias. Corrija lo señalado y vuelva a enviarlo.'
+          : 'Este expediente está en manos de Talento Humano.'
+      ],
+      cita: (v && v.observacionRevision) || '',
+      citaPie: v && v.revisadoPor
+        ? 'Observación de ' + v.revisadoPor + (v.fechaRevision ? ' el ' + v.fechaRevision : '')
+        : '',
+      lista: noConformes.length
+        ? ['Criterios marcados como no conformes:'].concat(noConformes)
+        : []
+    };
+  }
+
+  if (estadoRevision === REV_EN_REVISION) {
+    return {
+      tono: 'espera',
+      titulo: quien === 'rev' ? 'Pendiente de su decisión' : 'En manos del revisor',
+      parrafos: [
+        quien === 'rev'
+          ? 'Compare cada dato con los soportes y apruebe o devuelva el expediente.'
+          : 'Ya lo envió' + (v && v.fechaEnvio ? ' el ' + v.fechaEnvio : '') +
+            '. No requiere ninguna acción suya hasta que el revisor lo apruebe o lo devuelva.'
+      ]
+    };
+  }
+
+  if (estadoRevision === REV_POR_ENVIAR && quien === 'th') {
+    return {
+      tono: 'accion',
+      titulo: v ? 'Borrador guardado · falta enviarlo al revisor'
+                : 'Sin cargar · empiece por validar los datos',
+      parrafos: [
+        v ? 'Este expediente sigue en su bandeja. El revisor no lo ve hasta que pulse ' +
+            '«Enviar al revisor».'
+          : 'Compare cada dato reportado a SNIES con los soportes, cargue el acta de grado ' +
+            'y envíelo al revisor.'
+      ]
+    };
+  }
+
+  return null;
 }
 
 /* ------------------------------------------------------------
@@ -2878,6 +3587,9 @@ function pintarFicha() {
   marca.className = 'insignia insignia-' + estadoRevision;
   marca.textContent = NOMBRES_REVISION[estadoRevision] || NOMBRES_REVISION.POR_ENVIAR;
 
+  // La segunda insignia cambia de significado según la etapa, así que su
+  // micro-rótulo también: sin él, dos insignias contiguas e idénticas
+  // decían cosas distintas sin avisar.
   var marcaDato = $('fichaInsigniaDato');
   if (estadoRevision === REV_APROBADO) {
     var estadoMenFicha = FICHA.guardado.estadoMen ||
@@ -2887,12 +3599,17 @@ function pintarFicha() {
       : estadoMenFicha === MEN_SUBSANACION ? 'insignia-men-subsanacion'
         : estadoMenFicha === MEN_LISTO ? 'insignia-men-listo' : 'insignia-men-pendiente');
     marcaDato.textContent = NOMBRES_MEN[estadoMenFicha] || NOMBRES_MEN.PENDIENTE;
+    $('rotuloInsigniaDato').textContent = 'MEN';
   } else {
     marcaDato.className = 'insignia insignia-' + estadoDato;
     marcaDato.textContent = NOMBRES_ESTADO[estadoDato] || NOMBRES_ESTADO.PENDIENTE;
+    $('rotuloInsigniaDato').textContent = 'Datos';
   }
 
   $('btnEditar').hidden = !(FICHA.modo === 'consulta' && FICHA.guardado && puedeEditarValidacion());
+
+  /* --- En qué punto está y qué toca hacer --- */
+  pintarPanelEtapa(estadoRevision);
 
   /* --- Marcas de la revision guardada --- */
   pintarMarcas();
@@ -3023,7 +3740,7 @@ function pintarMarcas() {
     celda.appendChild(crear('span', 'ficha-paso-numero', paso.completo ? '✓' : String(indice + 1)));
     var contenido = crear('div', 'ficha-paso-contenido');
     contenido.appendChild(crear('p', 'ficha-paso-titulo', paso.titulo));
-    contenido.appendChild(crear('p', 'ficha-paso-valor', paso.valor || 'Pendiente'));
+    contenido.appendChild(crear('p', 'ficha-paso-valor', paso.valor || 'Sin registrar'));
     contenido.appendChild(crear('p', 'ficha-paso-detalle',
       paso.detalle || (paso.completo ? 'Sin responsable registrado' : 'Aún no registrado')));
     celda.appendChild(contenido);
@@ -3088,8 +3805,11 @@ function mostrarDocumento(tipo) {
 
 function pintarPanelRevisor() {
   var panel = $('panelRevisor');
-  if (!FICHA || !FICHA.guardado ||
-      (esTalentoHumano() && !FICHA.guardado.decisionRevision)) {
+
+  // Talento Humano ya no ve este panel: su contenido útil —el veredicto y
+  // el motivo de la devolución— lo entrega ahora el panel de etapa, arriba
+  // de la ficha, en vez de un textarea deshabilitado detrás del visor de PDF.
+  if (!FICHA || !FICHA.guardado || esTalentoHumano()) {
     panel.hidden = true;
     actualizarDisposicionRevision();
     return;
@@ -3729,26 +4449,44 @@ function guardarRevision(enviarDespues) {
         if (envio && envio.resumen) APP.resumen = envio.resumen;
         actualizarDocenteEnLista(envio.documento, respuesta.estado,
           envio.estadoRevision, envio.version);
-        volverAlListado();
+        volverAlListado(true);
         pintarIndicadores();
         mostrarAviso($('avisoGeneral'), 'exito',
-          '✓ ' + nombreDocente + ' fue guardado y enviado al revisor.');
+          '✓ ' + nombreDocente + ' fue guardado y enviado al revisor. ' +
+          'La radicación ante el MEN la hará el revisor: usted ya terminó con este docente.',
+          true);
       }, function (mensajeEnvio) {
         terminar();
-        FICHA.modo = 'consulta';
+        // El borrador SI se guardó: la ficha sigue editable para que pueda
+        // reintentar el envío sin volver a capturarlo todo.
+        FICHA.guardado = respuesta.validacion;
+        FICHA.archivos = { acta: null, diploma: null };
+        FICHA.quitarDiploma = false;
         pintarFicha();
         mostrarAviso($('avisoGuardado'), 'error',
-          'El borrador quedó guardado, pero no fue posible enviarlo: ' + mensajeEnvio);
+          'El borrador quedó guardado, pero no fue posible enviarlo: ' + mensajeEnvio +
+          ' Vuelva a pulsar «Enviar al revisor» cuando quiera reintentarlo.');
       });
       return;
     }
 
     terminar();
 
-    volverAlListado();
-    mostrarAviso($('avisoGeneral'), 'aviso',
-      'Borrador de ' + nombreDocente + ' guardado. Aún debe enviarlo a revisión.');
-    anunciar('Borrador guardado. Falta enviarlo a revisión.');
+    // Guardar ya NO expulsa al listado: se sigue trabajando en la misma
+    // ficha. Los PDF ya subieron, así que se limpian de memoria.
+    FICHA.guardado = respuesta.validacion;
+    FICHA.archivos = { acta: null, diploma: null };
+    FICHA.quitarDiploma = false;
+    // Ya existe registro guardado: deja de ser una ficha nueva y pasa a
+    // edición, con lo que aparece "Cancelar edición" para volver atrás.
+    FICHA.modo = 'edicion';
+    pintarFicha();
+
+    // Después de pintarFicha, que termina ocultando este mismo aviso.
+    mostrarAviso($('avisoGuardado'), 'exito',
+      '✓ Borrador de ' + nombreDocente + ' guardado. Sigue siendo suyo: ' +
+      'todavía no lo ha enviado al revisor.', true);
+    anunciar('Borrador guardado. Falta enviarlo al revisor.');
 
   }, function (mensaje) {
     terminar();
@@ -3774,10 +4512,11 @@ function enviarRevision() {
     if (respuesta && respuesta.resumen) APP.resumen = respuesta.resumen;
     actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
-    volverAlListado();
+    volverAlListado(true);
     pintarIndicadores();
     mostrarAviso($('avisoGeneral'), 'exito',
-      '✓ ' + nombre + ' fue enviado al revisor. El registro quedó bloqueado para edición.');
+      '✓ ' + nombre + ' fue enviado al revisor. El registro quedó bloqueado para edición. ' +
+      'La radicación ante el MEN la hará el revisor: usted ya terminó con este docente.', true);
   }, function (mensaje) {
     FICHA.guardando = false;
     boton.disabled = false;
@@ -3790,6 +4529,21 @@ function enviarRevisionDesdeLista(boton) {
   if (!esTalentoHumano() || !boton || boton.disabled) return;
   var documento = boton.getAttribute('data-documento');
   var docente = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
+  var nombre = docente && docente.nombreCompleto ? docente.nombreCompleto : documento;
+
+  // Enviar bloquea el expediente: es la acción irreversible de este rol y
+  // hasta ahora era la única que no pedía confirmación.
+  confirmar({
+    titulo: 'Enviar al revisor',
+    cuerpo: nombre + ' pasará al revisor y quedará bloqueado para edición. ' +
+            'No podrá modificarlo hasta que lo aprueben o se lo devuelvan.',
+    textoConfirmar: 'Enviar al revisor',
+    textoCancelar: 'Cancelar',
+    alConfirmar: function () { ejecutarEnvioDesdeLista(boton, documento, nombre); }
+  });
+}
+
+function ejecutarEnvioDesdeLista(boton, documento, nombre) {
   boton.disabled = true;
   boton.textContent = 'Enviando...';
   mostrarCapa('Enviando al revisor...');
@@ -3802,13 +4556,13 @@ function enviarRevisionDesdeLista(boton) {
     actualizarDocenteEnLista(respuesta.documento, null, respuesta.estadoRevision, respuesta.version);
     pintarIndicadores();
     pintarLista();
-    mostrarAviso($('avisoGeneral'), 'exito', '✓ ' +
-      (docente && docente.nombreCompleto ? docente.nombreCompleto : documento) +
-      ' fue enviado al revisor.');
+    mostrarAviso($('avisoGeneral'), 'exito',
+      '✓ ' + nombre + ' fue enviado al revisor. La radicación ante el MEN la hará ' +
+      'el revisor: usted ya terminó con este docente.', true);
   }, function (mensaje) {
     ocultarCapa();
     boton.disabled = false;
-    boton.textContent = 'Enviar a revisión';
+    boton.textContent = 'Enviar al revisor';
     mostrarAviso($('avisoGeneral'), 'error', 'No fue posible enviar la revisión: ' + mensaje);
   });
 }
@@ -3877,11 +4631,12 @@ function decidirRevision(decision) {
     var actualizado = APP.docentes.filter(function (d) { return d.documento === respuesta.documento; })[0];
     if (actualizado && respuesta.estadoMen) actualizado.estadoMen = respuesta.estadoMen;
     var nombre = FICHA.docente.nombreCompleto || FICHA.documento;
-    volverAlListado();
+    volverAlListado(true);
     pintarIndicadores();
     mostrarAviso($('avisoGeneral'), 'exito', decision === REV_APROBADO
-      ? '✓ Revisión de ' + nombre + ' aprobada. Ahora está pendiente de radicación ante el MEN.'
-      : '↩ Revisión de ' + nombre + ' devuelta a Talento Humano.');
+      ? '✓ Revisión de ' + nombre + ' aprobada. Falta radicarla ante el MEN: hágalo en la ' +
+        'plataforma del Ministerio y vuelva a marcarla aquí.'
+      : '↩ Revisión de ' + nombre + ' devuelta a Talento Humano para corregir.', true);
   }, function (mensaje) {
     FICHA.guardando = false;
     $('btnAprobar').disabled = false;
@@ -3968,6 +4723,316 @@ function descargarCsv(nombre, filas) {
   }, 0);
 }
 
+/* ------------------------------------------------------------
+   TABLERO DE GESTIÓN
+
+   Pantalla imprimible con el estado de la auditoría y lo hecho por
+   cada usuario. Reutiliza obtenerInformeGestion tal cual: no añade
+   ninguna acción nueva al servidor.
+
+   HONESTIDAD CON LAS FECHAS: el rango desde/hasta filtra el historial
+   y la actividad por persona, pero NO el estado actual, que siempre es
+   la foto de hoy. En vez de disimularlo, los selectores viven dentro
+   del bloque que gobiernan y cada bloque lleva su propia estampa.
+   ------------------------------------------------------------ */
+
+var INFORME = null;
+
+function abrirTablero() {
+  if (!esRevisor()) return;
+  mostrarVista('tablero');
+  cargarInforme();
+}
+
+function cargarInforme() {
+  $('tableroCargando').hidden = false;
+  $('tableroContenido').hidden = true;
+  ocultarAviso($('tableroError'));
+
+  servidor('obtenerInformeGestion', {
+    desde: $('informeDesde').value,
+    hasta: $('informeHasta').value
+  }, function (informe) {
+    $('tableroCargando').hidden = true;
+    INFORME = informe;
+    pintarTablero(informe);
+    $('tableroContenido').hidden = false;
+  }, function (mensaje) {
+    $('tableroCargando').hidden = true;
+    mostrarAviso($('tableroError'), 'error', 'No fue posible generar el informe: ' + mensaje);
+  });
+}
+
+/** Construye una tabla del informe. filas es un array de arrays. */
+function tablaInforme(encabezados, filas) {
+  var tabla = crear('table', 'tabla-informe');
+  var thead = crear('thead');
+  var filaEnc = crear('tr');
+  encabezados.forEach(function (texto) { filaEnc.appendChild(crear('th', null, texto)); });
+  thead.appendChild(filaEnc);
+  tabla.appendChild(thead);
+
+  var tbody = crear('tbody');
+  filas.forEach(function (fila) {
+    var tr = crear('tr');
+    fila.forEach(function (celda) { tr.appendChild(crear('td', null, celda === '' || celda == null ? '—' : String(celda))); });
+    tbody.appendChild(tr);
+  });
+  tabla.appendChild(tbody);
+  return tabla;
+}
+
+/** Rótulo en versalita que estampa a qué momento corresponde un bloque. */
+function estampa(texto) { return crear('p', 'estampa', texto); }
+
+function textoPeriodo() {
+  var desde = $('informeDesde').value;
+  var hasta = $('informeHasta').value;
+  if (!desde && !hasta) return 'Todo el historial registrado';
+  return 'Movimientos entre ' + (desde || 'el inicio') + ' y ' + (hasta || 'hoy');
+}
+
+function pintarTablero(informe) {
+  var caja = $('tableroContenido');
+  vaciar(caja);
+
+  var resumen = informe.resumen || {};
+  var historial = informe.historial || [];
+  var registros = informe.registros || [];
+
+  /* --- A. Membrete --------------------------------------------- */
+  var membrete = crear('div', 'tarjeta');
+  var titulo = crear('h2', 'titulo-vista', 'Informe de gestión');
+  titulo.id = 'tableroTitulo';
+  membrete.appendChild(titulo);
+  membrete.appendChild(crear('p', 'descripcion-vista', APP.auditoria || 'Auditoría documental de docentes'));
+
+  var datos = crear('div', 'informe-membrete');
+  [['Generado', informe.generado || ''],
+   ['Solicitado por', (APP.perfil && APP.perfil.correo) || ''],
+   ['Periodo consultado', textoPeriodo()]].forEach(function (par) {
+    var celda = crear('div');
+    celda.appendChild(crear('p', 'estampa', par[0]));
+    celda.appendChild(crear('p', null, par[1] || '—'));
+    datos.appendChild(celda);
+  });
+  membrete.appendChild(datos);
+
+  membrete.appendChild(crear('p', 'nota-pie',
+    'Las cifras de estado corresponden al momento de generar este informe, no al ' +
+    'periodo elegido. El periodo solo filtra los movimientos registrados en el ' +
+    'historial. Este informe no reconstruye el estado que los registros tenían en ' +
+    'una fecha pasada.'));
+  caja.appendChild(membrete);
+
+  /* --- B. Estado a hoy ----------------------------------------- */
+  var bloqueB = crear('div', 'tarjeta tarjeta-neutra');
+  bloqueB.appendChild(crear('p', 'subtitulo', 'Estado de la auditoría'));
+  bloqueB.appendChild(estampa('Estado a ' + (informe.generado || 'hoy') + ' · no depende del periodo'));
+
+  var tira = crear('div', 'tira-indicadores tira-informe');
+  [['Total docentes', resumen.total, 'total'],
+   ['Sin cargar', resumen.pendientesCarga, 'sin-cargar'],
+   ['Borradores sin enviar', resumen.porEnviar, 'pendientes'],
+   ['En revisión', resumen.enRevision, 'revision'],
+   ['Devueltos', resumen.devueltos, 'correccion'],
+   ['Aprobados', resumen.aprobados, 'validados'],
+   ['Por radicar (MEN)', resumen.menPendientes, 'men-pendiente'],
+   ['En subsanación', resumen.menSubsanacion, 'men-subsanacion'],
+   ['Listos para radicar', resumen.menListos, 'men-listo'],
+   ['Radicados ante el MEN', resumen.menRadicados, 'men-radicado']
+  ].forEach(function (item) {
+    var celda = crear('div', 'indicador indicador-' + item[2]);
+    celda.appendChild(crear('p', null, item[0]));
+    celda.appendChild(crear('p', null, item[1] == null ? '—' : String(item[1])));
+    tira.appendChild(celda);
+  });
+  bloqueB.appendChild(tira);
+  caja.appendChild(bloqueB);
+
+  /* --- C. Movimientos del periodo ------------------------------ */
+  var bloqueC = crear('div', 'tarjeta tarjeta-neutra');
+  var cabeceraC = crear('div', 'informe-cabecera');
+  var textosC = crear('div');
+  textosC.appendChild(crear('p', 'subtitulo', 'Movimientos del periodo'));
+  textosC.appendChild(estampa(textoPeriodo()));
+  cabeceraC.appendChild(textosC);
+
+  // Los selectores viven aquí, dentro del bloque que gobiernan: quien los
+  // mueve ve cambiar este bloque y ve que el de arriba no se inmuta.
+  var controles = crear('div', 'informe-controles acciones-tablero');
+  var etiquetaDesde = crear('label', null, 'Desde ');
+  var campoDesde = document.createElement('input');
+  campoDesde.type = 'date';
+  campoDesde.value = $('informeDesde').value;
+  campoDesde.addEventListener('change', function () { $('informeDesde').value = this.value; });
+  etiquetaDesde.appendChild(campoDesde);
+
+  var etiquetaHasta = crear('label', null, 'Hasta ');
+  var campoHasta = document.createElement('input');
+  campoHasta.type = 'date';
+  campoHasta.value = $('informeHasta').value;
+  campoHasta.addEventListener('change', function () { $('informeHasta').value = this.value; });
+  etiquetaHasta.appendChild(campoHasta);
+
+  var actualizar = crear('button', 'btn-secundario btn-compacto', 'Actualizar');
+  actualizar.type = 'button';
+  actualizar.addEventListener('click', cargarInforme);
+
+  controles.appendChild(etiquetaDesde);
+  controles.appendChild(etiquetaHasta);
+  controles.appendChild(actualizar);
+  cabeceraC.appendChild(controles);
+  bloqueC.appendChild(cabeceraC);
+
+  var porEvento = {};
+  historial.forEach(function (h) { porEvento[h.evento] = (porEvento[h.evento] || 0) + 1; });
+
+  var embudo = crear('div', 'informe-embudo');
+  ['GUARDADO', 'ENVIADO_A_REVISION', 'APROBADO', 'APROBADO_CON_CORRECCION_REVISOR',
+   'DEVUELTO', 'SUBSANACION_MEN', 'RADICADO_MEN'].forEach(function (evento) {
+    var celda = crear('div', 'informe-embudo-celda');
+    celda.appendChild(crear('p', 'estampa', NOMBRES_EVENTO[evento] || evento));
+    celda.appendChild(crear('p', 'informe-cifra', String(porEvento[evento] || 0)));
+    embudo.appendChild(celda);
+  });
+  bloqueC.appendChild(embudo);
+
+  if (!historial.length) {
+    bloqueC.appendChild(crear('p', 'nota-pie', 'No hay movimientos registrados en este periodo.'));
+  }
+  caja.appendChild(bloqueC);
+
+  /* --- D. Actividad por persona -------------------------------- */
+  var bloqueD = crear('div', 'tarjeta tarjeta-neutra');
+  bloqueD.appendChild(crear('p', 'subtitulo', 'Actividad por persona'));
+  bloqueD.appendChild(estampa(textoPeriodo()));
+
+  var usuarios = informe.usuarios || [];
+  if (!usuarios.length) {
+    bloqueD.appendChild(crear('p', 'nota-pie', 'Ninguna persona registró actividad en este periodo.'));
+  } else {
+    var eventosUsados = [];
+    usuarios.forEach(function (u) {
+      Object.keys(u.eventos || {}).forEach(function (e) {
+        if (eventosUsados.indexOf(e) === -1) eventosUsados.push(e);
+      });
+    });
+    bloqueD.appendChild(tablaInforme(
+      ['Persona', 'Rol', 'Total'].concat(eventosUsados.map(function (e) {
+        return NOMBRES_EVENTO[e] || e;
+      })),
+      usuarios.map(function (u) {
+        return [u.correo, NOMBRES_ROL[u.rol] || u.rol, u.total].concat(
+          eventosUsados.map(function (e) { return (u.eventos && u.eventos[e]) || 0; }));
+      })));
+  }
+  caja.appendChild(bloqueD);
+
+  /* --- E. Cola que exige acción -------------------------------- */
+  caja.appendChild(pintarColas(registros, informe.generado));
+
+  /* --- F. Detalle de movimientos ------------------------------- */
+  var bloqueF = crear('div', 'tarjeta tarjeta-neutra');
+  bloqueF.appendChild(crear('p', 'subtitulo', 'Detalle de movimientos'));
+  bloqueF.appendChild(estampa(textoPeriodo()));
+
+  if (!historial.length) {
+    bloqueF.appendChild(crear('p', 'nota-pie', 'Sin movimientos en el periodo.'));
+  } else {
+    var recientes = historial.slice().reverse().slice(0, 150);
+    bloqueF.appendChild(tablaInforme(
+      ['Fecha', 'Docente', 'Movimiento', 'Persona', 'Observación'],
+      recientes.map(function (h) {
+        return [h.fecha, h.docente || h.documento,
+          NOMBRES_EVENTO[h.evento] || h.evento, h.correo, h.observacion || ''];
+      })));
+    if (historial.length > 150) {
+      bloqueF.appendChild(crear('p', 'nota-pie',
+        'Se muestran los 150 movimientos más recientes de ' + historial.length +
+        '. El detalle completo está en la descarga CSV.'));
+    }
+  }
+  caja.appendChild(bloqueF);
+
+  // Solo visible en papel: repite las dos estampas para que una hoja
+  // suelta siga diciendo a qué momento corresponde.
+  caja.appendChild(crear('p', 'pie-impreso',
+    (APP.auditoria || 'Auditoría documental') +
+    ' · Estado a ' + (informe.generado || 'hoy') +
+    ' · ' + textoPeriodo() +
+    ' · Generado por ' + ((APP.perfil && APP.perfil.correo) || '')));
+}
+
+/** Bloque E: lo que espera una acción concreta, con quién la debe hacer. */
+function pintarColas(registros, generado) {
+  var bloque = crear('div', 'tarjeta');
+  bloque.appendChild(crear('p', 'subtitulo', 'Cola que exige acción'));
+  bloque.appendChild(estampa('Estado a ' + (generado || 'hoy') + ' · no depende del periodo'));
+
+  var aprobados = registros.filter(function (r) { return r.estadoRevision === REV_APROBADO; });
+
+  var grupos = [
+    {
+      titulo: 'Listos para radicar ante el MEN',
+      responsable: 'Revisor',
+      filas: aprobados.filter(function (r) { return r.estadoMen === MEN_LISTO; }),
+      columnas: ['Documento', 'Docente', 'Disponible desde'],
+      celdas: function (r) { return [r.documento, r.docente, r.fechaDisponibleRadicacion || '']; }
+    },
+    {
+      titulo: 'Por radicar ante el MEN',
+      responsable: 'Revisor',
+      filas: aprobados.filter(function (r) {
+        return !r.estadoMen || r.estadoMen === MEN_PENDIENTE;
+      }),
+      columnas: ['Documento', 'Docente', 'Aprobado el'],
+      celdas: function (r) { return [r.documento, r.docente, r.fechaRevision || '']; }
+    },
+    {
+      titulo: 'En subsanación, esperando fecha',
+      responsable: 'Nadie hasta la fecha indicada',
+      filas: aprobados.filter(function (r) { return r.estadoMen === MEN_SUBSANACION; }),
+      columnas: ['Documento', 'Docente', 'Se libera el', 'Motivo'],
+      celdas: function (r) {
+        return [r.documento, r.docente, r.fechaDisponibleRadicacion || '', r.motivoSubsanacion || ''];
+      }
+    },
+    {
+      titulo: 'Devueltos sin reenviar',
+      responsable: 'Talento Humano',
+      filas: registros.filter(function (r) { return r.estadoRevision === REV_DEVUELTO; }),
+      columnas: ['Documento', 'Docente', 'Devuelto el', 'Motivo'],
+      celdas: function (r) {
+        return [r.documento, r.docente, r.fechaRevision || '', r.observacionRevision || ''];
+      }
+    },
+    {
+      titulo: 'Esperando decisión del revisor',
+      responsable: 'Revisor',
+      filas: registros.filter(function (r) { return r.estadoRevision === REV_EN_REVISION; }),
+      columnas: ['Documento', 'Docente', 'Enviado el'],
+      celdas: function (r) { return [r.documento, r.docente, r.fechaEnvio || '']; }
+    }
+  ];
+
+  var algo = false;
+  grupos.forEach(function (g) {
+    if (!g.filas.length) return;
+    algo = true;
+    var cabecera = crear('div', 'informe-cola-titulo');
+    cabecera.appendChild(crear('h3', null, g.titulo + ' (' + g.filas.length + ')'));
+    cabecera.appendChild(crear('span', 'insignia insignia-responsable', g.responsable));
+    bloque.appendChild(cabecera);
+    bloque.appendChild(tablaInforme(g.columnas, g.filas.map(g.celdas)));
+  });
+
+  if (!algo) {
+    bloque.appendChild(crear('p', 'nota-pie', 'No hay expedientes esperando acción.'));
+  }
+  return bloque;
+}
+
 function descargarInformeGestion() {
   if (!esRevisor()) return;
   var boton = $('btnDescargarInforme');
@@ -4026,21 +5091,26 @@ function descargarInformeGestion() {
 function confirmarRadicadoMenDesdeLista(boton) {
   if (!esRevisor() || !boton || boton.disabled) return;
 
-  if (boton.getAttribute('data-confirmando') !== 'si') {
-    boton.setAttribute('data-confirmando', 'si');
-    boton.textContent = 'CONFIRMAR RADICACIÓN';
-    boton.classList.add('confirmando');
-    anunciar('Pulse nuevamente para confirmar el radicado MEN.');
-    setTimeout(function () {
-      if (boton.isConnected && !boton.disabled) {
-        boton.removeAttribute('data-confirmando');
-        boton.textContent = 'Marcar como radicado';
-        boton.classList.remove('confirmando');
-      }
-    }, 8000);
-    return;
-  }
+  var doc = boton.getAttribute('data-documento');
+  var nombreDocente = (APP.docentes.filter(function (item) {
+    return item.documento === doc;
+  })[0] || {}).nombreCompleto || doc;
 
+  // Sustituye al doble clic que caducaba a los 8 segundos sin avisar. El
+  // diálogo además explica qué significa la marca, que era lo que de
+  // verdad faltaba: no radica nada, solo deja constancia.
+  confirmar({
+    titulo: 'Marcar como radicado ante el MEN',
+    cuerpo: 'Confirme que ya cargó a ' + nombreDocente + ' en la plataforma del ' +
+            'Ministerio. Esta marca no radica nada por sí sola: solo deja constancia ' +
+            'en el sistema de que el trámite externo ya se hizo.',
+    textoConfirmar: 'Sí, ya lo radiqué',
+    textoCancelar: 'Todavía no',
+    alConfirmar: function () { ejecutarRadicadoDesdeLista(boton); }
+  });
+}
+
+function ejecutarRadicadoDesdeLista(boton) {
   var documento = boton.getAttribute('data-documento');
   var docente = APP.docentes.filter(function (item) { return item.documento === documento; })[0];
   boton.disabled = true;
@@ -4068,9 +5138,7 @@ function confirmarRadicadoMenDesdeLista(boton) {
   }, function (mensaje) {
     ocultarCapa();
     boton.disabled = false;
-    boton.removeAttribute('data-confirmando');
     boton.textContent = 'Marcar como radicado';
-    boton.classList.remove('confirmando');
     mostrarAviso($('avisoGeneral'), 'error', 'No fue posible registrar el radicado MEN: ' + mensaje);
   });
 }
