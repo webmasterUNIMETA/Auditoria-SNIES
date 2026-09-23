@@ -338,7 +338,7 @@ main {
    BANDEJA: AVANCE Y PESTANAS
 
    La barra resume el recorrido completo; las pestanas separan el
-   trabajo propio, lo que esta en otras manos y lo ya cerrado.
+   trabajo propio, lo que sigue en curso y lo ya finalizado.
    ============================================================ */
 
 .bandeja-cabecera { padding-bottom: 22px; }
@@ -1788,15 +1788,15 @@ button:disabled { opacity: .5; cursor: not-allowed; }
     <div class="pestanas" id="pestanasBandeja" role="tablist" aria-label="Bandeja de docentes">
       <button type="button" role="tab" class="pestana" id="pestanaMia" data-pestana="MIA"
               aria-selected="true" aria-controls="listaDocentes">
-        <span class="pestana-rotulo">Le toca a usted</span> <span class="pestana-cifra" id="cifraMia"></span>
+        <span class="pestana-rotulo">Por gestionar</span> <span class="pestana-cifra" id="cifraMia"></span>
       </button>
       <button type="button" role="tab" class="pestana" id="pestanaOtras" data-pestana="OTRAS"
               aria-selected="false" aria-controls="listaDocentes" tabindex="-1">
-        <span class="pestana-rotulo">En otras manos</span> <span class="pestana-cifra" id="cifraOtras"></span>
+        <span class="pestana-rotulo">En seguimiento</span> <span class="pestana-cifra" id="cifraOtras"></span>
       </button>
       <button type="button" role="tab" class="pestana" id="pestanaCerrados" data-pestana="CERRADOS"
               aria-selected="false" aria-controls="listaDocentes" tabindex="-1">
-        <span class="pestana-rotulo">Cerrados</span> <span class="pestana-cifra" id="cifraCerrados"></span>
+        <span class="pestana-rotulo">Finalizados</span> <span class="pestana-cifra" id="cifraCerrados"></span>
       </button>
     </div>
 
@@ -2148,7 +2148,7 @@ var ACCIONES_SITUACION = {
 };
 
 /**
- * Orden dentro de "Le toca a usted": lo mas urgente primero. Radicado va
+ * Orden dentro de "Por gestionar": lo mas urgente primero. Radicado va
  * al final a proposito: son muchos y no deben tapar lo que espera decision.
  */
 var PRIORIDAD_BANDEJA = {
@@ -2854,7 +2854,7 @@ function titulosPorRol() {
   $('btnAbrirTablero').hidden = !(esRevisor() || esConsulta());
   $('pestanaMia').hidden = esConsulta();
   $('pestanaOtras').querySelector('.pestana-rotulo').textContent =
-    esConsulta() ? 'En curso' : 'En otras manos';
+    esConsulta() ? 'En curso' : 'En seguimiento';
 }
 
 /** Marca el acta y el diploma como obligatorios u opcionales. */
@@ -3116,7 +3116,7 @@ function marcarPestanas() {
     });
 }
 
-var NOMBRES_PESTANA = { MIA: 'Le toca a usted', OTRAS: 'En otras manos', CERRADOS: 'Cerrados' };
+var NOMBRES_PESTANA = { MIA: 'Por gestionar', OTRAS: 'En seguimiento', CERRADOS: 'Finalizados' };
 
 function nombrePestana(p) {
   if (p === 'OTRAS' && esConsulta()) return 'En curso';
@@ -3132,7 +3132,7 @@ function pintarVacio(cuantos, texto) {
       nodo.appendChild(document.createTextNode('No hay docentes que coincidan con la búsqueda en esta pestaña.'));
     } else if (PESTANA === 'MIA') {
       nodo.appendChild(document.createTextNode('No tiene nada pendiente. '));
-      var ir = crear('button', 'btn-mini', 'Ver lo que está en otras manos');
+      var ir = crear('button', 'btn-mini', 'Ver expedientes en seguimiento');
       ir.type = 'button';
       ir.setAttribute('data-pestana', 'OTRAS');
       nodo.appendChild(ir);

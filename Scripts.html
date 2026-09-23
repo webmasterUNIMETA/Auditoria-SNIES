@@ -109,7 +109,7 @@ var ACCIONES_SITUACION = {
 };
 
 /**
- * Orden dentro de "Le toca a usted": lo mas urgente primero. Radicado va
+ * Orden dentro de "Por gestionar": lo mas urgente primero. Radicado va
  * al final a proposito: son muchos y no deben tapar lo que espera decision.
  */
 var PRIORIDAD_BANDEJA = {
@@ -815,7 +815,7 @@ function titulosPorRol() {
   $('btnAbrirTablero').hidden = !(esRevisor() || esConsulta());
   $('pestanaMia').hidden = esConsulta();
   $('pestanaOtras').querySelector('.pestana-rotulo').textContent =
-    esConsulta() ? 'En curso' : 'En otras manos';
+    esConsulta() ? 'En curso' : 'En seguimiento';
 }
 
 /** Marca el acta y el diploma como obligatorios u opcionales. */
@@ -1077,7 +1077,7 @@ function marcarPestanas() {
     });
 }
 
-var NOMBRES_PESTANA = { MIA: 'Le toca a usted', OTRAS: 'En otras manos', CERRADOS: 'Cerrados' };
+var NOMBRES_PESTANA = { MIA: 'Por gestionar', OTRAS: 'En seguimiento', CERRADOS: 'Finalizados' };
 
 function nombrePestana(p) {
   if (p === 'OTRAS' && esConsulta()) return 'En curso';
@@ -1093,7 +1093,7 @@ function pintarVacio(cuantos, texto) {
       nodo.appendChild(document.createTextNode('No hay docentes que coincidan con la búsqueda en esta pestaña.'));
     } else if (PESTANA === 'MIA') {
       nodo.appendChild(document.createTextNode('No tiene nada pendiente. '));
-      var ir = crear('button', 'btn-mini', 'Ver lo que está en otras manos');
+      var ir = crear('button', 'btn-mini', 'Ver expedientes en seguimiento');
       ir.type = 'button';
       ir.setAttribute('data-pestana', 'OTRAS');
       nodo.appendChild(ir);
