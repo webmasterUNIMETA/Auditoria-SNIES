@@ -67,122 +67,88 @@
   <!-- Region para lectores de pantalla -->
   <div class="solo-lectores" aria-live="polite" id="anuncio"></div>
 
-  <!-- Error general de la aplicacion -->
+  <!-- Avisos generales: errores de carga y el aviso de servidor desfasado -->
   <div class="aviso aviso-error" id="avisoGeneral" hidden role="alert"></div>
 
   <!-- ==========================================================
-       VISTA 1 - LISTADO DE DOCENTES
+       VISTA 1 - BANDEJA
+
+       Una barra de avance y tres pestañas. Cada persona ve primero lo
+       que le toca: la pantalla muestra trabajo, no estados.
        ========================================================== -->
   <section class="vista" id="vistaLista" aria-labelledby="tituloLista">
 
-    <!-- Las cifras resumen el flujo formal y también filtran el listado -->
-    <div class="tira-indicadores" id="tiraIndicadores" role="group"
-         aria-label="Filtrar el listado por estado">
-      <button type="button" class="indicador indicador-total" data-filtro="TODOS" aria-pressed="true">
-        <p>Total docentes</p>
-        <p id="cifraTotal">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-sin-cargar" data-filtro="PENDIENTE_CARGA" aria-pressed="false">
-        <p>Sin cargar</p>
-        <p id="cifraPendientesCarga">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-pendientes" data-filtro="POR_ENVIAR" aria-pressed="false">
-        <p>Borradores sin enviar</p>
-        <p id="cifraPorEnviar">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-revision" data-filtro="EN_REVISION" aria-pressed="false">
-        <p>En revisión</p>
-        <p id="cifraEnRevision">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-correccion" data-filtro="DEVUELTO" aria-pressed="false">
-        <p>Devueltos</p>
-        <p id="cifraDevueltos">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-validados" data-filtro="APROBADO" aria-pressed="false">
-        <p>Aprobados</p>
-        <p id="cifraAprobados">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-men-pendiente" data-filtro="MEN_PENDIENTE" aria-pressed="false" hidden>
-        <p>Por radicar (MEN)</p>
-        <p id="cifraMenPendientes">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-men-subsanacion" data-filtro="MEN_SUBSANACION" aria-pressed="false" hidden>
-        <p>En subsanación</p>
-        <p id="cifraMenSubsanacion">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-men-listo" data-filtro="MEN_LISTO" aria-pressed="false" hidden>
-        <p>Listos para radicar</p>
-        <p id="cifraMenListos">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-men-radicado" data-filtro="MEN_RADICADO" aria-pressed="false" hidden>
-        <p>Cargados al MEN</p>
-        <p id="cifraMenRadicados">&mdash;</p>
-      </button>
-      <button type="button" class="indicador indicador-men-sincronizado" data-filtro="MEN_SINCRONIZADO" aria-pressed="false" hidden>
-        <p>Confirmados en SNIES</p>
-        <p id="cifraMenSincronizados">&mdash;</p>
-      </button>
-    </div>
-
-    <div class="tarjeta tarjeta-neutra">
-      <h2 class="titulo-vista" id="tituloLista">Seguimiento de docentes</h2>
-      <p class="descripcion-vista" id="descripcionLista">
-        Consulte el avance de la validación documental. Pulse una de las cifras de
-        arriba para filtrar el listado por estado del flujo.
-      </p>
-
-      <div class="buscador">
-        <label for="buscador">Buscar docente</label>
-        <input type="search" id="buscador" autocomplete="off" spellcheck="false"
-               placeholder="Buscar por nombre o número de documento...">
-      </div>
-
-      <!-- Los tres pasos del trámite. Es lo que faltaba para que Talento
-           Humano supiera dónde acaba su parte y quién radica ante el MEN. -->
-      <div class="guia-flujo" id="guiaFlujo" role="note" hidden>
-        <p class="guia-flujo-titulo">Cómo avanza cada docente</p>
-        <ol>
-          <li><strong>Usted</strong> compara los datos, carga el acta y envía al revisor.</li>
-          <li><strong>El revisor</strong> aprueba o le devuelve el expediente para corregir.</li>
-          <li><strong>El revisor</strong> lo radica ante el MEN, en la plataforma del
-              Ministerio, fuera de esta aplicación.</li>
-        </ol>
-      </div>
-
-      <p class="conteo-resultados" id="conteoResultados"></p>
-
-      <section class="panel-informe" id="panelInforme" hidden aria-labelledby="tituloInforme">
+    <div class="tarjeta tarjeta-neutra bandeja-cabecera">
+      <div class="bandeja-titulos">
         <div>
-          <h3 id="tituloInforme">Informe de gestión</h3>
-          <p>Descargue el estado actual y las actividades realizadas por cada usuario.</p>
+          <h2 class="titulo-vista" id="tituloLista">Seguimiento de docentes</h2>
+          <p class="descripcion-vista" id="descripcionLista"></p>
         </div>
-        <label>Desde <input type="date" id="informeDesde"></label>
-        <label>Hasta <input type="date" id="informeHasta"></label>
-        <button type="button" class="btn-primario" id="btnAbrirTablero">Ver informe</button>
-        <button type="button" class="btn-secundario" id="btnDescargarInforme">Descargar CSV</button>
-      </section>
+        <button type="button" class="btn-secundario btn-compacto" id="btnAbrirTablero" hidden>
+          Informe de gestión
+        </button>
+      </div>
 
+      <div class="avance">
+        <p class="avance-total" id="avanceTotal"></p>
+        <div class="barra-fases" id="barraFases" role="img"></div>
+        <ol class="barra-fases-leyenda" id="barraFasesLeyenda"></ol>
+      </div>
     </div>
+
+    <div class="pestanas" id="pestanasBandeja" role="tablist" aria-label="Bandeja de docentes">
+      <button type="button" role="tab" class="pestana" id="pestanaMia" data-pestana="MIA"
+              aria-selected="true" aria-controls="listaDocentes">
+        <span class="pestana-rotulo">Le toca a usted</span> <span class="pestana-cifra" id="cifraMia"></span>
+      </button>
+      <button type="button" role="tab" class="pestana" id="pestanaOtras" data-pestana="OTRAS"
+              aria-selected="false" aria-controls="listaDocentes" tabindex="-1">
+        <span class="pestana-rotulo">En otras manos</span> <span class="pestana-cifra" id="cifraOtras"></span>
+      </button>
+      <button type="button" role="tab" class="pestana" id="pestanaCerrados" data-pestana="CERRADOS"
+              aria-selected="false" aria-controls="listaDocentes" tabindex="-1">
+        <span class="pestana-rotulo">Cerrados</span> <span class="pestana-cifra" id="cifraCerrados"></span>
+      </button>
+    </div>
+
+    <div class="buscador">
+      <label for="buscador" class="solo-lectores">Buscar docente</label>
+      <input type="search" id="buscador" autocomplete="off" spellcheck="false"
+             placeholder="Buscar por nombre o número de documento...">
+    </div>
+
+    <p class="conteo-resultados" id="conteoResultados"></p>
 
     <div class="cargando-bloque" id="listaCargando">
       <span class="girador" aria-hidden="true"></span>
       <p>Cargando docentes...</p>
     </div>
 
-    <div class="lista-docentes" id="listaDocentes"></div>
+    <div class="lista-docentes" id="listaDocentes" role="tabpanel" aria-labelledby="pestanaMia"></div>
 
-    <div class="vacio" id="listaVacia" hidden>
-      No hay docentes que coincidan con la búsqueda.
-    </div>
+    <div class="vacio" id="listaVacia" hidden></div>
 
   </section>
 
   <!-- ==========================================================
        VISTA 2 - FICHA DEL DOCENTE
+
+       Cinco zonas: cabecera, qué pasa / qué hacer, zona de trabajo
+       según el rol, barra de acciones e historial plegado.
+
+       NO RENOMBRAR los ids y clases de los formularios: los leen
+       recolectar(), validar() y recolectarDecision(), que arman el
+       payload que se envía al servidor. Contrato congelado:
+         #listaCriterios .criterio[data-clave]  radios crit_K  #corr_K
+         #observaciones  #archivoActa #archivoDiploma
+         #soporteActa #soporteDiploma #errorActa #errorDiploma
+         #criteriosRevisor .criterio-revisor[data-clave]  radios rev_K
+         .campo-correccion-revisor  #observacionRevisor
+         #btnAprobar #btnDevolver  #camposRevision #camposRevisor
        ========================================================== -->
   <section class="vista" id="vistaFicha" aria-labelledby="fichaNombre">
 
-    <button type="button" class="btn-texto btn-volver" id="btnVolver">&larr; Volver al listado</button>
+    <button type="button" class="btn-texto btn-volver" id="btnVolver">&larr; Volver a la bandeja</button>
 
     <div class="cargando-bloque" id="fichaCargando" hidden>
       <span class="girador" aria-hidden="true"></span>
@@ -192,47 +158,31 @@
     <div class="aviso aviso-error" id="fichaError" hidden role="alert"></div>
 
     <div id="fichaContenido" hidden>
+      <div class="tarjeta ficha">
 
-      <!-- Cinta que anuncia el modo consulta o edicion -->
-      <div class="cinta-modo" id="cintaModo" hidden>
-        <span id="cintaModoTexto"></span>
-      </div>
-
-      <!-- Panel de etapa: en qué punto está el expediente, qué significa y
-           qué toca hacer. Va ARRIBA a propósito: el motivo de una devolución
-           o de una subsanación es lo primero que hay que leer, no lo último. -->
-      <section class="panel-etapa" id="panelEtapa" hidden aria-labelledby="panelEtapaTitulo"></section>
-
-      <div class="tarjeta">
-
-        <div class="ficha-cabecera">
+        <!-- 1. Cabecera: quién es y en qué estado está. Una sola insignia. -->
+        <header class="ficha-cabecera">
           <div class="ficha-identidad">
             <h2 id="fichaNombre"></h2>
             <p class="ficha-documento" id="fichaDocumento"></p>
-            <span class="par-insignias">
-              <span class="micro-rotulo">Etapa</span>
-              <span class="insignia" id="fichaInsignia"></span>
-            </span>
-            <span class="par-insignias">
-              <span class="micro-rotulo" id="rotuloInsigniaDato">Datos</span>
-              <span class="insignia" id="fichaInsigniaDato"></span>
-            </span>
           </div>
-          <div class="ficha-acciones-cabecera">
-            <button type="button" class="btn-secundario btn-compacto" id="btnEditar" hidden>
-              Editar revisión
-            </button>
-          </div>
-        </div>
+          <span class="insignia" id="fichaInsignia"></span>
+        </header>
 
-        <div class="ficha-marcas" id="fichaMarcas" hidden></div>
+        <!-- 2. Qué pasa / qué hacer. Arriba, porque el motivo de una
+             devolución o de una subsanación es lo primero que hay que leer. -->
+        <section class="panel-situacion" id="panelSituacion" aria-labelledby="situacionTitulo"></section>
+
+        <!-- Acceso a la carpeta del docente en Drive, para los dos roles -->
+        <p class="carpeta-docente" id="carpetaDocente" hidden></p>
 
         <form id="formRevision" novalidate>
 
+          <!-- 3a. Zona de trabajo de Talento Humano -->
           <fieldset id="camposRevision">
-            <legend class="solo-lectores">Revisión documental del docente</legend>
+            <legend class="solo-lectores">Validación de los datos del docente</legend>
 
-            <p class="subtitulo">Verificación de información</p>
+            <p class="subtitulo">Datos reportados a SNIES</p>
             <div class="criterios" id="listaCriterios"></div>
 
             <p class="subtitulo">Soportes documentales</p>
@@ -258,61 +208,73 @@
 
             </div>
 
-            <!-- Acceso directo a todos los soportes del docente en Drive -->
-            <p class="carpeta-docente" id="carpetaDocente" hidden></p>
-
             <p class="subtitulo">Observaciones</p>
-            <label for="observaciones" class="solo-lectores">Observaciones de la revisión</label>
+            <label for="observaciones" class="solo-lectores">Observaciones de la validación</label>
             <textarea id="observaciones" maxlength="2000"
-                      placeholder="Anote aquí cualquier detalle relevante de la revisión (opcional)."></textarea>
+                      placeholder="Anote aquí cualquier detalle relevante (opcional)."></textarea>
           </fieldset>
 
+          <!-- 3b. Zona de trabajo del revisor: una sola tabla comparativa
+               junto al visor de los soportes. -->
           <div class="espacio-revision" id="espacioRevision" hidden>
+
+            <section class="panel-revisor" id="panelRevisor" hidden aria-labelledby="tituloPanelRevisor">
+              <p class="subtitulo" id="tituloPanelRevisor">Su decisión</p>
+              <fieldset id="camposRevisor">
+                <legend class="solo-lectores">Decisión del revisor, campo por campo</legend>
+                <div class="tabla-decision" role="table" aria-label="Comparación de los datos del docente">
+                  <div class="tabla-decision-cabecera" role="row">
+                    <span role="columnheader">Campo</span>
+                    <span role="columnheader">Dice SNIES</span>
+                    <span role="columnheader">Talento Humano</span>
+                    <span role="columnheader">Su decisión</span>
+                  </div>
+                  <div id="criteriosRevisor" role="rowgroup"></div>
+                </div>
+                <label for="observacionRevisor">Observación</label>
+                <textarea id="observacionRevisor" maxlength="2000"
+                          placeholder="Obligatoria si devuelve el expediente: explique qué debe corregirse."></textarea>
+              </fieldset>
+              <div class="acciones-revisor" id="accionesRevisor">
+                <button type="button" class="btn-secundario" id="btnDevolver">Devolver</button>
+                <button type="button" class="btn-primario" id="btnAprobar">Aprobar</button>
+              </div>
+            </section>
+
             <section class="previsualizacion" id="previsualizacion" hidden aria-labelledby="tituloPrevisualizacion">
-              <p class="subtitulo" id="tituloPrevisualizacion">Previsualización de soportes</p>
+              <p class="subtitulo" id="tituloPrevisualizacion">Soportes</p>
               <div class="pestanas-documentos" role="tablist" aria-label="Documento para previsualizar">
                 <button type="button" class="btn-secundario btn-compacto" id="tabActa">Acta de grado</button>
                 <button type="button" class="btn-secundario btn-compacto" id="tabDiploma">Diploma</button>
               </div>
               <div class="visor-documento" id="visorDocumento"></div>
-              <p class="nota-pie">Si el visor no carga, use “Abrir en Drive”. El acceso depende de los permisos privados del archivo.</p>
+              <p class="nota-pie">Si el visor no carga, use «Abrir en Drive». El acceso depende de los permisos del archivo.</p>
             </section>
 
-            <section class="panel-revisor" id="panelRevisor" hidden aria-labelledby="tituloPanelRevisor">
-              <p class="subtitulo" id="tituloPanelRevisor">Decisión del revisor</p>
-              <p class="descripcion-vista">Confirme cada dato comparándolo con el acta y el diploma cargados por Talento Humano.</p>
-              <fieldset id="camposRevisor">
-                <legend class="solo-lectores">Verificación independiente del revisor</legend>
-                <div class="criterios-revisor" id="criteriosRevisor"></div>
-                <label for="observacionRevisor">Observación del revisor</label>
-                <textarea id="observacionRevisor" maxlength="2000"
-                          placeholder="Obligatoria cuando el registro se devuelve a Talento Humano."></textarea>
-              </fieldset>
-              <div class="acciones-revisor" id="accionesRevisor">
-                <button type="button" class="btn-secundario" id="btnDevolver">Devolver a Talento Humano</button>
-                <button type="button" class="btn-primario" id="btnAprobar">Aprobar</button>
-              </div>
-            </section>
           </div>
 
           <div class="aviso" id="avisoGuardado" hidden role="status"></div>
 
-          <div class="navegacion" id="navegacionFicha">
-            <div>
-              <button type="button" class="btn-texto" id="btnCancelarEdicion" hidden>
-                Cancelar edición
-              </button>
-            </div>
-            <div class="navegacion-derecha">
+          <!-- 4. Barra de acciones de Talento Humano -->
+          <div class="barra-acciones" id="navegacionFicha" hidden>
+            <button type="button" class="btn-texto" id="btnCancelarEdicion" hidden>Descartar cambios</button>
+            <div class="barra-acciones-derecha">
               <!-- type="button" a propósito: si fuera submit, pulsar Enter en
                    un campo de corrección guardaría a media captura. -->
-              <button type="button" class="btn-secundario" id="btnGuardar">Guardar y seguir editando</button>
-              <button type="button" class="btn-primario" id="btnGuardarEnviar">Guardar y enviar a revisión</button>
-              <button type="button" class="btn-primario" id="btnEnviarRevision" hidden>Enviar al revisor</button>
+              <button type="button" class="btn-secundario" id="btnGuardar">Guardar borrador</button>
+              <button type="button" class="btn-primario" id="btnGuardarEnviar">Enviar al revisor</button>
             </div>
           </div>
 
         </form>
+
+        <!-- 5. Historial del expediente, plegado: es consulta, no trabajo. -->
+        <details class="historial-expediente" id="historialExpediente">
+          <summary>Historial del expediente</summary>
+          <ol class="historial-pasos" id="historialPasos"></ol>
+          <p class="nota-pie">Fechas en hora de Colombia.</p>
+        </details>
+
       </div>
     </div>
   </section>
@@ -320,14 +282,17 @@
   <!-- ==========================================================
        VISTA 3 - INFORME DE GESTIÓN
 
-       Tercera vista hermana de las otras dos. Al imprimir, las demás
-       quedan en display:none por sí solas, así que el papel sale limpio.
+       Tres secciones: estado del reporte, hallazgos y actividad por
+       persona. Al imprimir, las otras vistas quedan ocultas solas.
        ========================================================== -->
   <section class="vista" id="vistaTablero" aria-labelledby="tableroTitulo">
 
     <div class="acciones-tablero">
-      <button type="button" class="btn-texto btn-volver" id="btnVolverTablero">&larr; Volver al listado</button>
-      <button type="button" class="btn-secundario btn-compacto" id="btnImprimirTablero">Imprimir</button>
+      <button type="button" class="btn-texto btn-volver" id="btnVolverTablero">&larr; Volver a la bandeja</button>
+      <div class="acciones-tablero-derecha">
+        <button type="button" class="btn-secundario btn-compacto" id="btnDescargarInforme">Descargar CSV</button>
+        <button type="button" class="btn-secundario btn-compacto" id="btnImprimirTablero">Imprimir</button>
+      </div>
     </div>
 
     <div class="cargando-bloque" id="tableroCargando" hidden>
@@ -345,7 +310,7 @@
 
 <dialog class="dialogo" id="dialogoSubsanacion" aria-labelledby="tituloSubsanacion">
   <form method="dialog" id="formSubsanacion">
-    <h2 id="tituloSubsanacion">Poner en subsanación MEN</h2>
+    <h2 id="tituloSubsanacion">Poner en subsanación</h2>
     <p id="docenteSubsanacion" class="descripcion-vista"></p>
     <label for="motivoSubsanacion">Motivo de la subsanación</label>
     <textarea id="motivoSubsanacion" maxlength="1000" required
@@ -360,8 +325,8 @@
   </form>
 </dialog>
 
-<!-- Confirmación genérica: salir con cambios, enviar al revisor, radicar.
-     Un solo mecanismo para todas las acciones que conviene pensar dos veces. -->
+<!-- Confirmación genérica: salir con cambios, enviar, radicar, confirmar.
+     Un solo mecanismo para todo lo que conviene pensar dos veces. -->
 <dialog class="dialogo" id="dialogoConfirmar" aria-labelledby="tituloConfirmar">
   <h2 id="tituloConfirmar"></h2>
   <p class="descripcion-vista" id="cuerpoConfirmar"></p>

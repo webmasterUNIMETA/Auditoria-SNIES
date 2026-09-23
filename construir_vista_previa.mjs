@@ -361,6 +361,7 @@ const simulador = `
       }
       if (window.SESION) SESION.correo = PERFIL.correo;
       return {
+        contrato: 2,
         auditoria: ${JSON.stringify(NOMBRE_AUDITORIA)},
         criterios: CRITERIOS,
         requisitos: REQUISITOS,
@@ -618,6 +619,7 @@ const simulador = `
       });
 
       return {
+        contrato: 2,
         generado: '22/09/2026 09:45',
         desde: payload ? payload.desde : '',
         hasta: payload ? payload.hasta : '',
@@ -683,7 +685,13 @@ const simulador = `
   /* La pagina llama a window.SIMULADOR cuando existe, en lugar de
      hacer fetch al servidor de Apps Script. Mismo contrato: el fallo
      recibe un texto. */
+  // Registro de cada peticion, para comparar payloads antes y despues de
+  // cambiar la interfaz: lo que se manda al servidor no debe variar.
+  window.PETICIONES = [];
+
   window.SIMULADOR = function (accion, argumento, exito, fallo) {
+    window.PETICIONES.push({ accion: accion, argumento: JSON.parse(JSON.stringify(
+      argumento === undefined ? null : argumento)) });
     setTimeout(function () {
       try {
         exito(ACCIONES[accion](argumento));
