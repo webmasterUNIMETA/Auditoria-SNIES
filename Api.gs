@@ -46,7 +46,8 @@ var ACCIONES_API = {
   decidirRevision:       function (argumento, identidad) { return decidirRevision(argumento, identidad); },
   ponerEnSubsanacion:    function (argumento, identidad) { return ponerEnSubsanacion(argumento, identidad); },
   obtenerInformeGestion: function (argumento, identidad) { return obtenerInformeGestion(argumento, identidad); },
-  confirmarRadicadoMen:  function (argumento, identidad) { return confirmarRadicadoMen(argumento, identidad); }
+  confirmarRadicadoMen:  function (argumento, identidad) { return confirmarRadicadoMen(argumento, identidad); },
+  confirmarSincronizacionSnies: function (argumento, identidad) { return confirmarSincronizacionSnies(argumento, identidad); }
 };
 
 /* ============================================================

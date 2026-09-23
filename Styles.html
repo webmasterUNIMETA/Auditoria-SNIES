@@ -398,15 +398,18 @@ main {
 .indicador-men-pendiente { border-top-color: var(--color-aviso); }
 .indicador-men-subsanacion { border-top-color: var(--color-primario); }
 .indicador-men-listo { border-top-color: var(--color-azul); }
-.indicador-men-radicado { border-top-color: var(--color-exito); }
+.indicador-men-radicado { border-top-color: var(--color-azul); }
+.indicador-men-sincronizado { border-top-color: var(--color-exito); }
 .indicador-men-pendiente p:last-child { color: var(--color-aviso); }
 .indicador-men-subsanacion p:last-child { color: var(--color-error); }
 .indicador-men-listo p:last-child { color: var(--color-azul); }
-.indicador-men-radicado p:last-child { color: var(--color-exito); }
+.indicador-men-radicado p:last-child { color: var(--color-azul); }
+.indicador-men-sincronizado p:last-child { color: var(--color-exito); }
 .indicador-men-pendiente.activo { background: var(--color-aviso-fondo); }
 .indicador-men-subsanacion.activo { background: var(--color-error-fondo); }
 .indicador-men-listo.activo { background: var(--color-azul-suave); }
-.indicador-men-radicado.activo { background: var(--color-exito-fondo); }
+.indicador-men-radicado.activo { background: var(--color-azul-suave); }
+.indicador-men-sincronizado.activo { background: var(--color-exito-fondo); }
 
 /* ============================================================
    BUSCADOR
@@ -802,6 +805,12 @@ main {
 }
 
 .insignia-radicado-men {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.insignia-men-sincronizado {
   color: #14532d;
   background: #dcfce7;
   border-color: #86efac;

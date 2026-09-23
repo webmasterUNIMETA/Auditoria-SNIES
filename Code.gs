@@ -46,6 +46,15 @@ var MEN_PENDIENTE = 'PENDIENTE';
 var MEN_SUBSANACION = 'SUBSANACION';
 var MEN_LISTO = 'LISTO_RADICAR';
 var MEN_RADICADO = 'RADICADO';
+/**
+ * Cargado al MEN y ya verificado en SNIES.
+ *
+ * RADICADO significa "subimos la plantilla corregida"; SINCRONIZADO
+ * significa "fuimos a SNIES y comprobamos que el dato ya aparece". Entre
+ * una cosa y otra pasan dias, y hasta ahora el sistema no sabia
+ * distinguirlas: todo lo cargado se daba por cerrado.
+ */
+var MEN_SINCRONIZADO = 'SINCRONIZADO';
 
 var REV_CONFORME = 'CONFORME';
 var REV_NO_CONFORME = 'NO_CONFORME';
@@ -120,7 +129,8 @@ function encabezadosValidaciones_() {
     'ESTADO_MEN',
     'MOTIVO_SUBSANACION', 'FECHA_SUBSANACION',
     'FECHA_DISPONIBLE_RADICACION', 'SUBSANACION_POR',
-    'RADICADO_MEN', 'RADICADO_POR', 'FECHA_RADICACION_MEN'
+    'RADICADO_MEN', 'RADICADO_POR', 'FECHA_RADICACION_MEN',
+    'SINCRONIZADO_SNIES', 'SINCRONIZADO_POR', 'FECHA_SINCRONIZACION'
   ]).concat(CRITERIOS.map(function (c) {
     return 'REV_' + c.clave;
   })).concat(CRITERIOS.map(function (c) {
@@ -550,7 +560,8 @@ function hoyColombia_() {
 }
 
 /** Estado MEN visible; una subsanacion vencida queda lista automaticamente. */
-function estadoMenEfectivo_(estado, disponible, radicado) {
+function estadoMenEfectivo_(estado, disponible, radicado, sincronizado) {
+  if (sincronizado) return MEN_SINCRONIZADO;
   if (radicado) return MEN_RADICADO;
   var normalizado = String(estado || '').trim().toUpperCase();
   if (normalizado === MEN_SUBSANACION) {
@@ -789,8 +800,11 @@ function armarValidacion_(registro) {
   // Es una fecha objetivo, no una marca de tiempo. Sheets puede convertirla
   // en Date; texto_ conserva únicamente dd/mm/aaaa y evita mostrar una hora.
   var fechaDisponibleRadicacion = texto_(leer('FECHA_DISPONIBLE_RADICACION'));
+  var sincronizado = texto_(leer('SINCRONIZADO_SNIES')).toUpperCase();
+  var esSincronizado = sincronizado === 'SI' || sincronizado === 'SÍ' ||
+    sincronizado === 'TRUE' || sincronizado === '1';
   var estadoMen = estadoMenEfectivo_(
-    texto_(leer('ESTADO_MEN')), fechaDisponibleRadicacion, esRadicadoMen);
+    texto_(leer('ESTADO_MEN')), fechaDisponibleRadicacion, esRadicadoMen, esSincronizado);
 
   return {
     criterios: criterios,
@@ -821,6 +835,9 @@ function armarValidacion_(registro) {
     radicadoMen: esRadicadoMen,
     radicadoPor: texto_(leer('RADICADO_POR')),
     fechaRadicacionMen: textoFechaHora_(leer('FECHA_RADICACION_MEN')),
+    sincronizadoSnies: esSincronizado,
+    sincronizadoPor: texto_(leer('SINCRONIZADO_POR')),
+    fechaSincronizacion: textoFechaHora_(leer('FECHA_SINCRONIZACION')),
     revisionCriterios: revisionCriterios,
     revisionCorrecciones: revisionCorrecciones
   };
@@ -867,6 +884,9 @@ function sinIdentificadores_(validacion) {
     radicadoMen: validacion.radicadoMen,
     radicadoPor: validacion.radicadoPor,
     fechaRadicacionMen: validacion.fechaRadicacionMen,
+    sincronizadoSnies: validacion.sincronizadoSnies,
+    sincronizadoPor: validacion.sincronizadoPor,
+    fechaSincronizacion: validacion.fechaSincronizacion,
     revisionCriterios: validacion.revisionCriterios,
     revisionCorrecciones: validacion.revisionCorrecciones
   };
@@ -1128,7 +1148,8 @@ function resumirEstados_(lista) {
     menPendientes: 0,
     menSubsanacion: 0,
     menListos: 0,
-    menRadicados: 0
+    menRadicados: 0,
+    menSincronizados: 0
   };
   lista.forEach(function (d) {
     if (d.tieneValidacion === false) resumen.pendientesCarga++;
@@ -1136,7 +1157,8 @@ function resumirEstados_(lista) {
     else if (d.estadoRevision === REV_DEVUELTO) resumen.devueltos++;
     else if (d.estadoRevision === REV_APROBADO) {
       resumen.aprobados++;
-      if (d.estadoMen === MEN_RADICADO || d.radicadoMen) resumen.menRadicados++;
+      if (d.estadoMen === MEN_SINCRONIZADO || d.sincronizadoSnies) resumen.menSincronizados++;
+      else if (d.estadoMen === MEN_RADICADO || d.radicadoMen) resumen.menRadicados++;
       else if (d.estadoMen === MEN_SUBSANACION) resumen.menSubsanacion++;
       else if (d.estadoMen === MEN_LISTO) resumen.menListos++;
       else resumen.menPendientes++;
@@ -1204,6 +1226,8 @@ function obtenerDocentes(identidad) {
         fechaDisponibleRadicacion: validacion ? validacion.fechaDisponibleRadicacion : '',
         subsanacionPor: validacion ? validacion.subsanacionPor : '',
         radicadoMen: validacion ? validacion.radicadoMen : false,
+        sincronizadoSnies: validacion ? validacion.sincronizadoSnies : false,
+        fechaSincronizacion: validacion ? validacion.fechaSincronizacion : '',
         radicadoPor: validacion ? validacion.radicadoPor : '',
         fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : ''
       };
@@ -1556,6 +1580,39 @@ function registrarHistorial_(documento, version, identidad, evento, anterior, nu
   ]);
 }
 
+/**
+ * Campos de un docente en los que el dato reportado a SNIES no coincidia
+ * con el soporte, es decir, lo que hubo que corregir en la plantilla.
+ *
+ * Devuelve [{ criterio, etiqueta, reportado, correcto, origen }].
+ *
+ * El valor correcto sale de CORR_*, no de REV_CORR_*, porque cuando el
+ * revisor aprueba con una correccion propia decidirRevision ya vuelca su
+ * valor sobre CORR_* (es la fuente unica). REV_* solo se consulta para
+ * saber QUIEN detecto el hallazgo, que es dato de auditoria.
+ */
+function hallazgosDe_(docente, validacion) {
+  if (!validacion) return [];
+
+  var hallazgos = [];
+  CRITERIOS.forEach(function (c) {
+    var criterio = validacion.criterios ? validacion.criterios[c.clave] : null;
+    if (!criterio || criterio.valor !== NO_COINCIDE) return;
+
+    var revision = validacion.revisionCriterios
+      ? validacion.revisionCriterios[c.clave] : '';
+
+    hallazgos.push({
+      criterio: c.clave,
+      etiqueta: c.etiqueta,
+      reportado: docente.valores ? (docente.valores[c.clave] || '') : '',
+      correcto: criterio.correccion || '',
+      origen: revision === REV_NO_CONFORME ? ROL_REVISOR : ROL_TALENTO_HUMANO
+    });
+  });
+  return hallazgos;
+}
+
 /** Datos consolidados para el informe operativo descargable. */
 function obtenerInformeGestion(payload, identidad) {
   exigirRol_(identidad, [ROL_REVISOR]);
@@ -1589,7 +1646,11 @@ function obtenerInformeGestion(payload, identidad) {
       fechaDisponibleRadicacion: validacion ? validacion.fechaDisponibleRadicacion : '',
       motivoSubsanacion: validacion ? validacion.motivoSubsanacion : '',
       radicadoPor: validacion ? validacion.radicadoPor : '',
-      fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : ''
+      fechaRadicacionMen: validacion ? validacion.fechaRadicacionMen : '',
+      sincronizadoPor: validacion ? validacion.sincronizadoPor : '',
+      fechaSincronizacion: validacion ? validacion.fechaSincronizacion : '',
+      revisado: !!validacion,
+      hallazgos: hallazgosDe_(docente, validacion)
     };
   });
 
@@ -1811,7 +1872,10 @@ function decidirRevision(payload, identidad) {
       SUBSANACION_POR: '',
       RADICADO_MEN: '',
       RADICADO_POR: '',
-      FECHA_RADICACION_MEN: ''
+      FECHA_RADICACION_MEN: '',
+      SINCRONIZADO_SNIES: '',
+      SINCRONIZADO_POR: '',
+      FECHA_SINCRONIZACION: ''
     };
     var detalleCorrecciones = [];
     CRITERIOS.forEach(function (c) {
@@ -1975,6 +2039,81 @@ function confirmarRadicadoMen(payload, identidad) {
       radicadoMen: true,
       radicadoPor: identidad.correo,
       fechaRadicacionMen: ahora,
+      resumen: resumenActual_()
+    };
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/**
+ * Registra que el dato corregido ya aparece verificado en SNIES.
+ *
+ * Es la ultima etapa del tramite y la unica que confirma que la
+ * correccion surtio efecto: radicar solo prueba que se subio la
+ * plantilla, no que el Ministerio la haya reflejado.
+ */
+function confirmarSincronizacionSnies(payload, identidad) {
+  exigirRol_(identidad, [ROL_REVISOR]);
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo en unos segundos.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(payload && payload.documento);
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El docente indicado no figura en la hoja Docentes.');
+
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('No existe una validación para este docente.');
+    var validacion = armarValidacion_(registro);
+    exigirVersion_(payload, validacion);
+
+    if (!validacion.radicadoMen) {
+      throw new Error('Primero debe marcarse la carga ante el MEN. ' +
+        'La confirmación en SNIES es el paso siguiente.');
+    }
+
+    if (validacion.sincronizadoSnies) {
+      return {
+        documento: docente.documento,
+        version: validacion.version,
+        estadoMen: MEN_SINCRONIZADO,
+        sincronizadoSnies: true,
+        sincronizadoPor: validacion.sincronizadoPor,
+        fechaSincronizacion: validacion.fechaSincronizacion,
+        resumen: resumenActual_()
+      };
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var ahora = formatearFechaHora_(new Date());
+    var nuevaVersion = validacion.version + 1;
+
+    escribirFila_(hoja, mapa, registro.fila, {
+      ESTADO_MEN: MEN_SINCRONIZADO,
+      SINCRONIZADO_SNIES: 'SI',
+      SINCRONIZADO_POR: identidad.correo,
+      FECHA_SINCRONIZACION: ahora,
+      VERSION: nuevaVersion
+    }, false);
+
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'SINCRONIZADO_SNIES',
+      MEN_RADICADO, MEN_SINCRONIZADO,
+      'Verificado en SNIES: la corrección ya aparece reflejada.');
+    SpreadsheetApp.flush();
+
+    return {
+      documento: docente.documento,
+      version: nuevaVersion,
+      estadoMen: MEN_SINCRONIZADO,
+      sincronizadoSnies: true,
+      sincronizadoPor: identidad.correo,
+      fechaSincronizacion: ahora,
       resumen: resumenActual_()
     };
   } finally {

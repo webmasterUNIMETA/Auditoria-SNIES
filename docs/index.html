@@ -410,15 +410,18 @@ main {
 .indicador-men-pendiente { border-top-color: var(--color-aviso); }
 .indicador-men-subsanacion { border-top-color: var(--color-primario); }
 .indicador-men-listo { border-top-color: var(--color-azul); }
-.indicador-men-radicado { border-top-color: var(--color-exito); }
+.indicador-men-radicado { border-top-color: var(--color-azul); }
+.indicador-men-sincronizado { border-top-color: var(--color-exito); }
 .indicador-men-pendiente p:last-child { color: var(--color-aviso); }
 .indicador-men-subsanacion p:last-child { color: var(--color-error); }
 .indicador-men-listo p:last-child { color: var(--color-azul); }
-.indicador-men-radicado p:last-child { color: var(--color-exito); }
+.indicador-men-radicado p:last-child { color: var(--color-azul); }
+.indicador-men-sincronizado p:last-child { color: var(--color-exito); }
 .indicador-men-pendiente.activo { background: var(--color-aviso-fondo); }
 .indicador-men-subsanacion.activo { background: var(--color-error-fondo); }
 .indicador-men-listo.activo { background: var(--color-azul-suave); }
-.indicador-men-radicado.activo { background: var(--color-exito-fondo); }
+.indicador-men-radicado.activo { background: var(--color-azul-suave); }
+.indicador-men-sincronizado.activo { background: var(--color-exito-fondo); }
 
 /* ============================================================
    BUSCADOR
@@ -814,6 +817,12 @@ main {
 }
 
 .insignia-radicado-men {
+  color: #14532d;
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.insignia-men-sincronizado {
   color: #14532d;
   background: #dcfce7;
   border-color: #86efac;
@@ -1962,8 +1971,12 @@ button:disabled { opacity: .5; cursor: not-allowed; }
         <p id="cifraMenListos">&mdash;</p>
       </button>
       <button type="button" class="indicador indicador-men-radicado" data-filtro="MEN_RADICADO" aria-pressed="false" hidden>
-        <p>Radicados ante el MEN</p>
+        <p>Cargados al MEN</p>
         <p id="cifraMenRadicados">&mdash;</p>
+      </button>
+      <button type="button" class="indicador indicador-men-sincronizado" data-filtro="MEN_SINCRONIZADO" aria-pressed="false" hidden>
+        <p>Confirmados en SNIES</p>
+        <p id="cifraMenSincronizados">&mdash;</p>
       </button>
     </div>
 
@@ -2269,6 +2282,7 @@ var MEN_PENDIENTE = 'PENDIENTE';
 var MEN_SUBSANACION = 'SUBSANACION';
 var MEN_LISTO = 'LISTO_RADICAR';
 var MEN_RADICADO = 'RADICADO';
+var MEN_SINCRONIZADO = 'SINCRONIZADO';
 
 /* ------------------------------------------------------------
    VOCABULARIO
@@ -2303,7 +2317,8 @@ var NOMBRES_MEN = {
   PENDIENTE: 'Por radicar ante el MEN',
   SUBSANACION: 'En subsanación (espera fecha)',
   LISTO_RADICAR: 'Listo para radicar',
-  RADICADO: 'Radicado ante el MEN'
+  RADICADO: 'Cargado · falta confirmar en SNIES',
+  SINCRONIZADO: 'Confirmado en SNIES'
 };
 
 var NOMBRES_ROL = {
@@ -2322,7 +2337,8 @@ var NOMBRES_GRUPO = {
   MEN_PENDIENTE: 'por radicar ante el MEN',
   MEN_SUBSANACION: 'en subsanación',
   MEN_LISTO: 'listos para radicar',
-  MEN_RADICADO: 'radicados ante el MEN'
+  MEN_RADICADO: 'cargados, sin confirmar en SNIES',
+  MEN_SINCRONIZADO: 'confirmados en SNIES'
 };
 
 var NOMBRES_GRUPO_SINGULAR = {
@@ -2334,7 +2350,8 @@ var NOMBRES_GRUPO_SINGULAR = {
   MEN_PENDIENTE: 'por radicar ante el MEN',
   MEN_SUBSANACION: 'en subsanación',
   MEN_LISTO: 'listo para radicar',
-  MEN_RADICADO: 'radicado ante el MEN'
+  MEN_RADICADO: 'cargado, sin confirmar en SNIES',
+  MEN_SINCRONIZADO: 'confirmado en SNIES'
 };
 
 /**
@@ -2353,7 +2370,8 @@ var NOMBRES_EVENTO = {
   DEVUELTO: 'Devueltos',
   SUBSANACION_MEN: 'Puestos en subsanación',
   AJUSTE_A_SUBSANACION_MEN: 'Ajustes de subsanación',
-  RADICADO_MEN: 'Radicados ante el MEN',
+  RADICADO_MEN: 'Cargados al MEN',
+  SINCRONIZADO_SNIES: 'Confirmados en SNIES',
   MIGRADO_A_REVISION: 'Migrados a revisión'
 };
 
@@ -2462,6 +2480,7 @@ function mananaIso() {
 }
 
 function estadoMenDe(docente) {
+  if (docente && docente.sincronizadoSnies) return MEN_SINCRONIZADO;
   if (docente && docente.radicadoMen) return MEN_RADICADO;
   return docente && docente.estadoMen ? docente.estadoMen : MEN_PENDIENTE;
 }
@@ -2968,6 +2987,10 @@ function conectarEventos() {
       confirmarRadicadoMenDesdeLista(boton);
       return;
     }
+    if (boton.getAttribute('data-accion') === 'sincronizar-snies') {
+      confirmarSincronizacionDesdeLista(boton);
+      return;
+    }
     abrirFicha(boton.getAttribute('data-documento'));
   });
 
@@ -3058,6 +3081,7 @@ function pintarIndicadores() {
   $('cifraMenSubsanacion').textContent = r.menSubsanacion || 0;
   $('cifraMenListos').textContent = r.menListos || 0;
   $('cifraMenRadicados').textContent = r.menRadicados || 0;
+  $('cifraMenSincronizados').textContent = r.menSincronizados == null ? '—' : r.menSincronizados;
 }
 
 function pintarLista() {
@@ -3294,6 +3318,18 @@ function tarjetaDocente(docente) {
           ? 'Se libera solo el ' + docente.fechaDisponibleRadicacion
           : 'Esperando la fecha de subsanación'));
     }
+    if (estadoMen === MEN_RADICADO) {
+      // Cargado al MEN pero sin verificar en SNIES: la etapa que faltaba.
+      var sincronizar = crear('button', 'btn-compacto btn-radicado-men', 'Confirmar en SNIES');
+      sincronizar.type = 'button';
+      sincronizar.setAttribute('data-documento', docente.documento);
+      sincronizar.setAttribute('data-version', String(docente.version || 0));
+      sincronizar.setAttribute('data-accion', 'sincronizar-snies');
+      sincronizar.setAttribute('aria-label',
+        'Confirmar que la corrección de ' + docente.nombreCompleto + ' ya aparece en SNIES');
+      acciones.appendChild(sincronizar);
+    }
+
     if (estadoMen === MEN_PENDIENTE || estadoMen === MEN_LISTO) {
       var radicar = crear('button', 'btn-compacto btn-radicado-men', 'Marcar como radicado');
       radicar.type = 'button';
@@ -3532,13 +3568,33 @@ function describirEtapa_(estadoRevision, estadoMen, v) {
     };
   }
 
-  if (estadoMen === MEN_RADICADO) {
+  if (estadoMen === MEN_SINCRONIZADO) {
     return {
       tono: 'cerrado',
-      titulo: 'Radicado ante el MEN',
-      parrafos: ['El trámite de este docente está cerrado.' +
-        (v.radicadoPor ? ' Lo radicó ' + v.radicadoPor : '') +
-        (v.fechaRadicacionMen ? ' el ' + v.fechaRadicacionMen + '.' : '.')]
+      titulo: 'Confirmado en SNIES · trámite cerrado',
+      parrafos: [
+        'La corrección ya aparece reflejada en SNIES.' +
+        (v.sincronizadoPor ? ' Lo verificó ' + v.sincronizadoPor : '') +
+        (v.fechaSincronizacion ? ' el ' + v.fechaSincronizacion + '.' : '.'),
+        v.fechaRadicacionMen ? 'Se cargó al MEN el ' + v.fechaRadicacionMen + '.' : ''
+      ]
+    };
+  }
+
+  if (estadoMen === MEN_RADICADO) {
+    return {
+      tono: 'accion',
+      titulo: 'Cargado al MEN · falta confirmar en SNIES',
+      parrafos: [
+        'La plantilla corregida ya se cargó' +
+        (v.radicadoPor ? ' por ' + v.radicadoPor : '') +
+        (v.fechaRadicacionMen ? ' el ' + v.fechaRadicacionMen : '') + '.',
+        quien === 'rev'
+          ? 'Falta comprobar en SNIES que el dato aparece actualizado. Cuando lo vea ' +
+            'reflejado, márquelo aquí como confirmado.'
+          : 'Queda pendiente que el revisor verifique en SNIES que el dato ya aparece ' +
+            'actualizado.'
+      ]
     };
   }
 
@@ -5008,7 +5064,10 @@ function pintarTablero(informe) {
   }
   caja.appendChild(bloqueD);
 
-  /* --- E. Cola que exige acción -------------------------------- */
+  /* --- E. Hallazgos y correcciones ----------------------------- */
+  caja.appendChild(pintarHallazgos(registros, informe.generado));
+
+  /* --- F. Cola que exige acción -------------------------------- */
   caja.appendChild(pintarColas(registros, informe.generado));
 
   /* --- F. Detalle de movimientos ------------------------------- */
@@ -5041,6 +5100,103 @@ function pintarTablero(informe) {
     ' · Estado a ' + (informe.generado || 'hoy') +
     ' · ' + textoPeriodo() +
     ' · Generado por ' + ((APP.perfil && APP.perfil.correo) || '')));
+}
+
+/**
+ * Bloque de hallazgos: qué datos hubo que corregir en la plantilla de
+ * SNIES, cuáles ya se cargaron y cuáles siguen esperando.
+ *
+ * Es el informe que sirve para editar el archivo oficial: una fila por
+ * campo corregido, con el valor que reporta SNIES y el que dice el
+ * soporte. Incluye a los 50 docentes, también los que no tuvieron
+ * hallazgo y los que faltan por revisar, para que valga como constancia.
+ */
+function pintarHallazgos(registros, generado) {
+  var bloque = crear('div', 'tarjeta');
+  bloque.appendChild(crear('p', 'subtitulo', 'Hallazgos y correcciones a la plantilla SNIES'));
+  bloque.appendChild(estampa('Estado a ' + (generado || 'hoy') + ' · no depende del periodo'));
+
+  var conHallazgo = registros.filter(function (r) { return (r.hallazgos || []).length; });
+  var sinHallazgo = registros.filter(function (r) { return r.revisado && !(r.hallazgos || []).length; });
+  var sinRevisar = registros.filter(function (r) { return !r.revisado; });
+
+  var correcciones = 0;
+  conHallazgo.forEach(function (r) { correcciones += r.hallazgos.length; });
+
+  // Dónde está cada docente con hallazgo respecto de SNIES.
+  var etapaDe = function (r) {
+    if (r.estadoMen === MEN_SINCRONIZADO) return 'confirmado';
+    if (r.estadoMen === MEN_RADICADO) return 'cargado';
+    if (r.estadoRevision === REV_APROBADO) return 'porCargar';
+    return 'enProceso';
+  };
+
+  var cuenta = { confirmado: 0, cargado: 0, porCargar: 0, enProceso: 0 };
+  conHallazgo.forEach(function (r) { cuenta[etapaDe(r)]++; });
+
+  /* Resumen en cifras */
+  var tira = crear('div', 'tira-indicadores tira-informe');
+  [['Docentes con hallazgo', conHallazgo.length, 'correccion'],
+   ['Campos a corregir', correcciones, 'correccion'],
+   ['Confirmados en SNIES', cuenta.confirmado, 'men-sincronizado'],
+   ['Cargados, sin confirmar', cuenta.cargado, 'men-radicado'],
+   ['Corregidos, sin cargar', cuenta.porCargar + cuenta.enProceso, 'men-pendiente'],
+   ['Sin hallazgo', sinHallazgo.length, 'validados'],
+   ['Sin revisar', sinRevisar.length, 'sin-cargar']
+  ].forEach(function (item) {
+    var celda = crear('div', 'indicador indicador-' + item[2]);
+    celda.appendChild(crear('p', null, item[0]));
+    celda.appendChild(crear('p', null, String(item[1])));
+    tira.appendChild(celda);
+  });
+  bloque.appendChild(tira);
+
+  if (!conHallazgo.length) {
+    bloque.appendChild(crear('p', 'nota-pie', 'Ningún docente revisado presentó hallazgos.'));
+  } else {
+    /* Detalle: una fila por campo corregido */
+    bloque.appendChild(crear('p', 'subtitulo', 'Detalle de las correcciones'));
+
+    var filas = [];
+    conHallazgo.forEach(function (r) {
+      r.hallazgos.forEach(function (h, i) {
+        filas.push([
+          i === 0 ? r.documento : '',
+          i === 0 ? r.docente : '',
+          h.etiqueta,
+          h.reportado,
+          h.correcto,
+          nombreRol(h.origen),
+          i === 0 ? (NOMBRES_MEN[r.estadoMen] || situacionSnies(r)) : ''
+        ]);
+      });
+    });
+
+    bloque.appendChild(tablaInforme(
+      ['Documento', 'Docente', 'Campo', 'Dice SNIES', 'Debe decir', 'Detectado por', 'Situación'],
+      filas, [3, 4]));
+
+    bloque.appendChild(crear('p', 'nota-pie',
+      '«Dice SNIES» es el valor reportado en la plantilla oficial; «Debe decir» es el ' +
+      'valor que consta en el acta o el diploma. La hoja Docentes conserva el dato ' +
+      'original sin modificar: esta es la lista de cambios a aplicar en el archivo.'));
+  }
+
+  if (sinRevisar.length) {
+    bloque.appendChild(crear('p', 'subtitulo', 'Docentes que faltan por revisar'));
+    bloque.appendChild(tablaInforme(
+      ['Documento', 'Docente', 'Situación'],
+      sinRevisar.map(function (r) {
+        return [r.documento, r.docente, NOMBRES_REVISION.PENDIENTE_CARGA];
+      })));
+  }
+
+  return bloque;
+}
+
+/** Texto de situación cuando el expediente aún no llegó a la etapa MEN. */
+function situacionSnies(registro) {
+  return NOMBRES_REVISION[registro.estadoRevision] || 'En proceso';
 }
 
 /** Bloque E: lo que espera una acción concreta, con quién la debe hacer. */
@@ -5112,6 +5268,52 @@ function pintarColas(registros, generado) {
     bloque.appendChild(crear('p', 'nota-pie', 'No hay expedientes esperando acción.'));
   }
   return bloque;
+}
+
+function confirmarSincronizacionDesdeLista(boton) {
+  if (!esRevisor() || !boton || boton.disabled) return;
+
+  var doc = boton.getAttribute('data-documento');
+  var docente = APP.docentes.filter(function (d) { return d.documento === doc; })[0];
+  var nombre = (docente && docente.nombreCompleto) || doc;
+
+  confirmar({
+    titulo: 'Confirmar en SNIES',
+    cuerpo: 'Confirme que ya verificó en SNIES que la corrección de ' + nombre +
+            ' aparece reflejada. Este es el último paso del trámite: a partir de ' +
+            'aquí el expediente queda cerrado.',
+    textoConfirmar: 'Sí, ya aparece en SNIES',
+    textoCancelar: 'Todavía no',
+    alConfirmar: function () {
+      boton.disabled = true;
+      boton.textContent = 'Registrando...';
+      mostrarCapa('Registrando confirmación en SNIES...');
+
+      servidor('confirmarSincronizacionSnies', {
+        documento: doc,
+        version: Number(boton.getAttribute('data-version'))
+      }, function (respuesta) {
+        ocultarCapa();
+        if (docente) {
+          docente.version = respuesta.version;
+          docente.estadoMen = respuesta.estadoMen || MEN_SINCRONIZADO;
+          docente.sincronizadoSnies = true;
+          docente.fechaSincronizacion = respuesta.fechaSincronizacion;
+        }
+        if (respuesta.resumen) APP.resumen = respuesta.resumen;
+        pintarIndicadores();
+        pintarLista();
+        mostrarAviso($('avisoGeneral'), 'exito',
+          '✓ ' + nombre + ' confirmado en SNIES. El trámite de este docente está cerrado.');
+      }, function (mensaje) {
+        ocultarCapa();
+        boton.disabled = false;
+        boton.textContent = 'Confirmar en SNIES';
+        mostrarAviso($('avisoGeneral'), 'error',
+          'No fue posible registrar la confirmación: ' + mensaje);
+      });
+    }
+  });
 }
 
 function descargarInformeGestion() {

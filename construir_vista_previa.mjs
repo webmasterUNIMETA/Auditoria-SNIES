@@ -72,7 +72,10 @@ const MUESTRA = [
    '19/11/2021', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
   ['CC', 'DOC-EJ-008', 'DOCENTE', 'EJEMPLO', 'OCHO', '',
    'Doctorado', 'TÍTULO DE DOCTORADO DE EJEMPLO',
-   '03/05/2023', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
+   '03/05/2023', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE'],
+  ['CC', 'DOC-EJ-009', 'DOCENTE', 'EJEMPLO', 'NUEVE', '',
+   'Doctorado', 'TÍTULO DE DOCTORADO DE EJEMPLO',
+   '02/12/2022', 'Colombia', 'INSTITUCIÓN UNIVERSITARIA DE EJEMPLO', 'PENDIENTE']
 ];
 
 const docentes = MUESTRA.map((f) => {
@@ -195,10 +198,32 @@ guardadas['DOC-EJ-006'] = {
   revisadoPor: 'revisor@ejemplo.edu.co',
   fechaRevision: '19/09/2026 10:15',
   decisionRevision: 'APROBADO',
-  estadoMen: 'RADICADO',
+  estadoMen: 'SINCRONIZADO',
   radicadoMen: true,
   radicadoPor: 'revisor@ejemplo.edu.co',
-  fechaRadicacionMen: '20/09/2026 09:30'
+  fechaRadicacionMen: '20/09/2026 09:30',
+  sincronizadoSnies: true,
+  sincronizadoPor: 'revisor@ejemplo.edu.co',
+  fechaSincronizacion: '22/09/2026 16:10'
+};
+
+/* Cargado al MEN pero todavia sin confirmar en SNIES: la etapa nueva. */
+guardadas['DOC-EJ-009'] = {
+  ...guardadas['DOC-EJ-003'],
+  estadoRevision: 'APROBADO',
+  version: 5,
+  revisadoPor: 'revisor@ejemplo.edu.co',
+  fechaRevision: '16/09/2026 08:05',
+  decisionRevision: 'APROBADO',
+  observacionRevision: '',
+  revisionCriterios: Object.fromEntries(CRITERIOS.map((c) => [c.clave, 'CONFORME'])),
+  estadoMen: 'RADICADO',
+  motivoSubsanacion: '', fechaSubsanacion: '', fechaDisponibleRadicacion: '',
+  subsanacionPor: '',
+  radicadoMen: true,
+  radicadoPor: 'revisor@ejemplo.edu.co',
+  fechaRadicacionMen: '21/09/2026 15:20',
+  sincronizadoSnies: false, sincronizadoPor: '', fechaSincronizacion: ''
 };
 /* Aprobado y pendiente de radicar: el caso normal del revisor. */
 guardadas['DOC-EJ-007'] = {
@@ -246,11 +271,12 @@ docenteRadicado.estado = 'VALIDADO';
 docenteRadicado.tieneValidacion = true;
 docenteRadicado.estadoRevision = 'APROBADO';
 docenteRadicado.version = 4;
-docenteRadicado.estadoMen = 'RADICADO';
+docenteRadicado.estadoMen = 'SINCRONIZADO';
 docenteRadicado.radicadoMen = true;
+docenteRadicado.sincronizadoSnies = true;
 
 /* Los dos casos que faltaban para el tablero y la cola de radicación. */
-['DOC-EJ-007', 'DOC-EJ-008'].forEach((documento) => {
+['DOC-EJ-007', 'DOC-EJ-008', 'DOC-EJ-009'].forEach((documento) => {
   const d = docentes.find((x) => x.documento === documento);
   const g = guardadas[documento];
   Object.assign(d, {
@@ -262,7 +288,9 @@ docenteRadicado.radicadoMen = true;
     motivoSubsanacion: g.motivoSubsanacion,
     fechaSubsanacion: g.fechaSubsanacion,
     fechaDisponibleRadicacion: g.fechaDisponibleRadicacion,
-    radicadoMen: false
+    radicadoMen: !!g.radicadoMen,
+    sincronizadoSnies: !!g.sincronizadoSnies,
+    fechaSincronizacion: g.fechaSincronizacion || ''
   });
 });
 
@@ -306,7 +334,8 @@ const simulador = `
       menPendientes: 0,
       menSubsanacion: 0,
       menListos: 0,
-      menRadicados: 0
+      menRadicados: 0,
+      menSincronizados: 0
     };
     DOCENTES.forEach(function (d) {
       if (d.tieneValidacion === false) r.pendientesCarga++;
@@ -314,7 +343,8 @@ const simulador = `
       else if (d.estadoRevision === 'DEVUELTO') r.devueltos++;
       else if (d.estadoRevision === 'APROBADO') {
         r.aprobados++;
-        if (d.radicadoMen || d.estadoMen === 'RADICADO') r.menRadicados++;
+        if (d.sincronizadoSnies || d.estadoMen === 'SINCRONIZADO') r.menSincronizados++;
+        else if (d.radicadoMen || d.estadoMen === 'RADICADO') r.menRadicados++;
         else if (d.estadoMen === 'SUBSANACION') r.menSubsanacion++;
         else if (d.estadoMen === 'LISTO_RADICAR') r.menListos++;
         else r.menPendientes++;
@@ -503,6 +533,31 @@ const simulador = `
       };
     },
 
+    confirmarSincronizacionSnies: function (payload) {
+      var v = GUARDADAS[payload.documento];
+      if (!v || !v.radicadoMen) {
+        throw new Error('Primero debe marcarse la carga ante el MEN.');
+      }
+      v.sincronizadoSnies = true;
+      v.estadoMen = 'SINCRONIZADO';
+      v.sincronizadoPor = PERFIL.correo;
+      v.fechaSincronizacion = '23/09/2026 09:00';
+      v.version++;
+      DOCENTES.forEach(function (d) {
+        if (d.documento === payload.documento) {
+          d.version = v.version;
+          d.estadoMen = 'SINCRONIZADO';
+          d.sincronizadoSnies = true;
+          d.fechaSincronizacion = v.fechaSincronizacion;
+        }
+      });
+      return {
+        documento: payload.documento, version: v.version, estadoMen: 'SINCRONIZADO',
+        sincronizadoSnies: true, sincronizadoPor: v.sincronizadoPor,
+        fechaSincronizacion: v.fechaSincronizacion, resumen: resumen()
+      };
+    },
+
     obtenerInformeGestion: function (payload) {
       // El historial abarca dos meses para poder comprobar que el rango de
       // fechas mueve los bloques C, D y F pero NO el bloque B (estado a hoy).
@@ -569,8 +624,26 @@ const simulador = `
         resumen: resumen(),
         usuarios: Object.keys(porUsuario).map(function (k) { return porUsuario[k]; }),
         registros: DOCENTES.map(function (d) {
-          var v = GUARDADAS[d.documento] || {};
-          return Object.assign({ documento: d.documento, docente: d.nombreCompleto }, v);
+          var v = GUARDADAS[d.documento] || null;
+          var hallazgos = [];
+          if (v && v.criterios) {
+            CRITERIOS.forEach(function (c) {
+              var crit = v.criterios[c.clave];
+              if (!crit || crit.valor !== 'NO_COINCIDE') return;
+              hallazgos.push({
+                criterio: c.clave,
+                etiqueta: c.etiqueta,
+                reportado: d.valores ? (d.valores[c.clave] || '') : '',
+                correcto: crit.correccion || '',
+                origen: (v.revisionCriterios && v.revisionCriterios[c.clave] === 'NO_CONFORME')
+                  ? 'REVISOR' : 'TALENTO_HUMANO'
+              });
+            });
+          }
+          return Object.assign(
+            { documento: d.documento, docente: d.nombreCompleto,
+              revisado: !!v, hallazgos: hallazgos },
+            v || {});
         }),
         historial: enRango
       };
