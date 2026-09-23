@@ -3198,6 +3198,18 @@ function tarjetaDocente(d, sit) {
   var acciones = crear('div', 'docente-acciones');
   acciones.appendChild(insigniaSituacion(sit));
 
+  // Una ficha ya revisada o que no exige una accion inmediata seguia siendo
+  // accesible desde el nombre, pero ese acceso era demasiado discreto. El
+  // boton explicito permite consultar la revision y los soportes sin editar.
+  var accionAbreFicha = sit.accionPrincipal && sit.accionPrincipal.accion === 'abrir';
+  if (puedeAbrir && !accionAbreFicha) {
+    acciones.appendChild(botonAccion(
+      { texto: 'Ver revisión y soportes', accion: 'abrir' },
+      d,
+      'btn-secundario btn-compacto'
+    ));
+  }
+
   if (sit.accionSecundaria) {
     acciones.appendChild(botonAccion(sit.accionSecundaria, d, 'btn-mini'));
   }
