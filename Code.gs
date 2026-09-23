@@ -11,13 +11,13 @@
  * reportado a SNIES. Todo lo que registra el auditor vive en la hoja
  * "Validaciones", identificada por NUM_DOCUMENTO.
  *
- * CONVENCION DE NOMBRES: las funciones que terminan en guion bajo son
- * internas. Apps Script no permite invocarlas desde el navegador con
- * google.script.run, de modo que la unica superficie expuesta es:
+ * SUPERFICIE EXPUESTA: la pagina solo alcanza las acciones del catalogo
+ * ACCIONES_API de Api.gs, siempre tras verificar el token de Google y el
+ * rol del usuario. Ya no se usa HtmlService ni google.script.run.
  *
- *   obtenerDocentes()
- *   obtenerValidacion(documento)
- *   guardarValidacion(payload)
+ * Las funciones SIN guion bajo que no estan en ACCIONES_API (preparar,
+ * inspeccionar, migrar...) son de mantenimiento: solo se ejecutan a mano
+ * desde el editor. Las que terminan en guion bajo son internas.
  */
 
 /* ============================================================
@@ -55,6 +55,19 @@ var MEN_RADICADO = 'RADICADO';
  * distinguirlas: todo lo cargado se daba por cerrado.
  */
 var MEN_SINCRONIZADO = 'SINCRONIZADO';
+/**
+ * Aprobado sin ningun hallazgo: sus diez datos coinciden con SNIES, asi que
+ * no hay plantilla que corregir ni tramite ante el MEN. Se cierra al
+ * aprobarlo, en lugar de pasar por radicacion y confirmacion.
+ */
+var MEN_SIN_NOVEDAD = 'SIN_NOVEDAD';
+
+/**
+ * Version del contrato de datos con la pagina. La pagina avisa si el
+ * servidor publicado es anterior al que ella espera: protege de publicar
+ * la pagina antes que el servidor, o de revertir solo uno de los dos.
+ */
+var CONTRATO_API = 2;
 
 var REV_CONFORME = 'CONFORME';
 var REV_NO_CONFORME = 'NO_CONFORME';
@@ -564,6 +577,7 @@ function estadoMenEfectivo_(estado, disponible, radicado, sincronizado) {
   if (sincronizado) return MEN_SINCRONIZADO;
   if (radicado) return MEN_RADICADO;
   var normalizado = String(estado || '').trim().toUpperCase();
+  if (normalizado === MEN_SIN_NOVEDAD) return MEN_SIN_NOVEDAD;
   if (normalizado === MEN_SUBSANACION) {
     var fecha = fechaOperativa_(disponible);
     if (fecha && fecha.getTime() <= hoyColombia_().getTime()) return MEN_LISTO;
@@ -1149,7 +1163,8 @@ function resumirEstados_(lista) {
     menSubsanacion: 0,
     menListos: 0,
     menRadicados: 0,
-    menSincronizados: 0
+    menSincronizados: 0,
+    menSinNovedad: 0
   };
   lista.forEach(function (d) {
     if (d.tieneValidacion === false) resumen.pendientesCarga++;
@@ -1157,7 +1172,8 @@ function resumirEstados_(lista) {
     else if (d.estadoRevision === REV_DEVUELTO) resumen.devueltos++;
     else if (d.estadoRevision === REV_APROBADO) {
       resumen.aprobados++;
-      if (d.estadoMen === MEN_SINCRONIZADO || d.sincronizadoSnies) resumen.menSincronizados++;
+      if (d.estadoMen === MEN_SIN_NOVEDAD) resumen.menSinNovedad++;
+      else if (d.estadoMen === MEN_SINCRONIZADO || d.sincronizadoSnies) resumen.menSincronizados++;
       else if (d.estadoMen === MEN_RADICADO || d.radicadoMen) resumen.menRadicados++;
       else if (d.estadoMen === MEN_SUBSANACION) resumen.menSubsanacion++;
       else if (d.estadoMen === MEN_LISTO) resumen.menListos++;
@@ -1220,6 +1236,12 @@ function obtenerDocentes(identidad) {
         fechaEnvio: validacion ? validacion.fechaEnvio : '',
         revisadoPor: validacion ? validacion.revisadoPor : '',
         fechaRevision: validacion ? validacion.fechaRevision : '',
+        // La bandeja de Talento Humano muestra por que se le devolvio un
+        // expediente sin abrir la ficha de cada uno. Consulta no lo recibe,
+        // por la misma razon que no recibe `valores`.
+        decisionRevision: validacion ? validacion.decisionRevision : '',
+        observacionRevision: validacion && identidad.rol !== ROL_CONSULTA
+          ? validacion.observacionRevision : '',
         estadoMen: validacion ? validacion.estadoMen : MEN_PENDIENTE,
         motivoSubsanacion: validacion ? validacion.motivoSubsanacion : '',
         fechaSubsanacion: validacion ? validacion.fechaSubsanacion : '',
@@ -1234,6 +1256,7 @@ function obtenerDocentes(identidad) {
     });
 
     return {
+      contrato: CONTRATO_API,
       auditoria: configuracion.nombreAuditoria,
       criterios: CRITERIOS.map(function (c) {
       return {
@@ -1615,7 +1638,11 @@ function hallazgosDe_(docente, validacion) {
 
 /** Datos consolidados para el informe operativo descargable. */
 function obtenerInformeGestion(payload, identidad) {
-  exigirRol_(identidad, [ROL_REVISOR]);
+  exigirRol_(identidad, [ROL_REVISOR, ROL_CONSULTA]);
+  // Consulta ve el avance, no el detalle academico: ni los valores de los
+  // hallazgos ni las observaciones del historial, que tambien los llevan
+  // ("Correccion directa del revisor: Titulo: X").
+  var soloAvance = identidad.rol === ROL_CONSULTA;
   var desde = fechaOperativa_(payload && payload.desde);
   var hasta = fechaOperativa_(payload && payload.hasta);
   if (hasta) hasta.setHours(23, 59, 59, 999);
@@ -1650,7 +1677,10 @@ function obtenerInformeGestion(payload, identidad) {
       sincronizadoPor: validacion ? validacion.sincronizadoPor : '',
       fechaSincronizacion: validacion ? validacion.fechaSincronizacion : '',
       revisado: !!validacion,
-      hallazgos: hallazgosDe_(docente, validacion)
+      observacionRevision: validacion && !soloAvance ? validacion.observacionRevision : '',
+      hallazgos: hallazgosDe_(docente, validacion).map(function (h) {
+        return soloAvance ? { criterio: h.criterio, etiqueta: h.etiqueta, origen: h.origen } : h;
+      })
     };
   });
 
@@ -1677,7 +1707,7 @@ function obtenerInformeGestion(payload, identidad) {
         estadoNuevo: texto_(datos[i][mapa.ESTADO_NUEVO - 1]),
         correo: correo,
         rol: texto_(datos[i][mapa.ROL - 1]),
-        observacion: texto_(datos[i][mapa.OBSERVACION - 1])
+        observacion: soloAvance ? '' : texto_(datos[i][mapa.OBSERVACION - 1])
       };
       eventos.push(fila);
       var claveUsuario = correo + '|' + fila.rol;
@@ -1691,6 +1721,7 @@ function obtenerInformeGestion(payload, identidad) {
   }
 
   return {
+    contrato: CONTRATO_API,
     generado: formatearFechaHora_(new Date()),
     desde: payload && payload.desde ? String(payload.desde) : '',
     hasta: payload && payload.hasta ? String(payload.hasta) : '',
@@ -1854,6 +1885,18 @@ function decidirRevision(payload, identidad) {
       throw new Error('Explique en la observación qué debe corregir Talento Humano.');
     }
 
+    // Un campo es hallazgo si el revisor lo marca no conforme, o si Talento
+    // Humano ya lo marco "no coincide" (conforme significa que el revisor da
+    // por buena esa correccion). Sin ninguno, no hay nada que corregir en
+    // SNIES: el expediente se cierra al aprobarlo.
+    var tieneHallazgos = CRITERIOS.some(function (c) {
+      if (resultados[c.clave] === REV_NO_CONFORME) return true;
+      var th = validacion.criterios ? validacion.criterios[c.clave] : null;
+      return !!(th && th.valor === NO_COINCIDE);
+    });
+    var estadoMenFinal = decision !== REV_APROBADO ? ''
+      : (tieneHallazgos ? MEN_PENDIENTE : MEN_SIN_NOVEDAD);
+
     var hoja = hojaValidaciones_();
     var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
     var ahora = formatearFechaHora_(new Date());
@@ -1865,7 +1908,7 @@ function decidirRevision(payload, identidad) {
       FECHA_REVISION: ahora,
       DECISION_REVISION: decision,
       OBSERVACION_REVISION: observacion,
-      ESTADO_MEN: decision === REV_APROBADO ? MEN_PENDIENTE : '',
+      ESTADO_MEN: estadoMenFinal,
       MOTIVO_SUBSANACION: '',
       FECHA_SUBSANACION: '',
       FECHA_DISPONIBLE_RADICACION: '',
@@ -1891,6 +1934,10 @@ function decidirRevision(payload, identidad) {
 
     escribirFila_(hoja, mapa, registro.fila, valores, false);
     var notaHistorial = observacion;
+    if (estadoMenFinal === MEN_SIN_NOVEDAD) {
+      notaHistorial = 'Sin hallazgos: se cierra sin trámite ante el MEN.' +
+        (observacion ? ' Observación: ' + observacion : '');
+    }
     if (detalleCorrecciones.length) {
       notaHistorial = 'Corrección directa del revisor: ' + detalleCorrecciones.join('; ') +
         (observacion ? '. Observación: ' + observacion : '');
@@ -1899,14 +1946,15 @@ function decidirRevision(payload, identidad) {
       decision === REV_APROBADO
         ? (detalleCorrecciones.length ? 'APROBADO_CON_CORRECCION_REVISOR' : 'APROBADO')
         : 'DEVUELTO',
-      REV_EN_REVISION, decision, notaHistorial);
+      REV_EN_REVISION, estadoMenFinal === MEN_SIN_NOVEDAD ? MEN_SIN_NOVEDAD : decision,
+      notaHistorial);
     SpreadsheetApp.flush();
 
     return {
       documento: docente.documento,
       estado: detalleCorrecciones.length ? ESTADO_CORRECCION : validacion.estado,
       estadoRevision: decision,
-      estadoMen: decision === REV_APROBADO ? MEN_PENDIENTE : '',
+      estadoMen: estadoMenFinal,
       version: nuevaVersion,
       resumen: resumenActual_()
     };
@@ -1946,6 +1994,9 @@ function ponerEnSubsanacion(payload, identidad) {
     exigirVersion_(payload, validacion);
     if (validacion.estadoRevision !== REV_APROBADO || validacion.radicadoMen) {
       throw new Error('Solo se puede poner en subsanación una revisión aprobada y aún no radicada.');
+    }
+    if (validacion.estadoMen === MEN_SIN_NOVEDAD) {
+      throw new Error('Este expediente no tiene correcciones: no requiere trámite ante el MEN.');
     }
 
     var hoja = hojaValidaciones_();
@@ -2002,6 +2053,9 @@ function confirmarRadicadoMen(payload, identidad) {
     if (validacion.estadoRevision !== REV_APROBADO) {
       throw new Error('Solo se puede confirmar el radicado MEN de una revisión aprobada.');
     }
+    if (validacion.estadoMen === MEN_SIN_NOVEDAD) {
+      throw new Error('Este expediente no tiene correcciones: no requiere trámite ante el MEN.');
+    }
     if (validacion.estadoMen === MEN_SUBSANACION) {
       throw new Error('La solicitud sigue en subsanación. Estará disponible para radicar el ' +
         (validacion.fechaDisponibleRadicacion || 'día programado') + '.');
@@ -2013,7 +2067,8 @@ function confirmarRadicadoMen(payload, identidad) {
         estadoMen: MEN_RADICADO,
         radicadoMen: true,
         radicadoPor: validacion.radicadoPor,
-        fechaRadicacionMen: validacion.fechaRadicacionMen
+        fechaRadicacionMen: validacion.fechaRadicacionMen,
+        resumen: resumenActual_()
       };
     }
 
@@ -2575,7 +2630,7 @@ function prepararAuditoria() {
  */
 var RADICADO_RETROACTIVO = {
   documento: '',
-  fecha: '22/09/2026',
+  fecha: '',
   hora: '17:00',
   correo: ''
 };
@@ -2589,6 +2644,11 @@ function registrarRadicadoRetroactivo() {
   }
 
   try {
+    if (!RADICADO_RETROACTIVO.documento || !RADICADO_RETROACTIVO.fecha ||
+        !RADICADO_RETROACTIVO.correo) {
+      throw new Error('Complete RADICADO_RETROACTIVO (documento, fecha y correo) antes de ' +
+        'ejecutar. Vacíelo de nuevo al terminar: Code.gs se publica en GitHub.');
+    }
     var documento = normalizarDocumento_(RADICADO_RETROACTIVO.documento);
     var fecha = String(RADICADO_RETROACTIVO.fecha || '').trim();
     var hora = String(RADICADO_RETROACTIVO.hora || '00:00').trim();
@@ -2668,6 +2728,106 @@ function registrarRadicadoRetroactivo() {
     console.log(informe);
     return informe;
 
+  } finally {
+    candado.releaseLock();
+  }
+}
+
+/* ============================================================
+   CIERRE DE APROBADOS SIN HALLAZGOS (migracion, solo desde el editor)
+
+   La regla nueva cierra al aprobarlo a quien no tiene nada que corregir.
+   Los aprobados ANTES de la regla siguen esperando un tramite que no les
+   corresponde. Estas dos funciones los ponen al dia:
+
+     revisarAprobadosSinHallazgo()  -> informe de solo lectura
+     cerrarAprobadosSinHallazgo()   -> cierra SOLO los que nadie toco
+
+   Solo se cierran solos los que siguen en PENDIENTE: nadie los movio en
+   la etapa MEN. Los que alguien puso en subsanacion, o ya radico, se
+   listan para que una persona decida: pudo haber una razon.
+   ============================================================ */
+
+/** Agrupa los aprobados sin hallazgos por su estado MEN actual. */
+function aprobadosSinHallazgo_() {
+  var indice = leerValidaciones_();
+  var grupos = {};
+  leerDocentes_().forEach(function (docente) {
+    var registro = indice[docente.clave];
+    if (!registro) return;
+    var validacion = armarValidacion_(registro);
+    if (validacion.estadoRevision !== REV_APROBADO) return;
+    if (validacion.estadoMen === MEN_SIN_NOVEDAD) return;
+    if (hallazgosDe_(docente, validacion).length) return;
+    (grupos[validacion.estadoMen] = grupos[validacion.estadoMen] || []).push({
+      docente: docente, validacion: validacion, fila: registro.fila
+    });
+  });
+  return grupos;
+}
+
+function revisarAprobadosSinHallazgo() {
+  var grupos = aprobadosSinHallazgo_();
+  var orden = [MEN_PENDIENTE, MEN_SUBSANACION, MEN_LISTO, MEN_RADICADO, MEN_SINCRONIZADO];
+  var lineas = ['APROBADOS SIN HALLAZGOS (sus diez datos coinciden con SNIES)', ''];
+  var total = 0;
+
+  orden.forEach(function (estado) {
+    var lista = grupos[estado] || [];
+    total += lista.length;
+    lineas.push(estado + ': ' + lista.length +
+      (estado === MEN_PENDIENTE ? '   <- se cierran con cerrarAprobadosSinHallazgo()'
+                                : '   <- NO se tocan; revise cada caso'));
+    lista.forEach(function (x) {
+      lineas.push('    ' + x.docente.documento + ' - ' + x.docente.nombreCompleto +
+        (x.validacion.motivoSubsanacion ? '  [motivo: ' + x.validacion.motivoSubsanacion + ']' : ''));
+    });
+  });
+
+  lineas.push('', 'Total: ' + total + '. No se modificó nada.');
+  var informe = lineas.join('\n');
+  console.log(informe);
+  return informe;
+}
+
+function cerrarAprobadosSinHallazgo() {
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo.');
+  }
+
+  try {
+    var pendientes = aprobadosSinHallazgo_()[MEN_PENDIENTE] || [];
+    if (!pendientes.length) {
+      console.log('No hay aprobados sin hallazgos pendientes de cierre.');
+      return 'Sin cambios.';
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    // Sin correo personal en el codigo: Code.gs se publica en GitHub.
+    var actor = { correo: 'mantenimiento (editor)', rol: 'ADMINISTRADOR' };
+
+    pendientes.forEach(function (x) {
+      var nuevaVersion = x.validacion.version + 1;
+      escribirFila_(hoja, mapa, x.fila, {
+        ESTADO_MEN: MEN_SIN_NOVEDAD,
+        VERSION: nuevaVersion
+      }, false);
+      registrarHistorial_(x.docente.documento, nuevaVersion, actor, 'APROBADO',
+        MEN_PENDIENTE, MEN_SIN_NOVEDAD,
+        'Sin hallazgos: se cierra sin trámite ante el MEN (regla aplicada a un aprobado anterior).');
+    });
+    SpreadsheetApp.flush();
+
+    var informe = 'Cerrados sin novedad: ' + pendientes.length + '\n' +
+      pendientes.map(function (x) {
+        return '  ' + x.docente.documento + ' - ' + x.docente.nombreCompleto;
+      }).join('\n');
+    console.log(informe);
+    return informe;
   } finally {
     candado.releaseLock();
   }
