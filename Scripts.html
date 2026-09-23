@@ -1048,8 +1048,11 @@ function tarjetaDocente(docente) {
 
   if (esRevisor() && estado === REV_APROBADO) {
     var estadoMen = estadoMenDe(docente);
-    if (estadoMen === MEN_PENDIENTE) {
-      var subsanar = crear('button', 'btn-compacto btn-secundario', 'Poner en subsanación');
+    if (estadoMen === MEN_PENDIENTE || estadoMen === MEN_LISTO) {
+      // Un expediente ya vencido puede volver a aplazarse: el texto lo
+      // dice para que no parezca que se está empezando de cero.
+      var subsanar = crear('button', 'btn-compacto btn-secundario',
+        estadoMen === MEN_LISTO ? 'Volver a subsanación' : 'Poner en subsanación');
       subsanar.type = 'button';
       subsanar.setAttribute('data-documento', docente.documento);
       subsanar.setAttribute('data-accion', 'subsanar-men');
@@ -1292,7 +1295,8 @@ function describirEtapa_(estadoRevision, estadoMen, v) {
       parrafos: [
         quien === 'rev'
           ? 'La fecha de subsanación ya venció. Radique el expediente en la plataforma ' +
-            'del Ministerio y después vuelva aquí y márquelo como radicado.'
+            'del Ministerio y después vuelva aquí y márquelo como radicado. Si todavía ' +
+            'no puede radicarlo, vuelva a ponerlo en subsanación con una fecha nueva.'
           : 'La fecha de subsanación ya venció. El revisor puede radicarlo ante el MEN.'
       ],
       cita: v.motivoSubsanacion || '',
@@ -2471,8 +2475,19 @@ function abrirDialogoSubsanacion(documento) {
   var docente = APP.docentes.filter(function (d) { return d.documento === documento; })[0];
   if (!docente) return;
   DOCUMENTO_SUBSANACION = documento;
-  $('docenteSubsanacion').textContent = docente.nombreCompleto + ' · ' + documento;
-  $('motivoSubsanacion').value = '';
+
+  var vencida = estadoMenDe(docente) === MEN_LISTO;
+  $('tituloSubsanacion').textContent = vencida
+    ? 'Aplazar la radicación'
+    : 'Poner en subsanación MEN';
+  $('docenteSubsanacion').textContent = docente.nombreCompleto + ' · ' + documento +
+    (vencida
+      ? ' — ya estaba listo para radicar; indique la nueva fecha y el motivo.'
+      : '');
+
+  // Si vuelve a aplazarse, el motivo anterior se ofrece como punto de
+  // partida: casi siempre es una continuación del mismo asunto.
+  $('motivoSubsanacion').value = vencida ? (docente.motivoSubsanacion || '') : '';
   $('fechaDisponibleSubsanacion').value = mananaIso();
   $('fechaDisponibleSubsanacion').min = mananaIso();
   ocultarAviso($('errorSubsanacion'));

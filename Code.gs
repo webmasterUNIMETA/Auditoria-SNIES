@@ -2405,3 +2405,131 @@ function prepararAuditoria() {
   console.log(informe);
   return informe;
 }
+
+/* ============================================================
+   REGISTRO RETROACTIVO DE RADICACION
+
+   Se ejecuta A MANO desde el editor, nunca desde la pagina: no esta
+   en ACCIONES_API y por tanto es inalcanzable desde internet.
+
+   Existe porque la radicacion ocurre en la plataforma del MEN, fuera
+   de esta aplicacion, y no siempre se marca aqui el mismo dia. El
+   boton normal estampa la hora del clic; esta funcion permite dejar
+   constancia de la fecha REAL en que se radico.
+
+   HONESTIDAD DE LA BITACORA: se guarda la fecha real en
+   FECHA_RADICACION_MEN, pero el asiento del historial lleva la hora
+   en que se registro (ahora) y una observacion que dice que es
+   retroactivo. Asi el expediente refleja lo que paso y la bitacora
+   refleja cuando se anoto, que no son lo mismo.
+   ============================================================ */
+
+/**
+ * Documento del docente, fecha real de radicacion (dd/MM/yyyy) y quien
+ * la realizo.
+ *
+ * El correo se escribe aqui y no se toma de Session.getActiveUser()
+ * porque eso exigiria anadir el permiso userinfo.email al manifiesto, y
+ * cambiar los scopes obliga a que TODOS los usuarios vuelvan a autorizar
+ * la aplicacion. No compensa para una funcion de mantenimiento. Ademas,
+ * quien ejecuta el script no tiene por que ser quien radico.
+ */
+var RADICADO_RETROACTIVO = {
+  documento: '',
+  fecha: '22/09/2026',
+  hora: '17:00',
+  correo: ''
+};
+
+function registrarRadicadoRetroactivo() {
+  var candado = LockService.getScriptLock();
+  try {
+    candado.waitLock(30000);
+  } catch (e) {
+    throw new Error('El sistema está atendiendo otra solicitud. Intente de nuevo.');
+  }
+
+  try {
+    var documento = normalizarDocumento_(RADICADO_RETROACTIVO.documento);
+    var fecha = String(RADICADO_RETROACTIVO.fecha || '').trim();
+    var hora = String(RADICADO_RETROACTIVO.hora || '00:00').trim();
+
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+      throw new Error('La fecha debe tener el formato dd/MM/yyyy. Recibida: "' + fecha + '".');
+    }
+
+    var correo = String(RADICADO_RETROACTIVO.correo || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+      throw new Error('Indique en RADICADO_RETROACTIVO.correo la cuenta de quien radicó. ' +
+        'Recibido: "' + correo + '".');
+    }
+    var identidad = { correo: correo, rol: ROL_REVISOR };
+
+    var docente = buscarDocente_(documento);
+    if (!docente) throw new Error('El documento ' + documento + ' no figura en la hoja Docentes.');
+
+    var registro = leerValidaciones_()[docente.clave];
+    if (!registro) throw new Error('El docente ' + documento + ' no tiene validación registrada.');
+
+    var validacion = armarValidacion_(registro);
+
+    if (validacion.estadoRevision !== REV_APROBADO) {
+      throw new Error('Solo se puede radicar una revisión aprobada. ' + docente.nombreCompleto +
+        ' está en estado "' + validacion.estadoRevision + '".');
+    }
+
+    if (validacion.radicadoMen) {
+      var yaEstaba = 'Sin cambios: ' + docente.nombreCompleto + ' ya figura como radicado' +
+        (validacion.fechaRadicacionMen ? ' el ' + validacion.fechaRadicacionMen : '') +
+        (validacion.radicadoPor ? ', por ' + validacion.radicadoPor : '') + '.';
+      console.log(yaEstaba);
+      return yaEstaba;
+    }
+
+    // Una subsanación vigente y una radicación anterior a su fecha se
+    // contradicen. No se bloquea (quien ejecuta esto sabe lo que pasó),
+    // pero queda escrito en la bitácora.
+    var aviso = '';
+    if (validacion.estadoMen === MEN_SUBSANACION) {
+      aviso = ' El registro estaba en subsanación con fecha ' +
+        (validacion.fechaDisponibleRadicacion || 'sin definir') + '.';
+    }
+
+    var hoja = hojaValidaciones_();
+    var mapa = mapaEncabezados_(hoja.getRange(1, 1, 1, hoja.getLastColumn()).getValues()[0]);
+    var sello = fecha + ' ' + hora;
+    var nuevaVersion = validacion.version + 1;
+
+    escribirFila_(hoja, mapa, registro.fila, {
+      ESTADO_MEN: MEN_RADICADO,
+      RADICADO_MEN: 'SI',
+      RADICADO_POR: correo,
+      FECHA_RADICACION_MEN: sello,
+      // La subsanación queda sin efecto: ya se radicó.
+      MOTIVO_SUBSANACION: '',
+      FECHA_DISPONIBLE_RADICACION: '',
+      VERSION: nuevaVersion
+    }, false);
+
+    registrarHistorial_(docente.documento, nuevaVersion, identidad, 'RADICADO_MEN',
+      REV_APROBADO, REV_APROBADO,
+      'Registro retroactivo: la radicación ante el MEN se realizó el ' + sello +
+      ' y se anotó en el sistema con posterioridad.' + aviso);
+
+    SpreadsheetApp.flush();
+
+    var informe =
+      'Radicación registrada.\n' +
+      '  Docente: ' + docente.nombreCompleto + ' (' + docente.documento + ')\n' +
+      '  Fecha real de radicación: ' + sello + '\n' +
+      '  Registrado por: ' + correo + '\n' +
+      '  Versión: ' + validacion.version + ' -> ' + nuevaVersion +
+      (aviso ? '\n  Aviso:' + aviso : '');
+
+    console.log(informe);
+    return informe;
+
+  } finally {
+    candado.releaseLock();
+  }
+}
