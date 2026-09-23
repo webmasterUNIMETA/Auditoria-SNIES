@@ -5116,9 +5116,32 @@ function pintarHallazgos(registros, generado) {
   bloque.appendChild(crear('p', 'subtitulo', 'Hallazgos y correcciones a la plantilla SNIES'));
   bloque.appendChild(estampa('Estado a ' + (generado || 'hoy') + ' · no depende del periodo'));
 
+  // El servidor desplegado puede ser anterior a este informe: hasta que no
+  // se publica una version nueva, obtenerInformeGestion no envia hallazgos.
+  // Decirlo es obligatorio; callarlo mostraria a los 50 como sin revisar.
+  var servidorAntiguo = registros.length > 0 &&
+    registros.every(function (r) { return r.hallazgos === undefined; });
+
+  if (servidorAntiguo) {
+    var alerta = crear('div', 'aviso aviso-alerta');
+    alerta.appendChild(crear('p', null,
+      'El servidor todavía no envía el detalle de correcciones. Este bloque no se ' +
+      'puede calcular hasta que se publique una versión nueva de la aplicación en ' +
+      'Apps Script (Implementar → Gestionar implementaciones → Nueva versión).'));
+    bloque.appendChild(alerta);
+    return bloque;
+  }
+
+  // Si el servidor no marca "revisado", se deduce de los rastros que sí
+  // enviaba antes: quien guardó y cuándo se modificó por última vez.
+  var fueRevisado = function (r) {
+    if (r.revisado !== undefined) return r.revisado;
+    return !!(r.fechaModificacion || r.guardadoPor);
+  };
+
   var conHallazgo = registros.filter(function (r) { return (r.hallazgos || []).length; });
-  var sinHallazgo = registros.filter(function (r) { return r.revisado && !(r.hallazgos || []).length; });
-  var sinRevisar = registros.filter(function (r) { return !r.revisado; });
+  var sinHallazgo = registros.filter(function (r) { return fueRevisado(r) && !(r.hallazgos || []).length; });
+  var sinRevisar = registros.filter(function (r) { return !fueRevisado(r); });
 
   var correcciones = 0;
   conHallazgo.forEach(function (r) { correcciones += r.hallazgos.length; });
@@ -5183,7 +5206,11 @@ function pintarHallazgos(registros, generado) {
   }
 
   if (sinRevisar.length) {
-    bloque.appendChild(crear('p', 'subtitulo', 'Docentes que faltan por revisar'));
+    bloque.appendChild(crear('p', 'subtitulo',
+      'Docentes sin validación cargada (' + sinRevisar.length + ')'));
+    bloque.appendChild(crear('p', 'nota-pie',
+      'Talento Humano todavía no ha registrado la comparación de estos docentes, ' +
+      'así que no se sabe si tienen hallazgos.'));
     bloque.appendChild(tablaInforme(
       ['Documento', 'Docente', 'Situación'],
       sinRevisar.map(function (r) {
